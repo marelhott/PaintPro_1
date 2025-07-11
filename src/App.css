@@ -187,7 +187,7 @@ body::after {
 
 /* Revolutionary Sidebar with Ultra Glassmorphism */
 .sidebar {
-  width: 280px;
+  width: clamp(240px, 20vw, 320px);
   background: linear-gradient(180deg, 
     rgba(255, 255, 255, 0.06) 0%, 
     rgba(255, 255, 255, 0.02) 50%,
@@ -195,7 +195,7 @@ body::after {
   backdrop-filter: var(--backdrop-blur) var(--backdrop-saturate);
   -webkit-backdrop-filter: var(--backdrop-blur) var(--backdrop-saturate);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 36px 28px;
+  padding: clamp(24px, 3vw, 36px) clamp(16px, 2.5vw, 28px);
   position: fixed;
   left: 0;
   top: 0;
@@ -389,13 +389,13 @@ body::after {
 /* Page Layout s plnou šířkou bez prázdných míst */
 .main-content {
   flex: 1;
-  margin-left: 280px;
-  padding: 40px 24px;
+  margin-left: clamp(240px, 20vw, 320px);
+  padding: clamp(16px, 3vw, 40px) clamp(12px, 2vw, 24px);
   background: transparent;
   min-height: 100vh;
   position: relative;
   z-index: 100;
-  width: calc(100vw - 280px);
+  width: calc(100vw - clamp(240px, 20vw, 320px));
   max-width: none;
   box-sizing: border-box;
 }
@@ -550,10 +550,12 @@ body::after {
 /* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(clamp(280px, 25vw, 350px), 1fr));
+  gap: clamp(16px, 2.5vw, 32px);
+  margin-bottom: clamp(24px, 3vw, 40px);
   overflow: visible;
+  width: 100%;
+  max-width: 100%;
 }
 
 .stat-card {
@@ -979,8 +981,10 @@ body::after {
 .charts-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: clamp(16px, 2.5vw, 32px);
+  margin-bottom: clamp(24px, 3vw, 40px);
+  width: 100%;
+  max-width: 100%;
 }
 
 .chart-card {
@@ -2065,18 +2069,19 @@ body::after {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
-/* Plně responsivní tabulka bez pevných rozměrů */
+/* Plně responsivní tabulka se širším využitím prostoru */
 .table-card {
   background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  border-radius: 20px;
+  border-radius: clamp(12px, 1.5vw, 20px);
   border: 1px solid rgba(255, 255, 255, 0.18);
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: clamp(16px, 2vw, 24px);
   margin-left: 0;
   margin-right: 0;
   width: 100%;
+  max-width: 100%;
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.04),
     0 1px 2px rgba(0, 0, 0, 0.08);
@@ -2087,6 +2092,7 @@ body::after {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   width: 100%;
+  max-width: 100%;
 }
 
 /* Responsivní tabulka bez pevné min-width */
@@ -3539,9 +3545,36 @@ body::after {
 
 /* Filter Actions */
 .filter-actions {
-  padding-top: 16px;
+  padding-top: clamp(12px, 2vw, 20px);
   border-top: 1px solid var(--border-color);
-  margin-top: 16px;
+  margin-top: clamp(12px, 2vw, 20px);
+}
+
+.filter-section {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: clamp(16px, 2.5vw, 28px);
+}
+
+.filter-card {
+  width: 100%;
+  max-width: 100%;
+  padding: clamp(16px, 2.5vw, 24px);
+  border-radius: clamp(12px, 1.5vw, 16px);
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: clamp(12px, 2vw, 20px);
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .filter-row {
+    grid-template-columns: 1fr;
+    gap: clamp(10px, 2.5vw, 16px);
+  }
 }
 
 .btn-small {
@@ -6773,102 +6806,132 @@ body::after {
 /* Ultra Wide 4K+ (2560px+) */
 @media (min-width: 2560px) {
   .main-content {
-    padding: 60px 80px;
-    max-width: 2400px;
-    margin: 0 auto;
+    padding: clamp(40px, 4vw, 80px) clamp(24px, 3vw, 60px);
+    margin-left: clamp(280px, 18vw, 360px);
+    width: calc(100vw - clamp(280px, 18vw, 360px));
   }
   
   .sidebar {
-    width: 320px;
-  }
-  
-  .main-content {
-    margin-left: 320px;
+    width: clamp(280px, 18vw, 360px);
   }
   
   .stats-grid {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 32px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: clamp(24px, 3vw, 48px);
+    max-width: 100%;
   }
   
   .stat-card {
-    padding: 40px 32px;
-    min-height: 180px;
+    padding: clamp(32px, 3vw, 48px);
+    min-height: clamp(160px, 12vw, 200px);
   }
   
   .stat-card .stat-value {
-    font-size: 42px !important;
+    font-size: clamp(32px, 3vw, 48px) !important;
   }
   
   .charts-grid {
-    grid-template-columns: 2fr 1fr;
-    gap: 40px;
+    grid-template-columns: 2.5fr 1fr;
+    gap: clamp(32px, 4vw, 64px);
+    max-width: 100%;
   }
   
   .page-header h1 {
-    font-size: 40px;
+    font-size: clamp(28px, 3vw, 48px);
   }
   
   .orders-table th, .orders-table td {
-    padding: 20px 24px;
-    font-size: 16px;
+    padding: clamp(12px, 1.5vw, 24px);
+    font-size: clamp(13px, 1vw, 18px);
+  }
+  
+  .table-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 clamp(24px, 3vw, 48px) 0;
   }
 }
 
 /* Large Desktop (1920px-2559px) */
 @media (max-width: 2559px) and (min-width: 1920px) {
   .main-content {
-    padding: 48px 64px;
+    padding: clamp(32px, 3vw, 64px) clamp(20px, 2.5vw, 48px);
+    margin-left: clamp(260px, 16vw, 320px);
+    width: calc(100vw - clamp(260px, 16vw, 320px));
+  }
+  
+  .sidebar {
+    width: clamp(260px, 16vw, 320px);
   }
   
   .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 28px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: clamp(20px, 2.5vw, 36px);
+    max-width: 100%;
   }
   
   .stat-card {
-    padding: 32px 28px;
-    min-height: 160px;
+    padding: clamp(24px, 2.5vw, 36px);
+    min-height: clamp(140px, 10vw, 180px);
   }
   
   .stat-card .stat-value {
-    font-size: 38px !important;
+    font-size: clamp(28px, 2.5vw, 42px) !important;
   }
   
   .charts-grid {
-    grid-template-columns: 2fr 1fr;
-    gap: 32px;
+    grid-template-columns: 2.2fr 1fr;
+    gap: clamp(24px, 3vw, 48px);
+    max-width: 100%;
   }
   
   .orders-table th, .orders-table td {
-    padding: 18px 22px;
-    font-size: 15px;
+    padding: clamp(12px, 1.2vw, 20px);
+    font-size: clamp(12px, 1vw, 16px);
+  }
+  
+  .table-card {
+    width: 100%;
+    max-width: 100%;
   }
 }
 
 /* Standard Desktop (1440px-1919px) */
 @media (max-width: 1919px) and (min-width: 1440px) {
   .main-content {
-    padding: 40px 48px;
+    padding: clamp(24px, 3vw, 48px) clamp(16px, 2.5vw, 40px);
+    margin-left: clamp(240px, 18vw, 300px);
+    width: calc(100vw - clamp(240px, 18vw, 300px));
+  }
+  
+  .sidebar {
+    width: clamp(240px, 18vw, 300px);
   }
   
   .stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: clamp(18px, 2vw, 32px);
+    max-width: 100%;
   }
   
   .stat-card {
-    padding: 28px 24px;
-    min-height: 150px;
+    padding: clamp(20px, 2vw, 32px);
+    min-height: clamp(130px, 9vw, 170px);
   }
   
   .stat-card .stat-value {
-    font-size: 34px !important;
+    font-size: clamp(24px, 2.2vw, 38px) !important;
   }
   
   .charts-grid {
     grid-template-columns: 2fr 1fr;
-    gap: 28px;
+    gap: clamp(20px, 2.5vw, 36px);
+    max-width: 100%;
+  }
+  
+  .table-card {
+    width: 100%;
+    max-width: 100%;
   }
 }
 
@@ -6919,60 +6982,72 @@ body::after {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 24px;
+    padding: clamp(12px, 2vw, 20px) clamp(16px, 3vw, 32px);
   }
   
   .sidebar-nav {
     display: flex;
     flex-direction: row;
-    gap: 16px;
+    gap: clamp(8px, 1.5vw, 20px);
+    flex-wrap: wrap;
   }
   
   .nav-item {
-    padding: 12px 16px;
-    font-size: 14px;
+    padding: clamp(8px, 1.2vw, 16px) clamp(10px, 1.5vw, 20px);
+    font-size: clamp(12px, 1.3vw, 16px);
     white-space: nowrap;
   }
   
   .main-content {
     margin-left: 0;
-    padding: 24px 16px;
+    padding: clamp(16px, 3vw, 32px) clamp(12px, 2vw, 24px);
     width: 100%;
+    max-width: 100%;
   }
   
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: clamp(12px, 2vw, 24px);
+    max-width: 100%;
   }
   
   .stat-card {
-    padding: 20px 16px;
-    min-height: 120px;
+    padding: clamp(16px, 2vw, 24px);
+    min-height: clamp(100px, 12vw, 140px);
   }
   
   .stat-card .stat-value {
-    font-size: 26px !important;
+    font-size: clamp(20px, 2.5vw, 30px) !important;
   }
   
   .charts-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: clamp(16px, 2.5vw, 28px);
+    max-width: 100%;
   }
   
-  /* Responsivní tabulka bez pevných min-width */
   .orders-table {
     table-layout: auto;
+    width: 100%;
   }
   
   .orders-table th,
   .orders-table td {
-    padding: 10px 6px;
-    font-size: 12px;
+    padding: clamp(6px, 1vw, 12px);
+    font-size: clamp(10px, 1.2vw, 14px);
   }
   
   .table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .table-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 clamp(16px, 2vw, 24px) 0;
   }
 }
 
@@ -7151,164 +7226,164 @@ body::after {
   .app-container {
     flex-direction: column;
     min-height: 100vh;
+    width: 100%;
+    max-width: 100%;
   }
   
   .sidebar {
     width: 100%;
     height: auto;
     position: relative;
-    padding: 8px 12px;
+    padding: clamp(6px, 2vw, 12px) clamp(8px, 3vw, 16px);
   }
   
   .logo-title {
-    font-size: 18px;
+    font-size: clamp(16px, 4vw, 20px);
   }
   
   .sidebar-nav {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: clamp(4px, 1vw, 8px);
+    margin-bottom: clamp(6px, 1.5vw, 12px);
   }
   
   .nav-item {
-    padding: 10px 6px;
-    font-size: 11px;
+    padding: clamp(8px, 2vw, 12px) clamp(4px, 1vw, 8px);
+    font-size: clamp(10px, 2.5vw, 13px);
     text-align: center;
   }
   
   .main-content {
     margin-left: 0;
-    padding: 12px 8px;
+    padding: clamp(8px, 3vw, 16px) clamp(6px, 2vw, 12px);
     flex: 1;
     width: 100%;
+    max-width: 100%;
   }
   
   .page-header {
-    margin-bottom: 16px;
-    padding: 0 8px;
+    margin-bottom: clamp(12px, 3vw, 20px);
+    padding: 0;
   }
   
   .page-header h1 {
-    font-size: 20px;
+    font-size: clamp(18px, 5vw, 24px);
   }
   
   .page-header p {
-    font-size: 13px;
+    font-size: clamp(12px, 3vw, 15px);
   }
   
   .stats-grid {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: clamp(8px, 2vw, 12px);
+    width: 100%;
+    max-width: 100%;
   }
   
   .stat-card {
-    padding: 14px 12px;
-    min-height: 80px;
+    padding: clamp(12px, 3vw, 18px);
+    min-height: clamp(70px, 15vw, 90px);
+    width: 100%;
   }
   
   .stat-card .stat-value {
-    font-size: 20px !important;
+    font-size: clamp(18px, 4.5vw, 24px) !important;
   }
   
   .stat-title {
-    font-size: 11px;
+    font-size: clamp(10px, 2.2vw, 12px);
   }
   
   .charts-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: clamp(10px, 2.5vw, 16px);
+    width: 100%;
+    max-width: 100%;
   }
   
   .chart-container-large {
-    height: 200px;
+    height: clamp(180px, 40vw, 220px);
   }
   
-  /* Mobilní tabulka - plně responzivní */
   .orders-table {
-    font-size: 10px;
+    font-size: clamp(9px, 2.2vw, 11px);
     table-layout: auto;
+    width: 100%;
   }
   
   .orders-table th,
   .orders-table td {
-    padding: 4px 2px;
-    font-size: 9px;
+    padding: clamp(3px, 1vw, 6px) clamp(2px, 0.8vw, 4px);
+    font-size: clamp(8px, 2vw, 10px);
     white-space: nowrap;
-  }
-  
-  .orders-table th:nth-child(1),
-  .orders-table td:nth-child(1) { /* # */
-    width: 30px;
-    min-width: 30px;
   }
   
   .table-container {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    margin: 0 -8px;
-    padding: 0 8px;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .table-card {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 clamp(12px, 3vw, 20px) 0;
+    border-radius: clamp(8px, 2vw, 12px);
   }
   
   .action-buttons {
     display: flex;
     flex-direction: row;
-    gap: 2px;
+    gap: clamp(1px, 0.5vw, 3px);
   }
   
   .action-buttons button {
-    padding: 4px 6px;
-    font-size: 10px;
-    min-width: 28px;
-    height: 28px;
+    padding: clamp(3px, 1vw, 6px);
+    font-size: clamp(8px, 2vw, 10px);
+    min-width: clamp(24px, 6vw, 32px);
+    height: clamp(24px, 6vw, 32px);
   }
   
   .modal-overlay {
-    padding: 8px;
+    padding: clamp(4px, 2vw, 10px);
   }
   
   .modal-content {
     width: 100%;
+    max-width: 100%;
     margin: 0;
     max-height: 95vh;
-    border-radius: 12px;
+    border-radius: clamp(8px, 2vw, 12px);
   }
   
   .form-row {
     flex-direction: column;
-    gap: 10px;
+    gap: clamp(8px, 2vw, 12px);
   }
   
   .form-group {
-    margin-bottom: 10px;
+    margin-bottom: clamp(8px, 2vw, 12px);
+    width: 100%;
   }
   
   .form-group input,
   .form-group select {
-    padding: 12px;
+    padding: clamp(10px, 3vw, 14px);
     font-size: 16px; /* Prevent zoom on iOS */
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .btn {
-    padding: 12px 16px;
-    font-size: 14px;
+    padding: clamp(10px, 3vw, 14px) clamp(12px, 4vw, 18px);
+    font-size: clamp(12px, 3.5vw, 16px);
     width: 100%;
     justify-content: center;
-  }
-  
-  .file-upload-cell {
-    min-width: 50px;
-  }
-  
-  .upload-button {
-    padding: 4px 6px;
-    font-size: 9px;
-  }
-  
-  .files-count {
-    width: 20px;
-    height: 20px;
-    font-size: 10px;
   }
 }
 
