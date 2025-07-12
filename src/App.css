@@ -2098,15 +2098,16 @@ body::after {
 /* Responsivní tabulka bez pevné min-width */
 .orders-table {
   width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
+  border-collapse: separate;
+  border-spacing: 8px 0;
+  table-layout: fixed;
   min-width: 100%;
 }
 
 /* Flexibilní sloupce podle obsahu */
 .orders-table th {
   background: var(--surface-bg);
-  padding: 12px 8px;
+  padding: 12px 6px;
   text-align: left;
   font-size: 11px;
   font-weight: 600;
@@ -2121,7 +2122,7 @@ body::after {
 }
 
 .orders-table td {
-  padding: 12px 8px;
+  padding: 12px 6px;
   border-bottom: 1px solid rgba(64, 64, 102, 0.3);
   font-size: 13px;
   color: var(--text-secondary);
@@ -2152,14 +2153,12 @@ body::after {
 .orders-table td:nth-child(4) { /* KLIENT */
   width: 12%;
   min-width: 120px;
-  padding: 12px 4px 12px 8px !important;
 }
 
 .orders-table th:nth-child(5),
 .orders-table td:nth-child(5) { /* ID ZAKÁZKY */
   width: 8%;
   min-width: 90px;
-  padding: 12px 8px 12px 4px !important;
 }
 
 .orders-table th:nth-child(6),
@@ -2215,14 +2214,12 @@ body::after {
 .orders-table td:nth-child(13) { /* ADRESA */
   width: 15%;
   min-width: 150px;
-  padding: 12px 4px 12px 8px !important;
 }
 
 .orders-table th:nth-child(14),
 .orders-table td:nth-child(14) { /* TYP */
   width: 5%;
   min-width: 60px;
-  padding: 12px 8px 12px 4px !important;
 }
 
 .orders-table th:nth-child(15),
