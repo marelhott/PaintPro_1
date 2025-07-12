@@ -8087,6 +8087,12 @@ body::after {
   }
 }
 
+/* Loading spinner animace */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Zajištění že tabulka je vždy scrollovatelná horizontálně */
 .zakazky .table-container {
   position: relative;

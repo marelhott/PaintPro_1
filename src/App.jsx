@@ -391,12 +391,14 @@ const PaintPro = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
-  // OPRAVA: Inicializace zakazkyData jako prázdné pole
+  // OPRAVA: Inicializace zakazkyData jako prázdné pole + loading stav
   const [zakazkyData, setZakazkyData] = useState([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
 
   // Načtení dat při přihlášení uživatele
   useEffect(() => {
     const loadUserData = async () => {
+      setIsDataLoading(true);
       if (currentUser?.id) {
         try {
           const data = await getUserData(currentUser.id);
@@ -411,6 +413,7 @@ const PaintPro = () => {
       } else {
         setZakazkyData([]); // Žádný uživatel = prázdná data
       }
+      setIsDataLoading(false);
     };
 
     loadUserData();
@@ -4365,6 +4368,41 @@ const PaintPro = () => {
         return <Dashboard />;
     }
   };
+
+  // Loading obrazovka během načítání dat
+  if (isDataLoading) {
+    return (
+      <div className="app-container">
+        <Sidebar />
+        <main className="main-content">
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '60vh',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              border: '4px solid #e5e7eb',
+              borderTop: '4px solid #6366f1',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <div style={{
+              color: 'var(--text-secondary)',
+              fontSize: '16px',
+              fontWeight: '500'
+            }}>
+              Načítám data...
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="app-container">
