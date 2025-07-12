@@ -642,6 +642,24 @@ export const AuthProvider = ({ children }) => {
   const syncLocalToSupabase = async (userId, localOrders) => {
     try {
       console.log('🔄 Začínám synchronizaci:', localOrders.length, 'zakázek');
+      console.log('🔍 Supabase URL:', supabaseUrl);
+      console.log('🔍 Supabase Key exists:', !!supabaseAnonKey);
+
+      // Test připojení k Supabase
+      try {
+        const { data: testData, error: testError } = await supabase
+          .from('orders')
+          .select('count', { count: 'exact' })
+          .eq('user_id', userId);
+
+        console.log('🔍 Test připojení - současný počet zakázek v Supabase:', testData);
+        if (testError) {
+          console.error('❌ Chyba při testu připojení:', testError);
+        }
+      } catch (testErr) {
+        console.error('❌ Kritická chyba připojení:', testErr);
+        return;
+      }
 
       // Nejprve vytvoř uživatele pokud neexistuje
       const { error: userError } = await supabase
@@ -682,6 +700,9 @@ export const AuthProvider = ({ children }) => {
 
       console.log('📝 Synchronizuji', ordersToSync.length, 'zakázek do Supabase...');
 
+      console.log('📝 Pripravuji', ordersToSync.length, 'zakázek k synchronizaci...');
+      console.log('📝 Ukázka dat k synchronizaci:', ordersToSync.slice(0, 2));
+
       const { data, error } = await supabase
         .from('orders')
         .insert(ordersToSync)
@@ -690,9 +711,23 @@ export const AuthProvider = ({ children }) => {
       if (error) {
         console.error('❌ Chyba při synchronizaci do Supabase:', error.message);
         console.error('❌ Detaily chyby:', error);
+        console.error('❌ Ukázkové data které selhaly:', ordersToSync.slice(0, 1));
       } else {
         console.log('✅ Synchronizace úspěšně dokončena!');
         console.log('✅ Vloženo', data?.length || 0, 'zakázek do Supabase');
+        console.log('✅ Ukázka vložených dat:', data?.slice(0, 2));
+        
+        // Ověření - zkontroluj že data jsou skutečně v DB
+        try {
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('orders')
+            .select('count', { count: 'exact' })
+            .eq('user_id', userId);
+          
+          console.log('🔍 Ověření po synchronizaci - počet zakázek v DB:', verifyData);
+        } catch (verifyErr) {
+          console.warn('⚠️ Chyba při ověření:', verifyErr);
+        }
       }
 
     } catch (error) {
@@ -836,7 +871,8 @@ export const AuthProvider = ({ children }) => {
     getUserData,
     addUserOrder,
     editUserOrder,
-    deleteUserOrder
+    deleteUserOrder,
+    syncLocalToSupabase // Exportujeme pro manuální použití
   };
 
   return (
