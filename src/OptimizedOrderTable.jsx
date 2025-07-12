@@ -1,4 +1,3 @@
-
 import React, { memo, useMemo } from 'react';
 
 // Importujeme FileUploadCell z hlavního App.jsx - zatím použijeme jednoduchý placeholder
@@ -78,7 +77,11 @@ const OptimizedOrderTable = memo(({
   itemsPerPage,
   onEdit,
   onDelete,
-  onFilesUpdate 
+  onFilesUpdate,
+  filteredOrders,
+  setCurrentPage,
+  totalPages,
+  startIndex
 }) => {
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -87,6 +90,7 @@ const OptimizedOrderTable = memo(({
   }, [zakazkyData, currentPage, itemsPerPage]);
 
   return (
+    <>
     <table className="orders-table">
       <thead>
         <tr>
@@ -124,6 +128,103 @@ const OptimizedOrderTable = memo(({
         ))}
       </tbody>
     </table>
+    {/* Decentní paginace vpravo dole */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        marginTop: '16px',
+        padding: '12px 0'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          fontSize: '13px',
+          color: 'var(--text-muted)'
+        }}>
+          <span>
+            {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredOrders.length)} z {filteredOrders.length}
+          </span>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              style={{
+                padding: '6px 8px',
+                border: 'none',
+                borderRadius: '4px',
+                background: 'transparent',
+                color: currentPage === 1 ? 'var(--text-muted)' : 'var(--text-secondary)',
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                opacity: currentPage === 1 ? 0.5 : 1,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (currentPage !== 1) {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.color = 'var(--text-primary)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentPage !== 1) {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = 'var(--text-secondary)';
+                }
+              }}
+            >
+              ‹
+            </button>
+
+            <span style={{
+              padding: '4px 8px',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              minWidth: '60px',
+              textAlign: 'center'
+            }}>
+              {currentPage} / {totalPages}
+            </span>
+
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: '6px 8px',
+                border: 'none',
+                borderRadius: '4px',
+                background: 'transparent',
+                color: currentPage === totalPages ? 'var(--text-muted)' : 'var(--text-secondary)',
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                fontSize: '12px',
+                opacity: currentPage === totalPages ? 0.5 : 1,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (currentPage !== totalPages) {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.color = 'var(--text-primary)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentPage !== totalPages) {
+                  e.target.style.background = 'transparent';
+                  e.target.style.color = 'var(--text-secondary)';
+                }
+              }}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </div>
+      </>
   );
 });
 
