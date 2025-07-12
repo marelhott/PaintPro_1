@@ -32,19 +32,38 @@ export const AuthProvider = ({ children }) => {
     return castka - fee - material - pomocnik - palivo;
   };
 
+  // Hash funkce pro PIN (jednoduchá implementace)
+  const hashPin = (pin) => {
+    let hash = 0;
+    for (let i = 0; i < pin.length; i++) {
+      const char = pin.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString();
+  };
+
   // Inicializace výchozího uživatele
   const initializeDefaultUser = () => {
     const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
     if (users.length === 0) {
+      // Náhodný PIN pro každou novou instalaci
+      const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
       const defaultUser = {
         id: 'user_1',
         name: 'Dušan',
         avatar: 'DU',
         color: '#6366f1',
-        pin: '1234',
+        pin: hashPin(randomPin),
+        plainPin: randomPin, // DOČASNĚ pro zobrazení uživateli
         createdAt: new Date().toISOString()
       };
       localStorage.setItem('paintpro_users', JSON.stringify([defaultUser]));
+      
+      // Zobrazit PIN uživateli
+      setTimeout(() => {
+        alert(`🔐 Váš nový bezpečnostní PIN: ${randomPin}\nUložte si ho na bezpečné místo!`);
+      }, 1000);
     }
 
     // OPRAVA: Vždy zkontroluj a přidej ukázková data, pokud nejsou
@@ -523,9 +542,17 @@ export const AuthProvider = ({ children }) => {
   const login = async (pin) => {
     try {
       const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-      const user = users.find(u => u.pin === pin);
+      const hashedPin = hashPin(pin);
+      const user = users.find(u => u.pin === hashedPin);
       
       if (user) {
+        // Odstraň plainPin po prvním přihlášení
+        if (user.plainPin) {
+          delete user.plainPin;
+          const updatedUsers = users.map(u => u.id === user.id ? user : u);
+          localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
+        }
+        
         setCurrentUser(user);
         localStorage.setItem('paintpro_current_user', JSON.stringify(user));
         return { success: true };
