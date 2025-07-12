@@ -616,7 +616,7 @@ export const AuthProvider = ({ children }) => {
         } catch (supabaseError) {
           console.warn('⚠️ Supabase chyba při synchronizaci:', supabaseError.message);
           
-          // Fallback na localStorage
+          // Fallback na localStorage (už je deklarovaný nahoře)
           if (localOrders.length > 0) {
             console.log('✅ Data načtena z localStorage (fallback) pro uživatele:', userId, 'počet zakázek:', localOrders.length);
             return localOrders;
@@ -624,8 +624,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // Pokud Supabase není dostupný, použij localStorage
-      const localOrders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
+      // Pokud localStorage má data, vrať je
       if (localOrders.length > 0) {
         console.log('✅ Data načtena z localStorage pro uživatele:', userId, 'počet zakázek:', localOrders.length);
         return localOrders;
