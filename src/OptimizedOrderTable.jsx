@@ -1,5 +1,4 @@
 
-```jsx
 import React, { memo, useMemo } from 'react';
 
 // Importujeme FileUploadCell z hlavního App.jsx - zatím použijeme jednoduchý placeholder
@@ -47,7 +46,7 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
       <td className="profit-bold-green">{zakazka.zisk.toLocaleString()}</td>
       <td className="address-cell">{zakazka.adresa || '-'}</td>
       <td>
-        <span className={`typ-badge typ-${zakazka.typ || 'nezadano'}`}>
+        <span className={'typ-badge typ-' + (zakazka.typ || 'nezadano')}>
           {zakazka.typ || '-'}
         </span>
       </td>
@@ -129,4 +128,3 @@ const OptimizedOrderTable = memo(({
 });
 
 export default OptimizedOrderTable;
-```
