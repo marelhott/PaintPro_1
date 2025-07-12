@@ -577,33 +577,46 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro získání dat uživatele
   const getUserData = async (userId) => {
     try {
-      // Nejprve zkusit Supabase (pokud jsou tabulky vytvořené)
+      // Nejprve načti z localStorage
+      const localOrders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
+      console.log('📊 localStorage obsahuje:', localOrders.length, 'zakázek');
+
+      // Pokud máme Supabase nastavený, zkus synchronizaci
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
         try {
-          const { data, error } = await supabase
+          // Zkontroluj, kolik dat je v Supabase
+          const { data: supabaseData, error } = await supabase
             .from('orders')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-          if (!error && data && data.length > 0) {
-            console.log('✅ Data načtena ze Supabase pro uživatele:', userId, 'počet zakázek:', data.length);
-            return data;
+          const supabaseCount = supabaseData?.length || 0;
+          console.log('📊 Supabase obsahuje:', supabaseCount, 'zakázek');
+
+          // Pokud localStorage má více dat než Supabase, synchronizuj
+          if (localOrders.length > supabaseCount) {
+            console.log('🔄 Spouštím synchronizaci:', localOrders.length, 'localStorage →', supabaseCount, 'Supabase');
+            await syncLocalToSupabase(userId, localOrders);
+            console.log('✅ Synchronizace dokončena');
           }
 
-          // Pokud Supabase je prázdný, ale localStorage má data, synchronizuj
-          const localOrders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
+          // Vrať data z localStorage (jako primary source)
           if (localOrders.length > 0) {
-            console.log('🔄 Synchronizuji localStorage data do Supabase...');
-            await syncLocalToSupabase(userId, localOrders);
+            console.log('✅ Data načtena z localStorage pro uživatele:', userId);
             return localOrders;
           }
 
+          // Pokud localStorage je prázdný, ale Supabase má data, vrať Supabase data
+          if (supabaseData && supabaseData.length > 0) {
+            console.log('✅ Data načtena ze Supabase pro uživatele:', userId);
+            return supabaseData;
+          }
+
         } catch (supabaseError) {
-          console.warn('⚠️ Supabase nedostupný:', supabaseError.message);
+          console.warn('⚠️ Supabase chyba při synchronizaci:', supabaseError.message);
           
           // Fallback na localStorage
-          const localOrders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
           if (localOrders.length > 0) {
             console.log('✅ Data načtena z localStorage (fallback) pro uživatele:', userId, 'počet zakázek:', localOrders.length);
             return localOrders;
@@ -629,6 +642,8 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro synchronizaci localStorage dat do Supabase
   const syncLocalToSupabase = async (userId, localOrders) => {
     try {
+      console.log('🔄 Začínám synchronizaci:', localOrders.length, 'zakázek');
+
       // Nejprve vytvoř uživatele pokud neexistuje
       const { error: userError } = await supabase
         .from('users')
@@ -641,7 +656,9 @@ export const AuthProvider = ({ children }) => {
         }]);
 
       if (userError) {
-        console.warn('Uživatel již existuje nebo chyba:', userError.message);
+        console.warn('⚠️ Uživatel již existuje nebo chyba:', userError.message);
+      } else {
+        console.log('✅ Uživatel vytvořen/aktualizován');
       }
 
       // Pak synchronizuj zakázky
@@ -664,19 +681,23 @@ export const AuthProvider = ({ children }) => {
         zisk: order.zisk || 0
       }));
 
+      console.log('📝 Synchronizuji', ordersToSync.length, 'zakázek do Supabase...');
+
       const { data, error } = await supabase
         .from('orders')
         .insert(ordersToSync)
         .select();
 
       if (error) {
-        console.warn('Chyba při synchronizaci do Supabase:', error.message);
+        console.error('❌ Chyba při synchronizaci do Supabase:', error.message);
+        console.error('❌ Detaily chyby:', error);
       } else {
-        console.log('✅ Synchronizace dokončena:', data?.length || 0, 'zakázek');
+        console.log('✅ Synchronizace úspěšně dokončena!');
+        console.log('✅ Vloženo', data?.length || 0, 'zakázek do Supabase');
       }
 
     } catch (error) {
-      console.error('❌ Chyba při synchronizaci:', error);
+      console.error('❌ Kritická chyba při synchronizaci:', error);
     }
   };
 
