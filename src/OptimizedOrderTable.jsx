@@ -144,7 +144,7 @@ const OptimizedOrderTable = memo(({
           color: 'var(--text-muted)'
         }}>
           <span>
-            {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredOrders.length)} z {filteredOrders.length}
+            {startIndex + 1} - {Math.min(startIndex + itemsPerPage, zakazkyData.length)} z {zakazkyData.length}
           </span>
 
           <div style={{
