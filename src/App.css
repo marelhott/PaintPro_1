@@ -2109,7 +2109,7 @@ This file contains the complete code with the table rebuilt and updated.
 .orders-table th {
   background: var(--surface-bg);
   padding: 12px 8px;
-  text-align: left;
+  text-align: center;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
@@ -2130,7 +2130,7 @@ This file contains the complete code with the table rebuilt and updated.
   vertical-align: top;
 }
 
-/* Specifické šířky sloupců pro lepší rozložení */
+/* Specifické šířky sloupců s jednotným zarovnáním na střed */
 .orders-table th:nth-child(1),
 .orders-table td:nth-child(1) { /* # */
   width: 3%;
@@ -2142,103 +2142,112 @@ This file contains the complete code with the table rebuilt and updated.
 .orders-table td:nth-child(2) { /* DATUM */
   width: 7%;
   min-width: 80px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(3),
 .orders-table td:nth-child(3) { /* DRUH PRÁCE */
   width: 8%;
   min-width: 90px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(4),
 .orders-table td:nth-child(4) { /* KLIENT */
   width: 12%;
   min-width: 120px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(5),
 .orders-table td:nth-child(5) { /* ID ZAKÁZKY */
   width: 8%;
   min-width: 90px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(6),
 .orders-table td:nth-child(6) { /* TRŽBA */
   width: 7%;
   min-width: 80px;
-  text-align: right;
+  text-align: center;
 }
 
 .orders-table th:nth-child(7),
 .orders-table td:nth-child(7) { /* FEE */
   width: 6%;
   min-width: 70px;
-  text-align: right;
+  text-align: center;
 }
 
 .orders-table th:nth-child(8),
 .orders-table td:nth-child(8) { /* FEE OFF */
   width: 7%;
   min-width: 80px;
-  text-align: right;
+  text-align: center;
 }
 
 .orders-table th:nth-child(9),
 .orders-table td:nth-child(9) { /* PALIVO */
   width: 6%;
   min-width: 70px;
-  text-align: right;
+  text-align: center;
 }
 
 .orders-table th:nth-child(10),
 .orders-table td:nth-child(10) { /* MATERIÁL */
   width: 7%;
   min-width: 80px;
-  text-align: right;
+  text-align: center;
 }
 
 .orders-table th:nth-child(11),
 .orders-table td:nth-child(11) { /* POMOCNÍK */
   width: 7%;
   min-width: 80px;
-  text-align: right;
+  text-align: center;
 }
 
 .orders-table th:nth-child(12),
 .orders-table td:nth-child(12) { /* ČISTÝ ZISK */
   width: 8%;
   min-width: 90px;
-  text-align: right;
+  text-align: center;
 }
 
 .orders-table th:nth-child(13),
 .orders-table td:nth-child(13) { /* ADRESA */
   width: 15%;
   min-width: 150px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(14),
 .orders-table td:nth-child(14) { /* TYP */
   width: 5%;
   min-width: 60px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(15),
 .orders-table td:nth-child(15) { /* DOBA REALIZACE */
   width: 8%;
   min-width: 90px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(16),
 .orders-table td:nth-child(16) { /* POZNÁMKY */
   width: 10%;
   min-width: 100px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(17),
 .orders-table td:nth-child(17) { /* SOUBORY */
   width: 6%;
   min-width: 70px;
+  text-align: center;
 }
 
 .orders-table th:nth-child(18),
