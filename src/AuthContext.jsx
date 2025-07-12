@@ -1,5 +1,11 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+// Inicializace Supabase klienta
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Vytvoření AuthContext
 const AuthContext = createContext();
@@ -28,7 +34,7 @@ export const AuthProvider = ({ children }) => {
     const material = Number(orderData.material) || 0;
     const pomocnik = Number(orderData.pomocnik) || 0;
     const palivo = Number(orderData.palivo) || 0;
-    
+
     return castka - fee - material - pomocnik - palivo;
   };
 
@@ -59,7 +65,7 @@ export const AuthProvider = ({ children }) => {
         createdAt: new Date().toISOString()
       };
       localStorage.setItem('paintpro_users', JSON.stringify([defaultUser]));
-      
+
       // Zobrazit PIN uživateli
       setTimeout(() => {
         alert(`🔐 Váš nový bezpečnostní PIN: ${randomPin}\nUložte si ho na bezpečné místo!`);
@@ -70,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     const existingOrders = JSON.parse(localStorage.getItem('paintpro_orders_user_1') || '[]');
     if (existingOrders.length === 0) {
       console.log('🔧 Přidávám ukázková data...');
-      
+
       // Přidání ukázkových zakázek pro výchozího uživatele
       const sampleOrders = [
         {
@@ -530,7 +536,7 @@ export const AuthProvider = ({ children }) => {
           createdAt: new Date().toISOString()
         }
       ];
-      
+
       localStorage.setItem('paintpro_orders_user_1', JSON.stringify(sampleOrders));
       console.log('✅ Ukázková data přidána:', sampleOrders.length, 'zakázek');
     } else {
@@ -544,7 +550,7 @@ export const AuthProvider = ({ children }) => {
       const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
       const hashedPin = hashPin(pin);
       const user = users.find(u => u.pin === hashedPin);
-      
+
       if (user) {
         // Odstraň plainPin po prvním přihlášení
         if (user.plainPin) {
@@ -552,7 +558,7 @@ export const AuthProvider = ({ children }) => {
           const updatedUsers = users.map(u => u.id === user.id ? user : u);
           localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
         }
-        
+
         setCurrentUser(user);
         localStorage.setItem('paintpro_current_user', JSON.stringify(user));
         return { success: true };
@@ -571,62 +577,126 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('paintpro_current_user');
   };
 
-  // Získání dat uživatele (zakázky)
+  // Funkce pro získání dat uživatele
   const getUserData = async (userId) => {
     try {
-      const orders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
-      return orders;
+      // Pokusit se načíst ze Supabase
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        console.log('✅ Data načtena ze Supabase pro uživatele:', userId, 'počet zakázek:', data?.length || 0);
+        return data || [];
+      } catch (supabaseError) {
+        console.warn('⚠️ Supabase nedostupný, načítám lokálně:', supabaseError);
+
+        // Fallback na localStorage
+        const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+        const user = users.find(u => u.id === userId);
+
+        if (user) {
+          return user.orders || [];
+        }
+
+        return [];
+      }
     } catch (error) {
-      console.error('Chyba při načítání dat:', error);
+      console.error('❌ Chyba při načítání dat uživatele:', error);
       return [];
     }
   };
 
-  // Přidání nové zakázky
+  // Funkce pro přidání nové zakázky
   const addUserOrder = async (userId, orderData) => {
     try {
-      const orders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
-      
-      // Vytvoření nové zakázky s vypočítaným ziskem
-      const newOrder = {
-        ...orderData,
-        id: Date.now(),
-        zisk: calculateProfit(orderData),
-        createdAt: new Date().toISOString()
-      };
-      
-      const updatedOrders = [...orders, newOrder];
-      localStorage.setItem(`paintpro_orders_${userId}`, JSON.stringify(updatedOrders));
-      
-      return updatedOrders;
+      // Pokusit se uložit do Supabase
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .insert([{
+            user_id: userId,
+            ...orderData,
+            created_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        console.log('✅ Zakázka uložena do Supabase:', data);
+        return data;
+      } catch (supabaseError) {
+        console.warn('⚠️ Supabase nedostupný, ukládám lokálně:', supabaseError);
+
+        // Fallback na localStorage
+        const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+        const userIndex = users.findIndex(u => u.id === userId);
+
+        if (userIndex !== -1) {
+          const newOrder = {
+            ...orderData,
+            id: Date.now(),
+            createdAt: new Date().toISOString()
+          };
+
+          users[userIndex].orders.push(newOrder);
+          localStorage.setItem('paintpro_users', JSON.stringify(users));
+          return newOrder;
+        }
+
+        throw new Error('Uživatel nenalezen');
+      }
     } catch (error) {
-      console.error('Chyba při přidávání zakázky:', error);
+      console.error('❌ Chyba při přidávání zakázky:', error);
       throw error;
     }
   };
 
-  // Úprava zakázky
+  // Funkce pro editaci zakázky
   const editUserOrder = async (userId, orderId, updatedData) => {
     try {
-      const orders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
-      
-      const updatedOrders = orders.map(order => {
-        if (order.id === orderId) {
-          const updatedOrder = {
-            ...order,
-            ...updatedData,
-            zisk: calculateProfit(updatedData),
-            updatedAt: new Date().toISOString()
-          };
-          return updatedOrder;
+      // Pokusit se aktualizovat v Supabase
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .update(updatedData)
+          .eq('id', orderId)
+          .eq('user_id', userId)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        console.log('✅ Zakázka aktualizována v Supabase:', data);
+        return data;
+      } catch (supabaseError) {
+        console.warn('⚠️ Supabase nedostupný, aktualizuji lokálně:', supabaseError);
+
+        // Fallback na localStorage
+        const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+        const userIndex = users.findIndex(u => u.id === userId);
+
+        if (userIndex !== -1) {
+          const orderIndex = users[userIndex].orders.findIndex(o => o.id === orderId);
+          if (orderIndex !== -1) {
+            users[userIndex].orders[orderIndex] = {
+              ...users[userIndex].orders[orderIndex],
+              ...updatedData
+            };
+            localStorage.setItem('paintpro_users', JSON.stringify(users));
+            return users[userIndex].orders[orderIndex];
+          }
         }
-        return order;
-      });
-      
-      localStorage.setItem(`paintpro_orders_${userId}`, JSON.stringify(updatedOrders));
-      return updatedOrders;
+
+        throw new Error('Zakázka nenalezena');
+      }
     } catch (error) {
-      console.error('Chyba při úpravě zakázky:', error);
+      console.error('❌ Chyba při editaci zakázky:', error);
       throw error;
     }
   };
@@ -636,7 +706,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const orders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
       const updatedOrders = orders.filter(order => order.id !== orderId);
-      
+
       localStorage.setItem(`paintpro_orders_${userId}`, JSON.stringify(updatedOrders));
       return updatedOrders;
     } catch (error) {
@@ -651,7 +721,7 @@ export const AuthProvider = ({ children }) => {
       try {
         // Inicializace výchozího uživatele
         initializeDefaultUser();
-        
+
         // Kontrola uloženého uživatele
         const savedUser = localStorage.getItem('paintpro_current_user');
         if (savedUser) {
