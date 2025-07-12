@@ -2171,6 +2171,7 @@ This file contains the complete code with the table rebuilt and updated.
   width: 7%;
   min-width: 80px;
   text-align: center;
+  font-weight: 700; /* Tučné písmo pro TRŽBA */
 }
 
 .orders-table th:nth-child(7),
@@ -2213,6 +2214,8 @@ This file contains the complete code with the table rebuilt and updated.
   width: 8%;
   min-width: 90px;
   text-align: center;
+  font-weight: 700; /* Tučné písmo pro ČISTÝ ZISK */
+  color: var(--accent-green); /* Zelená barva pro ČISTÝ ZISK */
 }
 
 .orders-table th:nth-child(13),
