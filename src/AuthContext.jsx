@@ -10,9 +10,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Vytvoření AuthContext
 const AuthContext = createContext();
 
-// Export AuthContext pro přímé použití
-export { AuthContext };
-
 // Hook pro použití AuthContext
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -829,4 +826,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export default AuthContext;
+export { AuthContext };
+export default AuthProvider;
