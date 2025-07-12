@@ -183,6 +183,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2';
+import OptimizedOrderTable from './OptimizedOrderTable';
 
 ChartJS.register(
   CategoryScale,
@@ -2009,124 +2010,53 @@ const PaintPro = () => {
 
       <div className="table-card">
         <div className="table-container">
-          <table className="orders-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>DATUM</th>
-                <th>DRUH PRÁCE</th>
-                <th>KLIENT</th>
-                <th>ID ZAKÁZKY</th>
-                <th>TRŽBA</th>
-                <th>FEE</th>
-                <th>FEE OFF</th>
-                <th>PALIVO</th>
-                <th>MATERIÁL</th>
-                <th>POMOCNÍK</th>
-                <th>ČISTÝ ZISK</th>
-                <th>ADRESA</th>
-                <th>TYP</th>
-                <th>DOBA REALIZACE</th>
-                <th>POZNÁMKY</th>
-                <th>SOUBORY</th>
-                <th>AKCE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                // Filtrování zakázek (pouze hlavní zakázky, bez kalendářových)
-                const filteredZakazky = filterMainOrdersOnly(zakazkyData)
-                  .filter(zakazka => {
-                    // Filtr podle klienta
-                    const clientMatch = searchClient === '' || 
-                      zakazka.klient.toLowerCase().includes(searchClient.toLowerCase());
+          {(() => {
+            // Filtrování zakázek (pouze hlavní zakázky, bez kalendářových)
+            const filteredZakazky = filterMainOrdersOnly(zakazkyData)
+              .filter(zakazka => {
+                // Filtr podle klienta
+                const clientMatch = searchClient === '' || 
+                  zakazka.klient.toLowerCase().includes(searchClient.toLowerCase());
 
-                    // Filtr podle druhu práce  
-                    const druhMatch = filterDruhPrace === '' || zakazka.druh === filterDruhPrace;
+                // Filtr podle druhu práce  
+                const druhMatch = filterDruhPrace === '' || zakazka.druh === filterDruhPrace;
 
-                    // Filtr podle datumu
-                    let dateMatch = true;
-                    if (filterDateFrom || filterDateTo) {
-                      const zakazkaDate = new Date(zakazka.datum.split('. ').reverse().join('-'));
+                // Filtr podle datumu
+                let dateMatch = true;
+                if (filterDateFrom || filterDateTo) {
+                  const zakazkaDate = new Date(zakazka.datum.split('. ').reverse().join('-'));
 
-                      if (filterDateFrom) {
-                        const fromDate = new Date(filterDateFrom);
-                        dateMatch = dateMatch && zakazkaDate >= fromDate;
-                      }
+                  if (filterDateFrom) {
+                    const fromDate = new Date(filterDateFrom);
+                    dateMatch = dateMatch && zakazkaDate >= fromDate;
+                  }
 
-                      if (filterDateTo) {
-                        const toDate = new Date(filterDateTo);
-                        dateMatch = dateMatch && zakazkaDate <= toDate;
-                      }
-                    }
+                  if (filterDateTo) {
+                    const toDate = new Date(filterDateTo);
+                    dateMatch = dateMatch && zakazkaDate <= toDate;
+                  }
+                }
 
-                    return clientMatch && druhMatch && dateMatch;
-                  })
-                  // Řazení podle datumu - nejnovější nahoře, nejstarší dole
-                  .sort((a, b) => {
-                    const dateA = new Date(a.datum.split('. ').reverse().join('-'));
-                    const dateB = new Date(b.datum.split('. ').reverse().join('-'));
-                    return dateB - dateA; // Sestupně (nejnovější první)
-                  });
+                return clientMatch && druhMatch && dateMatch;
+              })
+              // Řazení podle datumu - nejnovější nahoře, nejstarší dole
+              .sort((a, b) => {
+                const dateA = new Date(a.datum.split('. ').reverse().join('-'));
+                const dateB = new Date(b.datum.split('. ').reverse().join('-'));
+                return dateB - dateA; // Sestupně (nejnovější první)
+              });
 
-                // Paginace
-                const totalItems = filteredZakazky.length;
-                const totalPages = Math.ceil(totalItems / itemsPerPage);
-                const startIndex = (currentPage - 1) * itemsPerPage;
-                const endIndex = startIndex + itemsPerPage;
-                const currentZakazky = filteredZakazky.slice(startIndex, endIndex);
-
-                return currentZakazky.map((zakazka, index) => (
-                <tr key={zakazka.id} className="table-row">
-                  <td className="order-number">
-                    {startIndex + index + 1}
-                  </td>
-                  <td>{zakazka.datum}</td>
-                  <td>{zakazka.druh}</td>
-                  <td>{zakazka.klient}</td>
-                  <td>{zakazka.cislo}</td>
-                  <td className="amount-bold-black">{zakazka.castka.toLocaleString()}</td>
-                  <td>{zakazka.fee.toLocaleString()}</td>
-                  <td>{(zakazka.castka - zakazka.fee).toLocaleString()}</td>
-                  <td>{zakazka.palivo.toLocaleString()}</td>
-                  <td>{zakazka.material.toLocaleString()}</td>
-                  <td>{zakazka.pomocnik.toLocaleString()}</td>
-                  <td className="profit-bold-green">{zakazka.zisk.toLocaleString()}</td>
-                  <td className="address-cell">{zakazka.adresa || '-'}</td>
-                  <td>
-                    {/* TYP */}
-                    <span className={`typ-badge typ-${zakazka.typ || 'nezadano'}`}>
-                      {zakazka.typ || '-'}
-                    </span>
-                  </td>
-                  <td>
-                    {/* DOBA REALIZACE */}
-                    {zakazka.dobaRealizace ? `${zakazka.dobaRealizace} ${zakazka.dobaRealizace === 1 ? 'den' : zakazka.dobaRealizace <= 4 ? 'dny' : 'dní'}` : '1 den'}
-                  </td>
-                  <td>
-                    {/* POZNÁMKY */}
-                    {zakazka.poznamky || '-'}
-                  </td>
-                  <td>
-                    {/* SOUBORY */}
-                    <FileUploadCell zakazka={zakazka} onFilesUpdate={(files) => handleFilesUpdate(zakazka.id, files)} />
-                  </td>
-                  <td>
-                    {/* AKCE */}
-                    <div className="action-buttons">
-                      <button className="btn-icon btn-edit" onClick={() => editZakazka(zakazka)} title="Upravit zakázku">
-                        ✏️
-                      </button>
-                      <button className="btn-icon btn-delete" onClick={() => deleteZakazka(zakazka.id)} title="Smazat zakázku">
-                        🗑️
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                ));
-              })()}
-            </tbody>
-          </table>
+            return (
+              <OptimizedOrderTable
+                zakazkyData={filteredZakazky}
+                currentPage={currentPage}
+                itemsPerPage={itemsPerPage}
+                onEdit={editZakazka}
+                onDelete={deleteZakazka}
+                onFilesUpdate={handleFilesUpdate}
+              />
+            );
+          })()}
         </div>
 
         <div className="table-footer">

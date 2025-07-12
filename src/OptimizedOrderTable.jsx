@@ -2,6 +2,33 @@
 ```jsx
 import React, { memo, useMemo } from 'react';
 
+// Importujeme FileUploadCell z hlavního App.jsx - zatím použijeme jednoduchý placeholder
+const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
+  const filesCount = zakazka.soubory?.length || 0;
+  return (
+    <div style={{ minWidth: '120px' }}>
+      {filesCount > 0 ? (
+        <span style={{
+          background: '#10B981',
+          color: 'white',
+          borderRadius: '50%',
+          width: '24px',
+          height: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: '600'
+        }}>
+          {filesCount}
+        </span>
+      ) : (
+        <span style={{ color: '#6b7280', fontSize: '13px' }}>-</span>
+      )}
+    </div>
+  );
+};
+
 // Optimalizovaný řádek tabulky
 const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUpdate }) => {
   return (
