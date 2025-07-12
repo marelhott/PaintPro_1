@@ -580,31 +580,34 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro získání dat uživatele
   const getUserData = async (userId) => {
     try {
-      // Pokusit se načíst ze Supabase
-      try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        console.log('✅ Data načtena ze Supabase pro uživatele:', userId, 'počet zakázek:', data?.length || 0);
-        return data || [];
-      } catch (supabaseError) {
-        console.warn('⚠️ Supabase nedostupný, načítám lokálně:', supabaseError);
-
-        // Fallback na localStorage
-        const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-        const user = users.find(u => u.id === userId);
-
-        if (user) {
-          return user.orders || [];
-        }
-
-        return [];
+      // PRIORITA: Načíst z localStorage
+      const localOrders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
+      
+      if (localOrders.length > 0) {
+        console.log('✅ Data načtena z localStorage pro uživatele:', userId, 'počet zakázek:', localOrders.length);
+        return localOrders;
       }
+
+      // Pokud localStorage je prázdný, zkusit Supabase (pouze pokud je správně nakonfigurovaný)
+      if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
+        try {
+          const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+          if (error) throw error;
+
+          console.log('✅ Data načtena ze Supabase pro uživatele:', userId, 'počet zakázek:', data?.length || 0);
+          return data || [];
+        } catch (supabaseError) {
+          console.warn('⚠️ Supabase nedostupný:', supabaseError.message);
+        }
+      }
+
+      console.log('📊 Žádná data nenalezena pro uživatele:', userId);
+      return [];
     } catch (error) {
       console.error('❌ Chyba při načítání dat uživatele:', error);
       return [];
