@@ -92,10 +92,58 @@ export const AuthProvider = ({ children }) => {
 
       console.log('🔍 Načítám uživatele z URL:', hash);
 
+      // Počkej na inicializaci Supabase
+      let attempts = 0;
+      while (!window.supabase && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+
+      if (!window.supabase) {
+        console.error('❌ Supabase není dostupné!');
+        // Použij fallback uživatele
+        const fallbackUsers = [
+          {
+            id: 'admin',
+            name: 'Administrátor',
+            avatar: 'AD',
+            color: '#8b5cf6',
+            is_admin: true
+          },
+          {
+            id: 'lenka',
+            name: 'Lenka',
+            avatar: 'LE',
+            color: '#22c55e',
+            is_admin: false
+          }
+        ];
+
+        const user = fallbackUsers.find(u => u.id === hash);
+        if (user) {
+          const formattedUser = {
+            id: user.id,
+            name: user.name,
+            avatar: user.avatar,
+            color: user.color,
+            isAdmin: user.is_admin
+          };
+          setCurrentUser(formattedUser);
+          console.log('✅ Uživatel načten (fallback):', formattedUser.name);
+        }
+        return;
+      }
+
       // Načti uživatele ze Supabase
-      const { data: users } = await window.supabase
+      const { data: users, error } = await window.supabase
         .from('users')
         .select('*');
+
+      if (error) {
+        console.error('❌ Chyba při načítání uživatelů:', error);
+        setCurrentUser(null);
+        return;
+      }
 
       // Najdi uživatele podle ID
       let user = users?.find(u => u.id === hash);
@@ -254,18 +302,13 @@ export const AuthProvider = ({ children }) => {
     // Poslouchej změny URL hash
     const handleHashChange = () => {
       console.log('🔄 Hash se změnil na:', window.location.hash);
-      setIsLoading(true);
-      loadUserFromUrl().then(() => setIsLoading(false));
+      loadUserFromUrl();
     };
 
     window.addEventListener('hashchange', handleHashChange);
     
-    // Také poslouchej storage události pro reload
-    window.addEventListener('storage', handleHashChange);
-    
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('storage', handleHashChange);
     };
   }, []);
 
