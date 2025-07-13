@@ -37,6 +37,16 @@ const LoginScreen = () => {
       console.log('🔐 Administrátor vytvořen s PIN: 123456');
     } else {
       setUsers(storedUsers);
+      
+      // Debug: Zkontroluj PIN administrátora
+      const admin = storedUsers.find(u => u.isAdmin || u.id === 'admin_1');
+      if (admin) {
+        const expectedHash = hashPin('123456');
+        console.log('🔍 Debug PIN administrátora:');
+        console.log('  - Aktuální hash:', admin.pin);
+        console.log('  - Očekávaný hash pro 123456:', expectedHash);
+        console.log('  - PIN je správný:', admin.pin === expectedHash);
+      }
     }
   };
 

@@ -49,40 +49,50 @@ export const AuthProvider = ({ children }) => {
   // Inicializace výchozího uživatele
   const initializeDefaultUser = () => {
     const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+    const adminPin = '123456';
+    const adminPinHash = hashPin(adminPin);
+    
     if (users.length === 0) {
       // Administrátor s PIN 123456
-      const adminPin = '123456';
       const adminUser = {
         id: 'admin_1',
         name: 'Administrátor',
         avatar: 'AD',
         color: '#8b5cf6',
-        pin: hashPin(adminPin),
+        pin: adminPinHash,
         isAdmin: true,
         createdAt: new Date().toISOString()
       };
       localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
-
       console.log('🔐 Administrátor vytvořen s PIN: 123456');
     } else {
-      // Aktualizuj existujícího uživatele pokud má staré jméno "Dušan"
+      // Najdi administrátora a ujisti se, že má správný PIN
       let needsUpdate = false;
       const updatedUsers = users.map(user => {
+        // Aktualizuj jméno z "Dušan" na "Administrátor"
         if (user.name === 'Dušan') {
           needsUpdate = true;
-          return { ...user, name: 'Administrátor', avatar: 'AD' };
+          return { ...user, name: 'Administrátor', avatar: 'AD', pin: adminPinHash };
+        }
+        // Ujisti se, že administrátor má správný PIN 123456
+        if (user.id === 'admin_1' || user.isAdmin) {
+          if (user.pin !== adminPinHash) {
+            needsUpdate = true;
+            console.log('🔧 Opravuji PIN administrátora na 123456');
+            return { ...user, pin: adminPinHash };
+          }
         }
         return user;
       });
 
       if (needsUpdate) {
         localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
-        console.log('✅ Jméno uživatele změněno z "Dušan" na "Administrátor"');
+        console.log('✅ Administrátor aktualizován s PIN: 123456');
 
         // Aktualizuj i aktuálního uživatele pokud je přihlášený
         const currentUser = JSON.parse(localStorage.getItem('paintpro_current_user') || 'null');
-        if (currentUser && currentUser.name === 'Dušan') {
-          const updatedCurrentUser = { ...currentUser, name: 'Administrátor', avatar: 'AD' };
+        if (currentUser && (currentUser.name === 'Dušan' || currentUser.isAdmin)) {
+          const updatedCurrentUser = updatedUsers.find(u => u.id === currentUser.id) || currentUser;
           localStorage.setItem('paintpro_current_user', JSON.stringify(updatedCurrentUser));
           setCurrentUser(updatedCurrentUser);
         }
