@@ -35,12 +35,46 @@ const LoginScreen = () => {
   // Načtení uživatelů při startu
   useEffect(() => {
     console.log('🎯 LoginScreen useEffect - spouštím initializeUsers...');
-    initializeUsers();
+    const loadUsers = async () => {
+      try {
+        await initializeUsers();
+      } catch (error) {
+        console.error('❌ Chyba při načítání uživatelů:', error);
+      }
+    };
+    loadUsers();
   }, []);
 
   const initializeUsers = async () => {
     console.log('🚀 Inicializuji uživatele...');
     console.log('🔍 Kontroluji Supabase připojení...');
+    
+    // KONTROLA Supabase připojení
+    if (!window.supabase) {
+      console.error('❌ Supabase není dostupné!');
+      // Fallback - použij pouze lokální profily
+      const adminUser = {
+        id: 'admin_1',
+        name: 'Administrátor',
+        avatar: 'AD',
+        color: '#8b5cf6',
+        pin: hashPin('123456'),
+        isAdmin: true,
+        createdAt: new Date().toISOString()
+      };
+      const lenkaUser = {
+        id: 'user_lenka',
+        name: 'Lenka',
+        avatar: 'LE',
+        color: '#22c55e',
+        pin: hashPin('321321'),
+        isAdmin: false,
+        createdAt: new Date().toISOString()
+      };
+      setUsers([adminUser, lenkaUser]);
+      console.log('✅ Lokální profily nastaveny');
+      return;
+    }
     
     // Základní admin profil
     const adminUser = {
@@ -143,6 +177,28 @@ const LoginScreen = () => {
       finalUsers.forEach(user => {
         console.log(`- ${user.name} (${user.id}): PIN hash = ${user.pin}`);
       });
+      
+      // TESTOVACÍ VÝPISY - ověření PIN hashů
+      console.log('🧪 TESTOVACÍ PIN KONTROLA:');
+      console.log('- Admin PIN 123456 -> hash:', hashPin('123456'));
+      console.log('- Lenka PIN 321321 -> hash:', hashPin('321321'));
+      
+      const adminUser = finalUsers.find(u => u.name === 'Administrátor');
+      const lenkaUser = finalUsers.find(u => u.name === 'Lenka');
+      
+      if (adminUser) {
+        console.log('✅ Admin nalezen, hash uložený:', adminUser.pin);
+        console.log('✅ Admin PIN shoda:', adminUser.pin === hashPin('123456'));
+      } else {
+        console.log('❌ Admin NENALEZEN!');
+      }
+      
+      if (lenkaUser) {
+        console.log('✅ Lenka nalezena, hash uložený:', lenkaUser.pin);
+        console.log('✅ Lenka PIN shoda:', lenkaUser.pin === hashPin('321321'));
+      } else {
+        console.log('❌ Lenka NENALEZENA!');
+      }
 
     } catch (error) {
       console.error('❌ Chyba při načítání:', error);
