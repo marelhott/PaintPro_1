@@ -1439,7 +1439,7 @@ const PaintPro = () => {
       material: '',
       pomocnik: '',
       palivo: '',
-      delkaRealizace: '', // NOVÝ - délka realizace
+      delkaRealizace: '1', // NOVÝ - délka realizace s výchozí hodnotou
       poznamky: '', // NOVÝ - poznámky
       typ: '' // NOVÝ - typ objektu (byt, dům, pension, obchod)
     });
@@ -1466,7 +1466,7 @@ const PaintPro = () => {
         material: formData.material ? Number(formData.material) : 0,
         pomocnik: formData.pomocnik ? Number(formData.pomocnik) : 0,
         palivo: formData.palivo ? Number(formData.palivo) : 0,
-        delkaRealizace: formData.delkaRealizace || '', // NOVÝ
+        delkaRealizace: formData.delkaRealizace || '1', // NOVÝ s fallback
         poznamky: formData.poznamky || '', // NOVÝ
         typ: formData.typ || '' // NOVÝ - typ objektu
       };
@@ -1480,6 +1480,31 @@ const PaintPro = () => {
 
       addZakazka(processedData);
     };
+
+    const resetForm = () => {
+      setFormData({
+        datum: new Date().toISOString().split('T')[0],
+        druh: '',
+        klient: '',
+        cislo: '',
+        adresa: '',
+        castka: '',
+        hasFee: false,
+        material: '',
+        pomocnik: '',
+        palivo: '',
+        delkaRealizace: '1',
+        poznamky: '',
+        typ: ''
+      });
+    };
+
+    // Reset formuláře při otevření modalu
+    React.useEffect(() => {
+      if (showAddModal) {
+        resetForm();
+      }
+    }, [showAddModal]);
 
     if (!showAddModal) return null;
 
@@ -1678,7 +1703,10 @@ const PaintPro = () => {
               />
             </div>
             <div className="modal-actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
+              <button type="button" className="btn btn-secondary" onClick={() => {
+                resetForm();
+                setShowAddModal(false);
+              }}>
                 Zrušit
               </button>
               <button type="submit" className="btn btn-primary">
