@@ -1489,6 +1489,10 @@ const PaintPro = () => {
       typ: ''
     });
 
+    const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+    const [ocrProgress, setOcrProgress] = useState(0);
+    const fileInputRef = useRef(null);
+
     const handleSubmit = (e) => {
       e.preventDefault();
 
@@ -1552,6 +1556,155 @@ const PaintPro = () => {
       }
     }, [showAddModal]);
 
+    // OCR funkce pro zpracování obrázků
+    const handleOcrUpload = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Kontrola typu souboru
+      if (!file.type.startsWith('image/')) {
+        alert('Prosím nahrájte obrázek (JPG, PNG, atd.)');
+        return;
+      }
+
+      setIsOcrProcessing(true);
+      setOcrProgress(0);
+
+      try {
+        // Dynamicky načteme Tesseract.js
+        const Tesseract = await import('tesseract.js');
+
+        console.log('🔍 Spouštím OCR analýzu souboru:', file.name);
+
+        // Zpracování OCR s progress callbackem
+        const { data: { text } } = await Tesseract.recognize(
+          file,
+          'ces+eng', // Český a anglický jazyk
+          {
+            logger: m => {
+              if (m.status === 'recognizing text') {
+                setOcrProgress(Math.round(m.progress * 100));
+              }
+            }
+          }
+        );
+
+        console.log('✅ OCR dokončeno, extrahovaný text:', text);
+
+        // Parsování extrahovaného textu
+        const extractedData = parseOcrText(text);
+        console.log('📋 Parsovaná data:', extractedData);
+
+        // Automatické vyplnění formuláře
+        setFormData(prev => ({
+          ...prev,
+          ...extractedData,
+          poznamky: `${prev.poznamky}\n\nAutomaticky extrahováno z ${file.name}:\n${text.substring(0, 200)}...`.trim()
+        }));
+
+        alert(`✅ Text úspěšně extrahován z obrázku!\n\nNalezené údaje:\n${Object.entries(extractedData).filter(([k,v]) => v).map(([k,v]) => `${k}: ${v}`).join('\n')}`);
+
+      } catch (error) {
+        console.error('❌ Chyba při OCR:', error);
+        alert('❌ Chyba při zpracování obrázku. Zkuste jiný obrázek nebo zadejte údaje ručně.');
+      } finally {
+        setIsOcrProcessing(false);
+        setOcrProgress(0);
+        // Reset file input
+        if (event.target) {
+          event.target.value = '';
+        }
+      }
+    };
+
+    // Funkce pro parsování OCR textu a extrakci údajů
+    const parseOcrText = (text) => {
+      const cleanText = text.toLowerCase().replace(/\s+/g, ' ');
+      const extractedData = {};
+
+      // Regex vzory pro různé údaje
+      const patterns = {
+        // Telefonní čísla (české formáty)
+        phone: /(\+420\s?)?[0-9]{3}\s?[0-9]{3}\s?[0-9]{3}/g,
+        
+        // Částky (Kč, CZK, EUR, €)
+        amount: /(\d+[,.]?\d*)\s?(kč|czk|eur|€)/gi,
+        
+        // Datum (DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY)
+        date: /(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/g,
+        
+        // Číslo faktury/zakázky
+        invoice: /(faktura|invoice|číslo|number|zakázka)[\s:]*([a-z0-9\-\/]+)/gi,
+        
+        // PSČ a město (české PSČ)
+        postal: /(\d{3}\s?\d{2})\s+([a-záčďéěíňóřšťúůýž\s]+)/gi,
+        
+        // Email
+        email: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi
+      };
+
+      // Extrakce telefonního čísla
+      const phoneMatch = cleanText.match(patterns.phone);
+      if (phoneMatch) {
+        extractedData.telefon = phoneMatch[0].replace(/\s/g, '');
+      }
+
+      // Extrakce částky
+      const amountMatch = cleanText.match(patterns.amount);
+      if (amountMatch) {
+        const amount = amountMatch[0].match(/\d+[,.]?\d*/)[0].replace(',', '.');
+        extractedData.castka = Math.round(parseFloat(amount));
+      }
+
+      // Extrakce data
+      const dateMatch = cleanText.match(patterns.date);
+      if (dateMatch) {
+        const [, day, month, year] = dateMatch[0].match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+        extractedData.datum = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+
+      // Extrakce čísla faktury/zakázky
+      const invoiceMatch = text.match(patterns.invoice);
+      if (invoiceMatch) {
+        extractedData.cislo = invoiceMatch[0].split(/[\s:]+/).pop();
+      }
+
+      // Extrakce adresy (PSČ + město)
+      const postalMatch = text.match(patterns.postal);
+      if (postalMatch) {
+        extractedData.adresa = postalMatch[0];
+      }
+
+      // Extrakce jména (heuristic - slova s velkými písmeny)
+      const namePattern = /\b[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]+\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]+\b/g;
+      const nameMatches = text.match(namePattern);
+      if (nameMatches && nameMatches.length > 0) {
+        // Vezmi první rozumné jméno (ne "Praha", "Česká", apod.)
+        const possibleNames = nameMatches.filter(name => 
+          !['Praha', 'Česká', 'Republika', 'Telefon', 'Email', 'Adresa'].includes(name.split(' ')[0])
+        );
+        if (possibleNames.length > 0) {
+          extractedData.klient = possibleNames[0];
+        }
+      }
+
+      // Automatická klasifikace druhu práce
+      const workTypeKeywords = {
+        'MVČ': ['malování', 'nátěr', 'barva', 'stěna', 'malíř'],
+        'Adam': ['montáž', 'instalace', 'sestavení', 'oprava'],
+        'Korálek': ['korálek', 'bead', 'výzdoba']
+      };
+
+      for (const [workType, keywords] of Object.entries(workTypeKeywords)) {
+        if (keywords.some(keyword => cleanText.includes(keyword))) {
+          extractedData.druh = workType;
+          break;
+        }
+      }
+
+      return extractedData;
+    };
+
     // DŮLEŽITÉ: Zobrazit modal vždy když je showAddModal true
     if (!showAddModal) return null;
 
@@ -1569,6 +1722,78 @@ const PaintPro = () => {
           <div className="modal-header">
             <h2>Přidat novou zakázku</h2>
             <button className="modal-close" onClick={() => setShowAddModal(false)}>×</button>
+          </div>
+
+          {/* OCR Upload Section */}
+          <div className="ocr-upload-section" style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            padding: '16px',
+            borderRadius: '12px',
+            marginBottom: '20px',
+            border: '2px dashed #4c51bf',
+            textAlign: 'center'
+          }}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleOcrUpload}
+              style={{ display: 'none' }}
+            />
+            
+            {!isOcrProcessing ? (
+              <div>
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>📄</div>
+                <h3 style={{ margin: '0 0 8px 0', color: 'white', fontSize: '16px' }}>
+                  Automatické vyplnění z dokumentu
+                </h3>
+                <p style={{ margin: '0 0 12px 0', color: '#e2e8f0', fontSize: '13px' }}>
+                  Nahrajte fotku faktury, smlouvy nebo poznámky - údaje se automaticky vyplní
+                </p>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={e => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
+                  onMouseLeave={e => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                >
+                  📷 Nahrát foto dokumentu
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: '24px', marginBottom: '8px' }}>🔍</div>
+                <h3 style={{ margin: '0 0 8px 0', color: 'white', fontSize: '16px' }}>
+                  Zpracovávám dokument...
+                </h3>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  margin: '8px 0'
+                }}>
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.8)',
+                    height: '6px',
+                    borderRadius: '3px',
+                    width: `${ocrProgress}%`,
+                    transition: 'width 0.3s ease'
+                  }}></div>
+                </div>
+                <p style={{ margin: '0', color: '#e2e8f0', fontSize: '13px' }}>
+                  {ocrProgress}% - Čtu text z obrázku...
+                </p>
+              </div>
+            )}
           </div>
           <form onSubmit={handleSubmit} className="modal-form">
             <div className="form-row">
