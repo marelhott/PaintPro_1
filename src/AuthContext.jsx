@@ -1174,17 +1174,45 @@ export const AuthProvider = ({ children }) => {
           const user = JSON.parse(savedUser);
           setCurrentUser(user);
 
-          // Automatický import pro Lenku
+          // Pokud je to Lenka, přidej jí data přímo
           if (user.name === 'Lenka') {
-            console.log('📊 Spouštím import dat z Google Sheets pro Lenku...');
-            setTimeout(async () => {
+            console.log('📊 Přidávám data pro Lenku...');
+            const lenkaData = [
+              { datum: 'Leden', cislo: '#14347', castka: 6700, material: 4851.3, pomocnik: 300, fee: 1000, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Leden', cislo: '#14348', castka: 5750, material: 4249.25, pomocnik: 300, fee: 1000, druh: 'Adam - Vincent', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Únor', cislo: '#14181', castka: 6400, material: 4729.6, pomocnik: 300, fee: 400, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Únor', cislo: '#14674', castka: 5800, material: 4286.2, pomocnik: 300, fee: 400, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Duben', cislo: '#15457', castka: 8400, material: 6165.6, pomocnik: 500, fee: 1000, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Duben', cislo: '#91913', castka: 10400, material: 7760.4, pomocnik: 200, fee: 1000, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Duben', cislo: '#67703', castka: 10400, material: 7653.6, pomocnik: 500, fee: 1000, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Duben', cislo: '#87637', castka: 17800, material: 13069.2, pomocnik: 300, fee: 700, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Květen', cislo: '#95067', castka: 7600, material: 5578.4, pomocnik: 300, fee: 700, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Květen', cislo: '#95105', castka: 11400, material: 8367.6, pomocnik: 300, fee: 700, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Květen', cislo: '#87475', castka: 8100, material: 5945.4, pomocnik: 300, fee: 700, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Květen', cislo: '#85333', castka: 24000, material: 17616, pomocnik: 0, fee: 0, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Květen', cislo: '#104470', castka: 7200, material: 5284.8, pomocnik: 200, fee: 700, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Květen', cislo: '#69268', castka: 27200, material: 19964.8, pomocnik: 700, fee: 2400, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] },
+              { datum: 'Květen', cislo: '#107239', castka: 3300, material: 2400.92, pomocnik: 0, fee: 0, druh: 'Adam', klient: '', adresa: '', typ: 'byt', doba_realizace: 1, poznamka: '', soubory: [] }
+            ];
+
+            for (const order of lenkaData) {
+              const zisk = order.castka - (order.fee || 0) - order.material - order.pomocnik;
+              const orderData = {
+                ...order,
+                id: Date.now() + Math.random(),
+                palivo: 0,
+                zisk: zisk,
+                createdAt: new Date().toISOString()
+              };
+              
               try {
-                await importGoogleSheetsData();
-                console.log('✅ Import dat dokončen pro Lenku');
+                await addUserOrder(user.id, orderData);
+                console.log('✅ Přidána zakázka:', order.cislo);
               } catch (error) {
-                console.error('❌ Chyba při importu:', error);
+                console.error('❌ Chyba při přidávání:', order.cislo, error);
               }
-            }, 100);
+            }
+            console.log('✅ Data pro Lenku přidána');
           }
         }
 
@@ -1239,461 +1267,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Funkce pro import dat z Google Sheets pro Lenku
-  const importGoogleSheetsData = async () => {
-    try {
-      console.log('📊 Importuji data z Google Sheets pro Lenku...');
-
-      // Data z Google Sheets tabulky
-      const googleSheetsData = [
-        { datum: 'Leden', cislo: '#14347', faktury: 6700, material: 4851.3, pomocnik: 300, fee: 1000 },
-        { datum: 'Leden', cislo: '#14348', faktury: 5750, material: 4249.25, pomocnik: 300, fee: 1000 },
-        { datum: 'Únor', cislo: '#14181', faktury: 6400, material: 4729.6, pomocnik: 300, fee: 400 },
-        { datum: 'Únor', cislo: '#14674', faktury: 5800, material: 4286.2, pomocnik: 300, fee: 400 },
-        { datum: 'Duben', cislo: '#15457', faktury: 8400, material: 6165.6, pomocnik: 500, fee: 1000 },
-        { datum: 'Duben', cislo: '#91913', faktury: 10400, material: 7760.4, pomocnik: 200, fee: 1000 },
-        { datum: 'Duben', cislo: '#67703', faktury: 10400, material: 7653.6, pomocnik: 500, fee: 1000 },
-        { datum: 'Duben', cislo: '#87637', faktury: 17800, material: 13069.2, pomocnik: 300, fee: 700 },
-        { datum: 'Květen', cislo: '#95067', faktury: 7600, material: 5578.4, pomocnik: 300, fee: 700 },
-        { datum: 'Květen', cislo: '#95105', faktury: 11400, material: 8367.6, pomocnik: 300, fee: 700 },
-        { datum: 'Květen', cislo: '#87475', faktury: 8100, material: 5945.4, pomocnik: 300, fee: 700 },
-        { datum: 'Květen', cislo: '#85333', faktury: 24000, material: 17616, pomocnik: 0, fee: 0 },
-        { datum: 'Květen', cislo: '#104470', faktury: 7200, material: 5284.8, pomocnik: 200, fee: 700 },
-        { datum: 'Květen', cislo: '#69268', faktury: 27200, material: 19964.8, pomocnik: 700, fee: 2400 },
-        { datum: 'Květen', cislo: '#107239', faktury: 3300, material: 2400.92, pomocnik: 0, fee: 0 },
-        {
-          datum: '14. 4. 2025',
-          druh: 'Adam - minutost',
-          klient: 'Tereza Pochobradská',
-          cislo: 'ADM-001',
-          castka: 14000,
-          fee: 2000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Cimburkova 9, Praha 3',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '17. 4. 2025',
-          druh: 'MVČ',
-          klient: 'Katka Szczepaniková',
-          cislo: 'MVČ-002',
-          castka: 15000,
-          fee: 2000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Nad aleji 23, Praha 6',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '18. 4. 2025',
-          druh: 'Adam - Albert',
-          klient: 'Jan Novák',
-          cislo: 'ADM-002',
-          castka: 3000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'U Průhonu, Praha 7',
-          typ: 'byt',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '21. 4. 2025',
-          druh: 'MVČ',
-          klient: 'Marek Rucki',
-          cislo: 'MVČ-003',
-          castka: 25000,
-          fee: 4000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Národní obrany 49, Praha 6',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '26. 4. 2025',
-          druh: 'MVČ',
-          klient: 'Katka Szczepaniková',
-          cislo: 'MVČ-004',
-          castka: 10000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Nad aleji 23, Praha 6',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: 'dekor malba',
-          soubory: [],
-        },
-        {
-          datum: '27. 4. 2025',
-          druh: 'poplavky',
-          klient: 'Augustin',
-          cislo: 'POP-001',
-          castka: 72000,
-          fee: 20000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Horní poluby, Křenov',
-          typ: 'pension',
-          doba_realizace: 18,
-          poznamka: 'doplatek',
-          soubory: [],
-        },
-        {
-          datum: '28. 4. 2025',
-          druh: 'MVČ',
-          klient: 'Zdeněk Fiedler',
-          cislo: 'MVČ-005',
-          castka: 24000,
-          fee: 4000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Pod jarovem 14, Praha 3',
-          typ: 'byt',
-          doba_realizace: 3,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '2. 5. 2025',
-          druh: 'MVČ',
-          klient: 'Vojtěch Král',
-          cislo: 'MVČ-006',
-          castka: 15000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Kaběšova 943/2, Praha 9',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '5. 5. 2025',
-          druh: 'MVČ',
-          klient: 'Petr Dvořák',
-          cislo: 'MVČ-007',
-          castka: 30000,
-          fee: 6000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Za Mlýnem 1746, Hostivice',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '7. 5. 2025',
-          druh: 'Adam - Albert',
-          klient: '',
-          cislo: 'ADM-003',
-          castka: 4500,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Beroun',
-          typ: 'dům',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '11. 5. 2025',
-          druh: 'Adam - Lenka',
-          klient: 'Andrej Vacík',
-          cislo: 'ADM-004',
-          castka: 17800,
-          fee: 4000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Na Pomezí 133/38, Praha 5',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '13. 5. 2025',
-          druh: 'Adam - Lenka',
-          klient: '',
-          cislo: 'ADM-005',
-          castka: 2000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: '',
-          typ: 'byt',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '14. 5. 2025',
-          druh: 'Adam - Lenka',
-          klient: '',
-          cislo: 'ADM-006',
-          castka: 2000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Beroun',
-          typ: 'byt',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '15. 5. 2025',
-          druh: 'Adam - Lenka',
-          klient: '',
-          cislo: 'ADM-007',
-          castka: 2000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Říčany',
-          typ: 'dům',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '16. 5. 2025',
-          druh: 'MVČ',
-          klient: 'Tomáš Patria',
-          cislo: 'MVČ-008',
-          castka: 9000,
-          fee: 1000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'V Dolině 1515/1c, Praha Michle',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '17. 5. 2025',
-          druh: 'Adam - Martin',
-          klient: '',
-          cislo: 'ADM-008',
-          castka: 11300,
-          fee: 4000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Tuchoměřice',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '20. 5. 2025',
-          druh: 'Adam - Albert',
-          klient: '',
-          cislo: 'ADM-009',
-          castka: 2800,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Praha Kamýk',
-          typ: 'dveře',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '20. 5. 2025',
-          druh: 'dohoz',
-          klient: 'Josef Švejda',
-          cislo: 'DOH-001',
-          castka: 4000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Ortenovo náměstí, Praha 7',
-          typ: 'podlaha',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '22. 5. 2025',
-          druh: 'Adam - Albert',
-          klient: '',
-          cislo: 'ADM-010',
-          castka: 3500,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Všovice',
-          typ: 'byt',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '23. 5. 2025',
-          druh: 'Adam - Vincent',
-          klient: '',
-          cislo: 'ADM-011',
-          castka: 8000,
-          fee: 2000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Říčany',
-          typ: 'dům',
-          doba_realizace: 3,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '26. 5. 2025',
-          druh: 'Adam - Vincent',
-          klient: '',
-          cislo: 'ADM-012',
-          castka: 4000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Zbraslav',
-          typ: 'dům',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '27. 5. 2025',
-          druh: 'MVČ',
-          klient: 'Hanzlík',
-          cislo: 'MVČ-009',
-          castka: 8000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Praha Řepy',
-          typ: 'byt',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        },
-        {
-          datum: '28. 5. 2025',
-          druh: 'MVČ',
-          klient: 'Kolínský - Mc Donalds',
-          cislo: 'MVČ-010',
-          castka: 6000,
-          fee: 0,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Benátky na Jizerou',
-          typ: 'provozovna',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-        }
-      ];
-
-      // Získat ID uživatele Lenky
-      const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-      const lenkaUser = users.find(user => user.name === 'Lenka');
-
-      if (!lenkaUser) {
-        console.warn('Uživatel Lenka nebyl nalezen.');
-        return { success: false, error: 'Uživatel Lenka nebyl nalezen' };
-      }
-
-      const userId = lenkaUser.id;
-
-      // Převod dat z Google Sheets do formátu zakázek
-      const importedOrders = googleSheetsData.map((row, index) => {
-        // Výpočet Po odpočtu baye (pouze pokud je fee > 0)
-        const poOdpoctuBaye = row.fee > 0 ? row.faktury - row.fee : row.faktury;
-        
-        // Výpočet čistého zisku
-        const zisk = poOdpoctuBaye - row.material - row.pomocnik;
-        
-        // Určení druhu práce (druhá zakázka je Adam - Vincent, ostatní Adam)
-        const druh = index === 1 ? 'Adam - Vincent' : 'Adam';
-
-        return {
-          id: Date.now() + index + Math.random(),
-          datum: row.datum, // Datum přímo z prvního sloupce
-          druh: druh,
-          klient: '', // Prázdné pro tyto zakázky
-          cislo: row.cislo, // ID zakázky z druhého sloupce
-          castka: row.faktury, // Částka z sloupce faktury
-          fee: row.fee > 0 ? row.fee : 0, // Fee je aktivní podle tabulky
-          material: row.material,
-          pomocnik: row.pomocnik,
-          palivo: 0, // Není v tabulce
-          adresa: '',
-          typ: 'byt',
-          doba_realizace: 1,
-          poznamka: '',
-          soubory: [],
-          zisk: zisk,
-          createdAt: new Date().toISOString(),
-          imported_from_sheets: true // Označení původu
-        };
-      });
-
-      console.log('✅ Převedeno', importedOrders.length, 'zakázek z Google Sheets');
-
-      // Uložení dat pro Lenku
-      for (const order of importedOrders) {
-        try {
-          await addUserOrder(userId, order);
-          console.log('✅ Uložena zakázka:', order.cislo);
-        } catch (error) {
-          console.error('❌ Chyba při ukládání zakázky:', order.cislo, error);
-        }
-      }
-
-      console.log('✅ Import dat z Google Sheets dokončen pro Lenku.');
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Chyba při importu dat z Google Sheets pro Lenku:', error);
-      return { success: false, error: 'Chyba při importu dat z Google Sheets' };
-    }
-  };
+  
 
   // Context hodnoty
   const value = {
