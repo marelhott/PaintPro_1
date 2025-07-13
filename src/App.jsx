@@ -402,9 +402,23 @@ const PaintPro = () => {
         try {
           const data = await getUserData(currentUser.id);
           // OPRAVA: Bezpečná kontrola dat z AuthContext
-          const safeData = Array.isArray(data) ? data : [];
-          setZakazkyData(safeData);
-          console.log('✅ Data načtena pro uživatele:', currentUser.id, 'počet zakázek:', safeData.length);
+          let safeData = Array.isArray(data) ? data : [];
+          
+          // PŘESUN: Přesun hodnot z fee do pomocník
+          const updatedData = safeData.map(zakazka => {
+            // Pokud má fee hodnotu a pomocník je 0, přesuň fee do pomocník
+            if (zakazka.fee > 0 && zakazka.pomocnik === 0) {
+              return {
+                ...zakazka,
+                pomocnik: zakazka.fee, // Přesun fee do pomocník
+                fee: 0 // Vynulování fee
+              };
+            }
+            return zakazka;
+          });
+          
+          setZakazkyData(updatedData);
+          console.log('✅ Data načtena pro uživatele:', currentUser.id, 'počet zakázek:', updatedData.length);
         } catch (error) {
           console.error('❌ Chyba při načítání dat:', error);
           setZakazkyData([]); // Fallback na prázdné pole
