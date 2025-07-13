@@ -16,7 +16,7 @@ const Dashboard = () => {
       if (!currentUser) return;
 
       try {
-        const orders = await getUserData();
+        const orders = await getUserData(currentUser.id);
         
         const totalRevenue = orders.reduce((sum, order) => sum + (order.castka || 0), 0);
         const totalProfit = orders.reduce((sum, order) => sum + (order.zisk || 0), 0);
@@ -49,7 +49,7 @@ const Dashboard = () => {
       
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon icon-money"></div>
+          <div className="stat-icon">💰</div>
           <div className="stat-content">
             <div className="stat-value">{stats.totalRevenue.toLocaleString()} Kč</div>
             <div className="stat-label">Celkové tržby</div>
@@ -57,7 +57,7 @@ const Dashboard = () => {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon icon-chart"></div>
+          <div className="stat-icon">📊</div>
           <div className="stat-content">
             <div className="stat-value">{stats.totalProfit.toLocaleString()} Kč</div>
             <div className="stat-label">Celkový zisk</div>
@@ -65,7 +65,7 @@ const Dashboard = () => {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon icon-orders"></div>
+          <div className="stat-icon">📋</div>
           <div className="stat-content">
             <div className="stat-value">{stats.orderCount}</div>
             <div className="stat-label">Počet zakázek</div>
@@ -73,7 +73,7 @@ const Dashboard = () => {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon icon-target"></div>
+          <div className="stat-icon">🎯</div>
           <div className="stat-content">
             <div className="stat-value">{Math.round(stats.avgOrderValue).toLocaleString()} Kč</div>
             <div className="stat-label">Průměrná zakázka</div>
