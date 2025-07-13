@@ -612,41 +612,40 @@ export const AuthProvider = ({ children }) => {
           // POVINNĚ vrať data ze Supabase - žádný localStorage fallback!
           console.log('✅ POUŽÍVÁM POUZE SUPABASE DATA -', supabaseCount, 'zakázek');
             
-            // Vždy vyčisti duplicity a vrať data ze Supabase
-            if (supabaseCount > 0) {
-              console.log('🧹 Čistím duplicity v Supabase...');
-              await cleanDuplicateOrders(userId);
-              
-              // KRITICKÉ: Znovu načti data po vyčištění duplicit
-              const { data: finalData, error: finalError } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false });
+          // Vždy vyčisti duplicity a vrať data ze Supabase
+          if (supabaseCount > 0) {
+            console.log('🧹 Čistím duplicity v Supabase...');
+            await cleanDuplicateOrders(userId);
+            
+            // KRITICKÉ: Znovu načti data po vyčištění duplicit
+            const { data: finalData, error: finalError } = await supabase
+              .from('orders')
+              .select('*')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false });
 
-              if (finalError) {
-                console.error('❌ Chyba při finálním načtení dat:', finalError);
-                throw finalError;
-              }
-
-              const finalCount = finalData?.length || 0;
-              console.log('✅ FINÁLNÍ DATA ZE SUPABASE PO ČIŠTĚNÍ:', finalCount, 'zakázek');
-              
-              // Přepis localStorage s finálními daty ze Supabase
-              localStorage.setItem(storageKey, JSON.stringify(finalData || []));
-              console.log('💾 localStorage přepsán finálními daty ze Supabase');
-              
-              // VRAŤ SKUTEČNÁ DATA ZE SUPABASE
-              return finalData || [];
-            } else {
-              console.log('✅ SUPABASE JE PRÁZDNÝ - vrácena prázdná data');
-              
-              // Vymaž localStorage aby odpovídal Supabase
-              localStorage.setItem(storageKey, JSON.stringify([]));
-              console.log('💾 localStorage smazán pro synchronizaci s Supabase');
-              
-              return [];
+            if (finalError) {
+              console.error('❌ Chyba při finálním načtení dat:', finalError);
+              throw finalError;
             }
+
+            const finalCount = finalData?.length || 0;
+            console.log('✅ FINÁLNÍ DATA ZE SUPABASE PO ČIŠTĚNÍ:', finalCount, 'zakázek');
+            
+            // Přepis localStorage s finálními daty ze Supabase
+            localStorage.setItem(storageKey, JSON.stringify(finalData || []));
+            console.log('💾 localStorage přepsán finálními daty ze Supabase');
+            
+            // VRAŤ SKUTEČNÁ DATA ZE SUPABASE
+            return finalData || [];
+          } else {
+            console.log('✅ SUPABASE JE PRÁZDNÝ - vrácena prázdná data');
+            
+            // Vymaž localStorage aby odpovídal Supabase
+            localStorage.setItem(storageKey, JSON.stringify([]));
+            console.log('💾 localStorage smazán pro synchronizaci s Supabase');
+            
+            return [];
           }
 
         } catch (supabaseError) {
