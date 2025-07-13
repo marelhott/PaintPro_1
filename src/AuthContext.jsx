@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import DataManager from './DataManager';
+import { supabase } from './supabase';
 
 // Vytvoření AuthContext
 const AuthContext = createContext();
@@ -636,35 +637,31 @@ export const AuthProvider = ({ children }) => {
       console.log('✅ Profil uložen lokálně:', newUser.name);
 
       // Synchronizovat do Supabase
-      if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
-        try {
-          console.log('🔄 Synchronizuji profil do Supabase...');
+      try {
+        console.log('🔄 Synchronizuji profil do Supabase...');
 
-          const { data, error } = await supabase
-            .from('users')
-            .insert([{
-              id: newUser.id,
-              name: newUser.name,
-              avatar: newUser.avatar,
-              color: newUser.color,
-              pin_hash: newUser.pin,
-              created_at: newUser.createdAt
-            }])
-            .select()
-            .single();
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{
+            id: newUser.id,
+            name: newUser.name,
+            avatar: newUser.avatar,
+            color: newUser.color,
+            pin_hash: newUser.pin,
+            created_at: newUser.createdAt
+          }])
+          .select()
+          .single();
 
-          if (error) {
-            console.error('❌ Chyba při ukládání do Supabase:', error.message);
-            console.error('❌ Detaily chyby:', error);
-            // Nepokračuj s chybou, profil je uložen lokálně
-          } else {
-            console.log('✅ Profil úspěšně uložen do Supabase:', data);
-          }
-        } catch (supabaseError) {
-          console.error('❌ Supabase nedostupný při vytváření profilu:', supabaseError);
+        if (error) {
+          console.error('❌ Chyba při ukládání do Supabase:', error.message);
+          console.error('❌ Detaily chyby:', error);
+          // Nepokračuj s chybou, profil je uložen lokálně
+        } else {
+          console.log('✅ Profil úspěšně uložen do Supabase:', data);
         }
-      } else {
-        console.warn('⚠️ Supabase není správně nakonfigurován');
+      } catch (supabaseError) {
+        console.error('❌ Supabase nedostupný při vytváření profilu:', supabaseError);
       }
 
       return { success: true, user: newUser };
@@ -772,11 +769,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Spusť synchronizaci profilů do Supabase
-        console.log('🔄 Spouštím automatickou synchronizaci profilů...');
-        const syncResult = await syncUsersToSupabase();
-        if (syncResult.success) {
-          console.log('✅ Profily synchronizovány:', syncResult.synced, 'úspěšných');
-        }
+        console.log('🔄 Synchronizace profilů přeskočena - používá se localStorage');
       } catch (error) {
         console.error('Chyba při kontrole přihlášeného uživatele:', error);
       } finally {
