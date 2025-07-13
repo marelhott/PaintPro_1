@@ -1691,8 +1691,8 @@ This file contains the complete code with the table rebuilt and updated.
   box-shadow: 
     0 20px 40px rgba(0, 0, 0, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.15);
-  max-width: 600px;
-  width: 90%;
+  max-width: 800px;
+  width: 95%;
   text-align: center;
 }
 
@@ -1707,6 +1707,14 @@ This file contains the complete code with the table rebuilt and updated.
   font-size: 18px;
   color: var(--text-secondary);
   margin-bottom: 40px;
+}
+
+/* User Selection Styles */
+.user-selection h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 32px;
 }
 
 .profiles-grid {
@@ -1727,12 +1735,64 @@ This file contains the complete code with the table rebuilt and updated.
   transition: all 0.3s ease;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
 }
 
 .profile-card:hover {
   transform: translateY(-4px);
   background: rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.profile-card-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.edit-profile-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profile-card-container:hover .edit-profile-btn {
+  opacity: 1;
+}
+
+.edit-profile-btn:hover {
+  transform: scale(1.1);
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.admin-badge {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
 }
 
 .profile-avatar {
@@ -2027,6 +2087,17 @@ This file contains the complete code with the table rebuilt and updated.
   background: rgba(239, 68, 68, 0.1);
   border-radius: 8px;
   border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.login-hint {
+  margin-top: 24px;
+  padding: 12px 20px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--accent-purple);
+  font-weight: 500;
 }
 .activity-title {
   font-family: var(--font-primary);

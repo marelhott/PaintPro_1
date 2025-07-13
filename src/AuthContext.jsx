@@ -50,21 +50,20 @@ export const AuthProvider = ({ children }) => {
   const initializeDefaultUser = () => {
     const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
     if (users.length === 0) {
-      // Pevný PIN 1234 pro produkční nasazení
-      const fixedPin = '1234';
-      const defaultUser = {
-        id: 'user_1',
-        name: 'Dušan',
-        avatar: 'DU',
-        color: '#6366f1',
-        pin: hashPin(fixedPin),
-        plainPin: fixedPin, // DOČASNĚ pro zobrazení uživateli
+      // Administrátor s PIN 123456
+      const adminPin = '123456';
+      const adminUser = {
+        id: 'admin_1',
+        name: 'Administrátor',
+        avatar: 'AD',
+        color: '#8b5cf6',
+        pin: hashPin(adminPin),
+        isAdmin: true,
         createdAt: new Date().toISOString()
       };
-      localStorage.setItem('paintpro_users', JSON.stringify([defaultUser]));
+      localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
 
-      // PIN je nastaven na 1234 pro produkční nasazení
-      console.log('🔐 Výchozí PIN nastaven na: 1234');
+      console.log('🔐 Administrátor vytvořen s PIN: 123456');
     }
 
     // OPRAVA: Vždy zkontroluj a přidej ukázková data, pokud nejsou
