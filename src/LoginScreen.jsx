@@ -24,23 +24,66 @@ const LoginScreen = () => {
     return hash.toString();
   };
 
-  // PŘÍMÉ NAPOJENÍ NA ADMIN_1 ZE SUPABASE - BEZ KOMPLIKACÍ
+  // NAČTENÍ VŠECH PROFILŮ ZE SUPABASE
   const nactiUzivatele = async () => {
-    console.log('🚀 PŘÍMÉ NAPOJENÍ na admin_1 ze Supabase...');
+    console.log('🔄 Načítám VŠECHNY profily ze Supabase...');
     
-    // TVRDĚ NAKÓDOVANÝ PROFIL ADMIN_1
-    const adminProfil = {
-      id: 'admin_1',
-      name: 'Administrátor', 
-      avatar: 'AD',
-      color: '#8b5cf6',
-      pin: hashPin('123456'),
-      isAdmin: true,
-      createdAt: new Date().toISOString()
-    };
+    try {
+      // NAČTI ZE SUPABASE
+      const { data, error } = await window.supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: true });
 
-    setUsers([adminProfil]);
-    console.log('✅ PŘÍMÉ NAPOJENÍ: Administrátor nastaven s PIN 123456');
+      if (error) {
+        console.error('❌ Chyba při načítání ze Supabase:', error);
+        
+        // FALLBACK - vytvořit administrátora lokálně
+        const adminProfil = {
+          id: 'admin_1',
+          name: 'Administrátor', 
+          avatar: 'AD',
+          color: '#8b5cf6',
+          pin: hashPin('123456'),
+          isAdmin: true,
+          createdAt: new Date().toISOString()
+        };
+        setUsers([adminProfil]);
+        return;
+      }
+
+      // PŘEVEĎ DATA ZE SUPABASE
+      const supabaseUsers = (data || []).map(user => ({
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        color: user.color,
+        pin: user.pin,
+        isAdmin: user.is_admin,
+        createdAt: user.created_at
+      }));
+
+      console.log('✅ Načteno ze Supabase:', supabaseUsers.length, 'profilů');
+      setUsers(supabaseUsers);
+
+      // ULOŽ DO localStorage JAKO ZÁLOHA
+      localStorage.setItem('paintpro_users', JSON.stringify(supabaseUsers));
+      
+    } catch (error) {
+      console.error('❌ Chyba při komunikaci se Supabase:', error);
+      
+      // ULTRA FALLBACK - administrátor
+      const adminProfil = {
+        id: 'admin_1',
+        name: 'Administrátor', 
+        avatar: 'AD',
+        color: '#8b5cf6',
+        pin: hashPin('123456'),
+        isAdmin: true,
+        createdAt: new Date().toISOString()
+      };
+      setUsers([adminProfil]);
+    }
   };
 
   // Načti uživatele při startu
@@ -119,7 +162,7 @@ const LoginScreen = () => {
       setError("");
 
       try {
-        // PŘÍMÉ VYTVOŘENÍ PROFILU - BEZ KOMPLIKACÍ
+        // PŘÍMÉ ULOŽENÍ DO SUPABASE
         const novyProfil = {
           id: `user_${Date.now()}`,
           name: formData.name.trim(),
@@ -130,16 +173,37 @@ const LoginScreen = () => {
           createdAt: new Date().toISOString()
         };
 
-        // Přidej k existujícím profilům
-        const aktualniProfily = [...users, novyProfil];
-        setUsers(aktualniProfily);
+        console.log('💾 Ukládám profil přímo do Supabase:', novyProfil.name);
+
+        // ULOŽIT PŘÍMO DO SUPABASE
+        const { data, error: supabaseError } = await window.supabase
+          .from('users')
+          .insert([{
+            id: novyProfil.id,
+            name: novyProfil.name,
+            avatar: novyProfil.avatar,
+            color: novyProfil.color,
+            pin: novyProfil.pin,
+            is_admin: novyProfil.isAdmin,
+            created_at: novyProfil.createdAt
+          }])
+          .select()
+          .single();
+
+        if (supabaseError) {
+          console.error('❌ Chyba při ukládání do Supabase:', supabaseError);
+          setError("Chyba při ukládání profilu do databáze");
+          return;
+        }
+
+        console.log('✅ Profil uložen do Supabase:', data);
+
+        // NAČTI VŠECHNY PROFILY ZE SUPABASE
+        await nactiUzivatele();
         
-        // Ulož do localStorage
-        localStorage.setItem('paintpro_users', JSON.stringify(aktualniProfily));
-        
-        console.log('✅ PŘÍMÉ VYTVOŘENÍ: Profil vytvořen:', novyProfil.name);
         setShowAddUser(false);
         setError("");
+        console.log('✅ Profil vytvořen a načten ze Supabase');
       } catch (error) {
         console.error('❌ Chyba při vytváření profilu:', error);
         setError("Chyba při vytváření profilu");
