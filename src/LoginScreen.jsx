@@ -18,6 +18,16 @@ const LoginScreen = () => {
     loadUsers();
   }, []);
 
+  const hashPin = (pin) => {
+    let hash = 0;
+    for (let i = 0; i < pin.length; i++) {
+      const char = pin.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString();
+  };
+
   const loadUsers = () => {
     const storedUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
     
@@ -38,16 +48,6 @@ const LoginScreen = () => {
     } else {
       setUsers(storedUsers);
     }
-  };
-
-  const hashPin = (pin) => {
-    let hash = 0;
-    for (let i = 0; i < pin.length; i++) {
-      const char = pin.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString();
   };
 
   const handleSubmit = async (e) => {
