@@ -1435,13 +1435,13 @@ const PaintPro = () => {
       cislo: '',
       adresa: '',
       castka: '',
-      hasFee: false, // Místo fee používáme boolean pro Ano/Ne
+      hasFee: false,
       material: '',
       pomocnik: '',
       palivo: '',
-      delkaRealizace: '1', // NOVÝ - délka realizace s výchozí hodnotou
-      poznamky: '', // NOVÝ - poznámky
-      typ: '' // NOVÝ - typ objektu (byt, dům, pension, obchod)
+      delkaRealizace: '1',
+      poznamky: '',
+      typ: ''
     });
 
     const handleSubmit = (e) => {
@@ -1452,7 +1452,7 @@ const PaintPro = () => {
         const trimmedCategory = formData.druh.trim();
         if (!workCategoryManager.getCategoryNames().includes(trimmedCategory)) {
           workCategoryManager.addCategory(trimmedCategory);
-          setWorkCategories(workCategoryManager.getAllCategories()); // Refresh kategorií
+          setWorkCategories(workCategoryManager.getAllCategories());
         }
       }
 
@@ -1466,19 +1466,20 @@ const PaintPro = () => {
         material: formData.material ? Number(formData.material) : 0,
         pomocnik: formData.pomocnik ? Number(formData.pomocnik) : 0,
         palivo: formData.palivo ? Number(formData.palivo) : 0,
-        delkaRealizace: formData.delkaRealizace || '1', // NOVÝ s fallback
-        poznamky: formData.poznamky || '', // NOVÝ
-        typ: formData.typ || '' // NOVÝ - typ objektu
+        delkaRealizace: formData.delkaRealizace || '1',
+        poznamky: formData.poznamky || '',
+        typ: formData.typ || ''
       };
 
       // Fee se vždy přidá - buď vypočítané nebo 0
       if (formData.hasFee && formData.castka && Number(formData.castka) > 0) {
-        processedData.fee = Math.round(Number(formData.castka) * 0.261); // 26.1% fee
+        processedData.fee = Math.round(Number(formData.castka) * 0.261);
       } else {
-        processedData.fee = 0; // Pokud není fee, nastavit na 0
+        processedData.fee = 0;
       }
 
       addZakazka(processedData);
+      setShowAddModal(false);
     };
 
     const resetForm = () => {
@@ -1506,6 +1507,7 @@ const PaintPro = () => {
       }
     }, [showAddModal]);
 
+    // DŮLEŽITÉ: Zobrazit modal vždy když je showAddModal true
     if (!showAddModal) return null;
 
     return (
