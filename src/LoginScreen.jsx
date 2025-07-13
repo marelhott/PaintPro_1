@@ -34,6 +34,7 @@ const LoginScreen = () => {
       };
       localStorage.setItem('paintpro_users', JSON.stringify([admin]));
       setUsers([admin]);
+      console.log('🔐 Administrátor vytvořen s PIN: 123456');
     } else {
       setUsers(storedUsers);
     }
@@ -64,9 +65,16 @@ const LoginScreen = () => {
     setError("");
 
     try {
-      const result = await login(pin);
-      if (!result.success) {
-        setError(result.error || "Neplatný PIN");
+      // Ověř PIN přímo proti vybranému uživateli
+      const hashedPin = hashPin(pin);
+      if (selectedUser.pin === hashedPin) {
+        // Použij login funkci z AuthContext
+        const result = await login(pin, selectedUser.id);
+        if (!result.success) {
+          setError(result.error || "Neplatný PIN");
+        }
+      } else {
+        setError("Neplatný PIN");
       }
     } catch (error) {
       setError("Chyba při přihlašování");

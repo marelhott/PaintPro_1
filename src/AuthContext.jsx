@@ -539,11 +539,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Přihlášení pomocí PIN
-  const login = async (pin) => {
+  const login = async (pin, userId = null) => {
     try {
       const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
       const hashedPin = hashPin(pin);
-      const user = users.find(u => u.pin === hashedPin);
+      
+      let user;
+      if (userId) {
+        // Pokud je zadáno userId, najdi konkrétního uživatele
+        user = users.find(u => u.id === userId && u.pin === hashedPin);
+      } else {
+        // Jinak najdi podle PIN
+        user = users.find(u => u.pin === hashedPin);
+      }
 
       if (user) {
         // Odstraň plainPin po prvním přihlášení
@@ -555,8 +563,10 @@ export const AuthProvider = ({ children }) => {
 
         setCurrentUser(user);
         localStorage.setItem('paintpro_current_user', JSON.stringify(user));
+        console.log('✅ Úspěšné přihlášení uživatele:', user.name);
         return { success: true };
       } else {
+        console.log('❌ Neplatný PIN pro uživatele:', userId || 'neznámý');
         return { success: false, error: 'Neplatný PIN' };
       }
     } catch (error) {
