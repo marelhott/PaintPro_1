@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 
 // Importujeme FileUploadCell z hlavního App.jsx - zatím použijeme jednoduchý placeholder
 const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
@@ -29,6 +29,8 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
 
 // Optimalizovaný řádek tabulky
 const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUpdate }) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+
   return (
     <tr className="table-row">
       <td className="order-number">{startIndex + index + 1}</td>
@@ -57,13 +59,125 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
         <FileUploadCell zakazka={zakazka} onFilesUpdate={(files) => onFilesUpdate(zakazka.id, files)} />
       </td>
       <td>
-        <div className="action-buttons">
-          <button className="btn-icon btn-edit" onClick={() => onEdit(zakazka)} title="Upravit zakázku">
-            ✏️
+        <div className="action-menu-container" style={{ position: 'relative' }}>
+          <button 
+            className="action-menu-trigger"
+            onClick={() => setShowDropdown(!showDropdown)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.05)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          >
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+              alignItems: 'center'
+            }}>
+              <div style={{
+                width: '4px',
+                height: '4px',
+                backgroundColor: '#6b7280',
+                borderRadius: '50%'
+              }}></div>
+              <div style={{
+                width: '4px',
+                height: '4px',
+                backgroundColor: '#6b7280',
+                borderRadius: '50%'
+              }}></div>
+              <div style={{
+                width: '4px',
+                height: '4px',
+                backgroundColor: '#6b7280',
+                borderRadius: '50%'
+              }}></div>
+            </div>
           </button>
-          <button className="btn-icon btn-delete" onClick={() => onDelete(zakazka.id)} title="Smazat zakázku">
-            🗑️
-          </button>
+
+          {showDropdown && (
+            <div 
+              className="action-dropdown"
+              style={{
+                position: 'absolute',
+                top: '100%',
+                right: '0',
+                zIndex: 1000,
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                minWidth: '120px',
+                overflow: 'hidden'
+              }}
+              onMouseLeave={() => setShowDropdown(false)}
+            >
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  onEdit(zakazka);
+                  setShowDropdown(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#374151',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                ✏️ Upravit
+              </button>
+              <div style={{
+                height: '1px',
+                backgroundColor: '#e5e7eb',
+                margin: '0 8px'
+              }}></div>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  onDelete(zakazka.id);
+                  setShowDropdown(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                🗑️ Smazat
+              </button>
+            </div>
+          )}
         </div>
       </td>
     </tr>
