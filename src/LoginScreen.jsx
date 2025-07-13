@@ -13,11 +13,7 @@ const LoginScreen = () => {
   const [users, setUsers] = useState([]);
   const { login, addUser } = useAuth();
 
-  // Načtení uživatelů při mount
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
+  // Hash funkce pro PIN
   const hashPin = (pin) => {
     let hash = 0;
     for (let i = 0; i < pin.length; i++) {
@@ -28,27 +24,45 @@ const LoginScreen = () => {
     return hash.toString();
   };
 
-  const loadUsers = () => {
-    const storedUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+  // JEDNA JEDINÁ funkce pro načítání uživatelů
+  const nactiUzivatele = () => {
+    console.log('🔄 Načítám uživatele...');
     
-    // Pokud nejsou žádní uživatelé, vytvoř administrátora
-    if (storedUsers.length === 0) {
-      const admin = {
-        id: 'admin_1',
-        name: 'Administrátor',
-        avatar: 'AD',
-        color: '#8b5cf6',
-        pin: hashPin('123456'),
-        isAdmin: true,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('paintpro_users', JSON.stringify([admin]));
-      setUsers([admin]);
-      console.log('🔐 Administrátor vytvořen s PIN: 123456');
-    } else {
-      setUsers(storedUsers);
+    try {
+      const usersFromStorage = localStorage.getItem('paintpro_users');
+      console.log('📊 Data z localStorage:', usersFromStorage);
+      
+      if (usersFromStorage) {
+        const parsedUsers = JSON.parse(usersFromStorage);
+        console.log('👥 Nalezeni uživatelé:', parsedUsers);
+        setUsers(parsedUsers);
+        return;
+      }
+    } catch (error) {
+      console.error('❌ Chyba při čtení z localStorage:', error);
     }
+
+    // Pokud nejsou žádní uživatelé, vytvoř administrátora
+    console.log('🔧 Vytvářím výchozího administrátora...');
+    const admin = {
+      id: 'admin_1',
+      name: 'Administrátor',
+      avatar: 'AD',
+      color: '#8b5cf6',
+      pin: hashPin('123456'),
+      isAdmin: true,
+      createdAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('paintpro_users', JSON.stringify([admin]));
+    setUsers([admin]);
+    console.log('✅ Administrátor vytvořen s PIN: 123456');
   };
+
+  // Načti uživatele při startu
+  useEffect(() => {
+    nactiUzivatele();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,10 +79,8 @@ const LoginScreen = () => {
     setError("");
 
     try {
-      // Ověř PIN přímo proti vybranému uživateli
       const hashedPin = hashPin(pin);
       if (selectedUser.pin === hashedPin) {
-        // Použij login funkci z AuthContext
         const result = await login(pin, selectedUser.id);
         if (!result.success) {
           setError(result.error || "Neplatný PIN");
@@ -123,7 +135,6 @@ const LoginScreen = () => {
       setError("");
 
       try {
-        // Použij addUser funkci z AuthContext pro synchronizaci s Supabase
         const result = await addUser({
           name: formData.name.trim(),
           avatar: formData.name.trim().substring(0, 2).toUpperCase(),
@@ -133,9 +144,10 @@ const LoginScreen = () => {
         });
 
         if (result.success) {
-          console.log('✅ Nový profil vytvořen a synchronizován:', result.user.name);
-          loadUsers(); // Aktualizuj seznam uživatelů
+          console.log('✅ Nový profil vytvořen:', result.user.name);
+          nactiUzivatele(); // Znovu načti uživatele
           setShowAddUser(false);
+          setError("");
         } else {
           setError(result.error || "Chyba při vytváření profilu");
         }
@@ -303,8 +315,6 @@ const LoginScreen = () => {
   return (
     <div className="login-screen">
       <div className="login-container">
-        
-
         {!selectedUser ? (
           <div className="user-selection">
             <h2>Vyberte profil</h2>
