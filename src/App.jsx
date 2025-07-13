@@ -404,17 +404,26 @@ const PaintPro = () => {
           // OPRAVA: Bezpečná kontrola dat z AuthContext
           let safeData = Array.isArray(data) ? data : [];
           
-          // PŘESUN: Přesun hodnot z fee do pomocník
+          // PŘESUN: Přesun hodnot z fee do pomocník a přepočítání zisku
           const updatedData = safeData.map(zakazka => {
+            let updatedZakazka = { ...zakazka };
+            
             // Pokud má fee hodnotu a pomocník je 0, přesuň fee do pomocník
             if (zakazka.fee > 0 && zakazka.pomocnik === 0) {
-              return {
-                ...zakazka,
-                pomocnik: zakazka.fee, // Přesun fee do pomocník
-                fee: 0 // Vynulování fee
-              };
+              updatedZakazka.pomocnik = zakazka.fee;
+              updatedZakazka.fee = 0;
             }
-            return zakazka;
+            
+            // Přepočítej zisk podle aktuálních hodnot
+            const castka = Number(updatedZakazka.castka) || 0;
+            const fee = Number(updatedZakazka.fee) || 0;
+            const material = Number(updatedZakazka.material) || 0;
+            const pomocnik = Number(updatedZakazka.pomocnik) || 0;
+            const palivo = Number(updatedZakazka.palivo) || 0;
+            
+            updatedZakazka.zisk = castka - fee - material - pomocnik - palivo;
+            
+            return updatedZakazka;
           });
           
           setZakazkyData(updatedData);

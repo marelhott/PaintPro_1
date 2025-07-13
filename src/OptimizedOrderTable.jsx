@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState, useRef } from 'react';
 
 // Komponenta pro upload souborů v optimalizované tabulce
 const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
