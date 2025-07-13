@@ -11,7 +11,7 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
-  const { login, addUser, syncUsers } = useAuth();
+  const { login } = useAuth();
 
   // Hash funkce pro PIN
   const hashPin = (pin) => {
@@ -24,12 +24,71 @@ const LoginScreen = () => {
     return hash.toString();
   };
 
-  // NAČTENÍ VŠECH PROFILŮ ZE SUPABASE
-  const nactiUzivatele = async () => {
-    console.log('🔄 Načítám VŠECHNY profily ze Supabase...');
+  // Inicializace administrátora
+  const initializeAdmin = async () => {
+    console.log('🔧 Inicializuji administrátora...');
+    
+    const adminUser = {
+      id: 'admin_1',
+      name: 'Administrátor',
+      avatar: 'AD',
+      color: '#8b5cf6',
+      pin: hashPin('123456'),
+      isAdmin: true,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      // Zkontroluj, jestli admin existuje v Supabase
+      const { data: existingAdmin, error: checkError } = await window.supabase
+        .from('users')
+        .select('*')
+        .eq('id', 'admin_1')
+        .single();
+
+      if (checkError && checkError.code === 'PGRST116') {
+        // Admin neexistuje, vytvoř ho
+        console.log('👤 Vytvářím administrátora v Supabase...');
+        const { data, error } = await window.supabase
+          .from('users')
+          .insert([{
+            id: adminUser.id,
+            name: adminUser.name,
+            avatar: adminUser.avatar,
+            color: adminUser.color,
+            pin: adminUser.pin,
+            is_admin: true,
+            created_at: adminUser.createdAt
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ Chyba při vytváření administrátora:', error);
+        } else {
+          console.log('✅ Administrátor vytvořen v Supabase');
+        }
+      } else if (existingAdmin) {
+        console.log('✅ Administrátor již existuje v Supabase');
+      }
+
+      // Vždy nastav lokálně
+      setUsers([adminUser]);
+      localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
+      
+    } catch (error) {
+      console.error('❌ Chyba při inicializaci administrátora:', error);
+      // Fallback - nastav pouze lokálně
+      setUsers([adminUser]);
+      localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
+    }
+  };
+
+  // Načtení všech uživatelů
+  const loadUsers = async () => {
+    console.log('🔄 Načítám uživatele...');
     
     try {
-      // NAČTI ZE SUPABASE
       const { data, error } = await window.supabase
         .from('users')
         .select('*')
@@ -37,22 +96,12 @@ const LoginScreen = () => {
 
       if (error) {
         console.error('❌ Chyba při načítání ze Supabase:', error);
-        
-        // FALLBACK - vytvořit administrátora lokálně
-        const adminProfil = {
-          id: 'admin_1',
-          name: 'Administrátor', 
-          avatar: 'AD',
-          color: '#8b5cf6',
-          pin: hashPin('123456'),
-          isAdmin: true,
-          createdAt: new Date().toISOString()
-        };
-        setUsers([adminProfil]);
+        // Fallback na localStorage
+        const localUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+        setUsers(localUsers);
         return;
       }
 
-      // PŘEVEĎ DATA ZE SUPABASE
       const supabaseUsers = (data || []).map(user => ({
         id: user.id,
         name: user.name,
@@ -63,77 +112,29 @@ const LoginScreen = () => {
         createdAt: user.created_at
       }));
 
-      console.log('✅ Načteno ze Supabase:', supabaseUsers.length, 'profilů');
+      console.log('✅ Načteno ze Supabase:', supabaseUsers.length, 'uživatelů');
       setUsers(supabaseUsers);
-
-      // ULOŽ DO localStorage JAKO ZÁLOHA
       localStorage.setItem('paintpro_users', JSON.stringify(supabaseUsers));
       
     } catch (error) {
       console.error('❌ Chyba při komunikaci se Supabase:', error);
-      
-      // ULTRA FALLBACK - administrátor
-      const adminProfil = {
-        id: 'admin_1',
-        name: 'Administrátor', 
-        avatar: 'AD',
-        color: '#8b5cf6',
-        pin: hashPin('123456'),
-        isAdmin: true,
-        createdAt: new Date().toISOString()
-      };
-      setUsers([adminProfil]);
+      // Fallback na localStorage
+      const localUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+      setUsers(localUsers);
     }
   };
 
-  // Načti uživatele při startu
+  // Inicializace při startu
   useEffect(() => {
-    nactiUzivatele();
-  }, [syncUsers]);
+    const initialize = async () => {
+      await initializeAdmin();
+      await loadUsers();
+    };
+    
+    initialize();
+  }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedUser) {
-      setError("Vyberte prosím uživatele");
-      return;
-    }
-    if (pin.length < 4) {
-      setError("PIN musí mít alespoň 4 číslice");
-      return;
-    }
-
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const hashedPin = hashPin(pin);
-      if (selectedUser.pin === hashedPin) {
-        const result = await login(pin, selectedUser.id);
-        if (!result.success) {
-          setError(result.error || "Neplatný PIN");
-        }
-      } else {
-        setError("Neplatný PIN");
-      }
-    } catch (error) {
-      setError("Chyba při přihlašování");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePinChange = (e) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 8);
-    setPin(value);
-    setError("");
-  };
-
-  const handleUserSelect = (user) => {
-    setSelectedUser(user);
-    setPin("");
-    setError("");
-  };
-
+  // Generování náhodné barvy
   const generateColor = () => {
     const colors = [
       '#8b5cf6', '#ef4444', '#f97316', '#eab308', '#84cc16', 
@@ -143,7 +144,8 @@ const LoginScreen = () => {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  const AddUserModal = ({ setUsers, setError }) => {
+  // Komponenta pro přidání uživatele
+  const AddUserModal = () => {
     const [formData, setFormData] = useState({
       name: '',
       pin: '',
@@ -162,62 +164,48 @@ const LoginScreen = () => {
       setError("");
 
       try {
-        console.log('💾 Vytvářím nový profil:', formData.name);
+        const newUser = {
+          id: `user_${Date.now()}`,
+          name: formData.name.trim(),
+          avatar: formData.name.trim().substring(0, 2).toUpperCase(),
+          color: formData.color,
+          pin: hashPin(formData.pin),
+          isAdmin: false,
+          createdAt: new Date().toISOString()
+        };
 
-        // ULOŽIT PŘÍMO DO SUPABASE
+        console.log('💾 Vytvářím nový profil:', newUser.name);
+
+        // Ulož do Supabase
         const { data, error: supabaseError } = await window.supabase
           .from('users')
           .insert([{
-            id: `user_${Date.now()}`,
-            name: formData.name.trim(),
-            avatar: formData.name.trim().substring(0, 2).toUpperCase(),
-            color: formData.color,
-            pin: hashPin(formData.pin),
+            id: newUser.id,
+            name: newUser.name,
+            avatar: newUser.avatar,
+            color: newUser.color,
+            pin: newUser.pin,
             is_admin: false,
-            created_at: new Date().toISOString()
+            created_at: newUser.createdAt
           }])
           .select()
           .single();
 
         if (supabaseError) {
           console.error('❌ Chyba při ukládání do Supabase:', supabaseError);
-          setError("Chyba při ukládání profilu do databáze: " + supabaseError.message);
+          setError("Chyba při ukládání profilu: " + supabaseError.message);
           return;
         }
 
         console.log('✅ Profil uložen do Supabase:', data);
 
-        // ZNOVU NAČTI VŠECHNY PROFILY ZE SUPABASE
-        console.log('🔄 Znovu načítám profily ze Supabase...');
-        const { data: allUsers, error: loadError } = await window.supabase
-          .from('users')
-          .select('*')
-          .order('created_at', { ascending: true });
-
-        if (loadError) {
-          console.error('❌ Chyba při načítání:', loadError);
-          setError("Chyba při načítání profilů");
-          return;
-        }
-
-        // PŘEVEĎ A NASTAV PROFILY
-        const supabaseUsers = (allUsers || []).map(user => ({
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          color: user.color,
-          pin: user.pin,
-          isAdmin: user.is_admin,
-          createdAt: user.created_at
-        }));
-
-        console.log('✅ Aktualizuji profily:', supabaseUsers.length);
-        setUsers(supabaseUsers);
-        localStorage.setItem('paintpro_users', JSON.stringify(supabaseUsers));
+        // Znovu načti všechny uživatele
+        await loadUsers();
         
         setShowAddUser(false);
         setError("");
-        console.log('✅ Profil vytvořen a profily aktualizovány!');
+        console.log('✅ Profil vytvořen a seznam aktualizován');
+        
       } catch (error) {
         console.error('❌ Chyba při vytváření profilu:', error);
         setError("Chyba při vytváření profilu: " + error.message);
@@ -280,6 +268,7 @@ const LoginScreen = () => {
     );
   };
 
+  // Komponenta pro editaci uživatele
   const EditUserModal = ({ user }) => {
     const [formData, setFormData] = useState({
       name: user.name,
@@ -287,7 +276,7 @@ const LoginScreen = () => {
       color: user.color
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
       
       const updatedUser = {
@@ -301,23 +290,61 @@ const LoginScreen = () => {
         updatedUser.pin = hashPin(formData.pin);
       }
 
-      const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-      localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
-      setUsers(updatedUsers);
-      setShowEditUser(null);
+      try {
+        // Aktualizuj v Supabase
+        const { error } = await window.supabase
+          .from('users')
+          .update({
+            name: updatedUser.name,
+            avatar: updatedUser.avatar,
+            color: updatedUser.color,
+            pin: updatedUser.pin
+          })
+          .eq('id', user.id);
+
+        if (error) {
+          console.error('❌ Chyba při aktualizaci v Supabase:', error);
+          setError("Chyba při aktualizaci profilu");
+          return;
+        }
+
+        // Znovu načti uživatele
+        await loadUsers();
+        setShowEditUser(null);
+        
+      } catch (error) {
+        console.error('❌ Chyba při editaci profilu:', error);
+        setError("Chyba při editaci profilu");
+      }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
       if (user.isAdmin) {
         setError("Nelze smazat administrátora");
         return;
       }
       
       if (window.confirm(`Opravdu chcete smazat profil ${user.name}?`)) {
-        const updatedUsers = users.filter(u => u.id !== user.id);
-        localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
-        setUsers(updatedUsers);
-        setShowEditUser(null);
+        try {
+          const { error } = await window.supabase
+            .from('users')
+            .delete()
+            .eq('id', user.id);
+
+          if (error) {
+            console.error('❌ Chyba při mazání ze Supabase:', error);
+            setError("Chyba při mazání profilu");
+            return;
+          }
+
+          // Znovu načti uživatele
+          await loadUsers();
+          setShowEditUser(null);
+          
+        } catch (error) {
+          console.error('❌ Chyba při mazání profilu:', error);
+          setError("Chyba při mazání profilu");
+        }
       }
     };
 
@@ -377,6 +404,50 @@ const LoginScreen = () => {
         </div>
       </div>
     );
+  };
+
+  // Přihlášení
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedUser) {
+      setError("Vyberte prosím uživatele");
+      return;
+    }
+    if (pin.length < 4) {
+      setError("PIN musí mít alespoň 4 číslice");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const hashedPin = hashPin(pin);
+      if (selectedUser.pin === hashedPin) {
+        const result = await login(pin, selectedUser.id);
+        if (!result.success) {
+          setError(result.error || "Neplatný PIN");
+        }
+      } else {
+        setError("Neplatný PIN");
+      }
+    } catch (error) {
+      setError("Chyba při přihlašování");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePinChange = (e) => {
+    const value = e.target.value.replace(/\D/g, "").slice(0, 8);
+    setPin(value);
+    setError("");
+  };
+
+  const handleUserSelect = (user) => {
+    setSelectedUser(user);
+    setPin("");
+    setError("");
   };
 
   return (
@@ -466,7 +537,7 @@ const LoginScreen = () => {
           </div>
         )}
 
-        {showAddUser && <AddUserModal setUsers={setUsers} setError={setError} />}
+        {showAddUser && <AddUserModal />}
         {showEditUser && <EditUserModal user={showEditUser} />}
       </div>
     </div>
