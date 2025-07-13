@@ -1174,17 +1174,17 @@ export const AuthProvider = ({ children }) => {
           const user = JSON.parse(savedUser);
           setCurrentUser(user);
 
-          // Automatický import pro Lenku při prvním přihlášení
+          // Automatický import pro Lenku
           if (user.name === 'Lenka') {
-            //const hasImportedBefore = localStorage.getItem('lenka_google_sheets_imported');
-            //if (!hasImportedBefore) {
-              console.log('📊 Automaticky importuji data z Google Sheets pro Lenku...');
-              const importResult = await importGoogleSheetsData();
-              //if (importResult.success) {
-                //localStorage.setItem('lenka_google_sheets_imported', 'true');
-                console.log('✅ Automatický import dokončen pro Lenku');
-              //}
-            //}
+            console.log('📊 Spouštím import dat z Google Sheets pro Lenku...');
+            setTimeout(async () => {
+              try {
+                await importGoogleSheetsData();
+                console.log('✅ Import dat dokončen pro Lenku');
+              } catch (error) {
+                console.error('❌ Chyba při importu:', error);
+              }
+            }, 100);
           }
         }
 
@@ -1246,22 +1246,21 @@ export const AuthProvider = ({ children }) => {
 
       // Data z Google Sheets tabulky
       const googleSheetsData = [
-        {
-          datum: '11. 4. 2025',
-          druh: 'MVČ',
-          klient: 'Gabriela Hajduchová',
-          cislo: 'MVČ-001',
-          castka: 10000,
-          fee: 2000,
-          material: 0,
-          pomocnik: 0,
-          palivo: 0,
-          adresa: 'Letohradská, Praha 7',
-          typ: 'byt',
-          doba_realizace: 2,
-          poznamka: '',
-          soubory: [],
-        },
+        { datum: 'Leden', cislo: '#14347', faktury: 6700, material: 4851.3, pomocnik: 300, fee: 1000 },
+        { datum: 'Leden', cislo: '#14348', faktury: 5750, material: 4249.25, pomocnik: 300, fee: 1000 },
+        { datum: 'Únor', cislo: '#14181', faktury: 6400, material: 4729.6, pomocnik: 300, fee: 400 },
+        { datum: 'Únor', cislo: '#14674', faktury: 5800, material: 4286.2, pomocnik: 300, fee: 400 },
+        { datum: 'Duben', cislo: '#15457', faktury: 8400, material: 6165.6, pomocnik: 500, fee: 1000 },
+        { datum: 'Duben', cislo: '#91913', faktury: 10400, material: 7760.4, pomocnik: 200, fee: 1000 },
+        { datum: 'Duben', cislo: '#67703', faktury: 10400, material: 7653.6, pomocnik: 500, fee: 1000 },
+        { datum: 'Duben', cislo: '#87637', faktury: 17800, material: 13069.2, pomocnik: 300, fee: 700 },
+        { datum: 'Květen', cislo: '#95067', faktury: 7600, material: 5578.4, pomocnik: 300, fee: 700 },
+        { datum: 'Květen', cislo: '#95105', faktury: 11400, material: 8367.6, pomocnik: 300, fee: 700 },
+        { datum: 'Květen', cislo: '#87475', faktury: 8100, material: 5945.4, pomocnik: 300, fee: 700 },
+        { datum: 'Květen', cislo: '#85333', faktury: 24000, material: 17616, pomocnik: 0, fee: 0 },
+        { datum: 'Květen', cislo: '#104470', faktury: 7200, material: 5284.8, pomocnik: 200, fee: 700 },
+        { datum: 'Květen', cislo: '#69268', faktury: 27200, material: 19964.8, pomocnik: 700, fee: 2400 },
+        { datum: 'Květen', cislo: '#107239', faktury: 3300, material: 2400.92, pomocnik: 0, fee: 0 },
         {
           datum: '14. 4. 2025',
           druh: 'Adam - minutost',
@@ -1643,14 +1642,48 @@ export const AuthProvider = ({ children }) => {
 
       const userId = lenkaUser.id;
 
-      // Převod dat z Google Sheets do formátu zakázek a uložení
-      for (const orderData of googleSheetsData) {
+      // Převod dat z Google Sheets do formátu zakázek
+      const importedOrders = googleSheetsData.map((row, index) => {
+        // Výpočet Po odpočtu baye (pouze pokud je fee > 0)
+        const poOdpoctuBaye = row.fee > 0 ? row.faktury - row.fee : row.faktury;
+        
+        // Výpočet čistého zisku
+        const zisk = poOdpoctuBaye - row.material - row.pomocnik;
+        
+        // Určení druhu práce (druhá zakázka je Adam - Vincent, ostatní Adam)
+        const druh = index === 1 ? 'Adam - Vincent' : 'Adam';
+
+        return {
+          id: Date.now() + index + Math.random(),
+          datum: row.datum, // Datum přímo z prvního sloupce
+          druh: druh,
+          klient: '', // Prázdné pro tyto zakázky
+          cislo: row.cislo, // ID zakázky z druhého sloupce
+          castka: row.faktury, // Částka z sloupce faktury
+          fee: row.fee > 0 ? row.fee : 0, // Fee je aktivní podle tabulky
+          material: row.material,
+          pomocnik: row.pomocnik,
+          palivo: 0, // Není v tabulce
+          adresa: '',
+          typ: 'byt',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+          zisk: zisk,
+          createdAt: new Date().toISOString(),
+          imported_from_sheets: true // Označení původu
+        };
+      });
+
+      console.log('✅ Převedeno', importedOrders.length, 'zakázek z Google Sheets');
+
+      // Uložení dat pro Lenku
+      for (const order of importedOrders) {
         try {
-          await addUserOrder(userId, orderData);
-          console.log('✅ Zakázka importována:', orderData.cislo);
+          await addUserOrder(userId, order);
+          console.log('✅ Uložena zakázka:', order.cislo);
         } catch (error) {
-          console.error('❌ Chyba při importu zakázky:', orderData.cislo, error);
-          return { success: false, error: 'Chyba při importu zakázky' };
+          console.error('❌ Chyba při ukládání zakázky:', order.cislo, error);
         }
       }
 
