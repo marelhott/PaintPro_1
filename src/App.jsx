@@ -4806,16 +4806,12 @@ const AuthenticatedApp = () => {
 
   if (isLoading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: '#0F172A',
-        color: '#F8FAFC',
-        fontSize: '18px'
-      }}>
-        <div>Načítání aplikace...</div>
+      <div className="login-screen">
+        <div className="login-container">
+          <div style={{ textAlign: 'center', color: 'var(--text-primary)' }}>
+            Načítání...
+          </div>
+        </div>
       </div>
     );
   }
@@ -4831,9 +4827,7 @@ const AuthenticatedApp = () => {
 const App = () => {
   return (
     <AuthProvider>
-      <div style={{ minHeight: '100vh', width: '100%', background: '#0F172A' }}>
-        <AuthenticatedApp />
-      </div>
+      <AuthenticatedApp />
     </AuthProvider>
   );
 };
