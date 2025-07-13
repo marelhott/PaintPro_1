@@ -2964,35 +2964,48 @@ const PaintPro = () => {
           </div>
         </div>
 
-        {/* Statistiky - první řada */}
-        <div className="stats-grid-top">
-          <div className="stat-card-mini">
-            <div className="stat-title-mini">CELKOVÉ TRŽBY</div>
-            <div className="stat-value-mini">{zakazkyData.reduce((sum, z) => sum + z.castka, 0).toLocaleString()} Kč</div>
+        {/* Reports grid - 2x3 rozložení pro 6 karet podle screenshotu */}
+        <div className="reports-grid">
+          <div className="chart-card-small">
+            <div className="chart-header-small">
+              <h3>CELKOVÉ TRŽBY</h3>
+            </div>
+            <div className="chart-value-small blue">{zakazkyData.reduce((sum, z) => sum + z.castka, 0).toLocaleString()} Kč</div>
           </div>
-          <div className="stat-card-mini">
-            <div className="stat-title-mini">CELKOVÝ ZISK</div>
-            <div className="stat-value-mini">{zakazkyData.reduce((sum, z) => sum + z.zisk, 0).toLocaleString()} Kč</div>
+          
+          <div className="chart-card-small">
+            <div className="chart-header-small">
+              <h3>CELKOVÝ ZISK</h3>
+            </div>
+            <div className="chart-value-small green">{zakazkyData.reduce((sum, z) => sum + z.zisk, 0).toLocaleString()} Kč</div>
           </div>
-          <div className="stat-card-mini">
-            <div className="stat-title-mini">POČET ZAKÁZEK</div>
-            <div className="stat-value-mini">{zakazkyData.length}</div>
+          
+          <div className="chart-card-small">
+            <div className="chart-header-small">
+              <h3>POČET ZAKÁZEK</h3>
+            </div>
+            <div className="chart-value-small purple">{zakazkyData.length}</div>
           </div>
-        </div>
-
-        {/* Statistiky - druhá řada */}
-        <div className="stats-grid-bottom">
-          <div className="stat-card-mini">
-            <div className="stat-title-mini">SOUČET POMOCNÍK</div>
-            <div className="stat-value-mini">{zakazkyData.reduce((sum, z) => sum + z.pomocnik, 0).toLocaleString()} Kč</div>
+          
+          <div className="chart-card-small">
+            <div className="chart-header-small">
+              <h3>SOUČET POMOCNÍK</h3>
+            </div>
+            <div className="chart-value-small orange">{zakazkyData.reduce((sum, z) => sum + z.pomocnik, 0).toLocaleString()} Kč</div>
           </div>
-          <div className="stat-card-mini">
-            <div className="stat-title-mini">SOUČET MATERIÁL</div>
-            <div className="stat-value-mini">{zakazkyData.reduce((sum, z) => sum + z.material, 0).toLocaleString()} Kč</div>
+          
+          <div className="chart-card-small">
+            <div className="chart-header-small">
+              <h3>SOUČET MATERIÁL</h3>
+            </div>
+            <div className="chart-value-small blue">{zakazkyData.reduce((sum, z) => sum + z.material, 0).toLocaleString()} Kč</div>
           </div>
-          <div className="stat-card-mini">
-            <div className="stat-title-mini">SOUČET PALIVO</div>
-            <div className="stat-value-mini">{zakazkyData.reduce((sum, z) => sum + z.palivo, 0).toLocaleString()} Kč</div>
+          
+          <div className="chart-card-small">
+            <div className="chart-header-small">
+              <h3>SOUČET PALIVO</h3>
+            </div>
+            <div className="chart-value-small green">{zakazkyData.reduce((sum, z) => sum + z.palivo, 0).toLocaleString()} Kč</div>
           </div>
         </div>
 
