@@ -607,22 +607,39 @@ export const AuthProvider = ({ children }) => {
           const supabaseCount = supabaseData?.length || 0;
           console.log('📊 Supabase obsahuje:', supabaseCount, 'zakázek');
 
-          // Pokud máme data ze Supabase, automaticky vyčistíme duplicity
-          if (supabaseData && supabaseData.length > 0) {
-            console.log('🧹 Automaticky čistím duplicity...');
-            await cleanDuplicateOrders(userId);
+          // VŽDY použij data ze Supabase když jsou dostupná (i když jsou prázdná)
+          if (supabaseData !== null) {
+            console.log('✅ Používám data ze Supabase (primární zdroj)');
             
-            // Znovu načteme data po vyčištění
-            const { data: cleanedData } = await supabase
-              .from('orders')
-              .select('*')
-              .eq('user_id', userId)
-              .order('created_at', { ascending: false });
+            // Pokud máme zakázky, vyčistíme duplicity
+            if (supabaseData.length > 0) {
+              console.log('🧹 Automaticky čistím duplicity...');
+              await cleanDuplicateOrders(userId);
+              
+              // Znovu načteme data po vyčištění
+              const { data: cleanedData } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
 
-            console.log('💾 Zálohování vyčištěných dat ze Supabase do localStorage...');
-            localStorage.setItem(storageKey, JSON.stringify(cleanedData || []));
-            console.log('✅ Data načtena ze Supabase a zálohována lokálně');
-            return cleanedData || [];
+              console.log('💾 Aktualizace localStorage ze Supabase...');
+              localStorage.setItem(storageKey, JSON.stringify(cleanedData || []));
+              console.log('✅ Data načtena ze Supabase a aktualizována lokálně');
+              return cleanedData || [];
+            } else {
+              // Supabase je prázdný - zkontroluj localStorage pro migraci
+              const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
+              if (localOrders.length > 0) {
+                console.log('📤 Migrace dat z localStorage do Supabase:', localOrders.length, 'zakázek');
+                await syncLocalToSupabase(userId, localOrders);
+                console.log('✅ Migrace dokončena');
+                return localOrders;
+              }
+              
+              console.log('📊 Žádná data v Supabase ani localStorage');
+              return [];
+            }
           }
 
           // Pokud Supabase je prázdný, zkontroluj localStorage pro případnou migraci
