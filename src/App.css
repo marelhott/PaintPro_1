@@ -762,6 +762,65 @@ This file contains the complete code with the table rebuilt and updated.
   color: var(--accent-orange);
 }
 
+/* Malé grafy styly */
+.chart-card-small {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(255, 255, 255, 0.06) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(139, 92, 246, 0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-card-small:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.08),
+    0 8px 16px rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.chart-header-small {
+  margin-bottom: 16px;
+}
+
+.chart-header-small h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.chart-value-small {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.charts-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+@media (max-width: 1200px) {
+  .charts-grid-4 {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
 /* Dashboard ikony - kompletně vyčištěné, připravené pro nové symboly */
 .stat-icon.icon-money::before,
 .stat-icon.icon-money::after { 
