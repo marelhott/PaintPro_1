@@ -1,11 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-// Inicializace Supabase klienta
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://lseqrqmtjymukewnejdd.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZXFycW10anltdWtld25lamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNjQ2MjcsImV4cCI6MjA2Nzg0MDYyN30.SgWjc-GETZ_D0tJNtErxXhUaH6z_MgRJtxc94RsUXPw';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import DataManager from './DataManager';
 
 // Vytvoření AuthContext
 const AuthContext = createContext();
@@ -586,304 +580,19 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro získání dat uživatele
   const getUserData = async (userId) => {
     try {
-      const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-
-      // KRITICKÁ OPRAVA: ABSOLUTNÍ PRIORITA SUPABASE VE VŠECH PROSTŘEDÍCH
-      if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
-        try {
-          console.log('🔄 KRITICKÁ PRIORITA: Načítám data ze Supabase...');
-          console.log('🚨 VÝVOJOVÉ PROSTŘEDÍ - IGNORUJI LOCALSTORAGE!');
-
-          const { data: supabaseData, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
-          if (error) {
-            console.error('❌ KRITICKÁ CHYBA SUPABASE:', error.message);
-            throw error;
-          }
-
-          const supabaseCount = supabaseData?.length || 0;
-          console.log('📊 SUPABASE (JEDINÝ ZDROJ PRAVDY): obsahuje', supabaseCount, 'zakázek');
-          console.log('🚨 IGNORUJI LOCALSTORAGE ÚPLNĚ - POUZE SUPABASE DATA!');
-
-          // POVINNĚ vrať data ze Supabase - žádný localStorage fallback!
-          console.log('✅ POUŽÍVÁM POUZE SUPABASE DATA -', supabaseCount, 'zakázek');
-
-          // Vždy vyčisti duplicity a vrať data ze Supabase
-          if (supabaseCount > 0) {
-            console.log('🧹 Čistím duplicity v Supabase...');
-            await cleanDuplicateOrders(userId);
-
-            // KRITICKÉ: Znovu načti data po vyčištění duplicit
-            const { data: finalData, error: finalError } = await supabase
-              .from('orders')
-              .select('*')
-              .eq('user_id', userId)
-              .order('created_at', { ascending: false });
-
-            if (finalError) {
-              console.error('❌ Chyba při finálním načtení dat:', finalError);
-              throw finalError;
-            }
-
-            const finalCount = finalData?.length || 0;
-            console.log('✅ FINÁLNÍ DATA ZE SUPABASE PO ČIŠTĚNÍ:', finalCount, 'zakázek');
-
-            // Přepis localStorage s finálními daty ze Supabase
-            localStorage.setItem(storageKey, JSON.stringify(finalData || []));
-            console.log('💾 localStorage přepsán finálními daty ze Supabase');
-
-            // VRAŤ SKUTEČNÁ DATA ZE SUPABASE
-            return finalData || [];
-          } else {
-            console.log('✅ SUPABASE JE PRÁZDNÝ - vrácena prázdná data');
-
-            // Vymaž localStorage aby odpovídal Supabase
-            localStorage.setItem(storageKey, JSON.stringify([]));
-            console.log('💾 localStorage smazán pro synchronizaci s Supabase');
-
-            return [];
-          }
-
-        } catch (supabaseError) {
-          console.error('❌ KRITICKÁ CHYBA SUPABASE:', supabaseError.message);
-          console.error('🚨 APLIKACE NEFUNGUJE BEZ SUPABASE - ŽÁDNÝ FALLBACK!');
-
-          // ŽÁDNÝ fallback na localStorage - aplikace musí fungovat se Supabase
-          throw new Error(`Supabase nedostupný: ${supabaseError.message}`);
-        }
-      } else {
-        console.error('❌ SUPABASE NENÍ NAKONFIGUROVÁN!');
-        throw new Error('Supabase konfigurace chybí - aplikace nefunguje bez databáze');
-      }
-
+      return await DataManager.getUserOrders(userId);
     } catch (error) {
-      console.error('❌ ABSOLUTNÍ KRITICKÁ CHYBA:', error);
-      console.error('🚨 APLIKACE VYŽADUJE SUPABASE - ZASTAVUJI!');
-
-      // Žádný emergency fallback - aplikace musí fungovat se Supabase
+      console.error('❌ Chyba při načítání dat:', error);
       throw error;
     }
   };
 
-  // Funkce pro vyčištění duplicitních záznamů v Supabase
-  const cleanDuplicateOrders = async (userId) => {
+  // Funkce pro čištění duplicit
+  const cleanDuplicates = async (userId) => {
     try {
-      console.log('🧹 Čistím duplicitní zakázky v Supabase...');
-
-      const { data: allOrders, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true }); // Nejstarší první
-
-      if (error) {
-        console.error('❌ Chyba při načítání zakázek pro čištění:', error);
-        return;
-      }
-
-      console.log('📊 Celkem zakázek v DB:', allOrders.length);
-
-      // Najdi duplicity podle kombinace číslá zakázky a datumu
-      const uniqueOrders = new Map();
-      const duplicateIds = [];
-
-      allOrders.forEach(order => {
-        const key = `${order.cislo}_${order.datum}_${order.klient}`;
-
-        if (uniqueOrders.has(key)) {
-          // Toto je duplicita - označíme starší záznam ke smazání
-          duplicateIds.push(order.id);
-          console.log('🔍 Nalezena duplicita:', order.cislo, order.datum, order.klient);
-        } else {
-          uniqueOrders.set(key, order);
-        }
-      });
-
-      if (duplicateIds.length > 0) {
-        console.log('🗑️ Mažu', duplicateIds.length, 'duplicitních záznamů...');
-
-        const { error: deleteError } = await supabase
-          .from('orders')
-          .delete()
-          .in('id', duplicateIds);
-
-        if (deleteError) {
-          console.error('❌ Chyba při mazání duplicit:', deleteError);
-          throw deleteError;
-        } else {
-          console.log('✅ Úspěšně vymazáno', duplicateIds.length, 'duplicitních záznamů');
-          console.log('📊 Zbývající unikátní záznamy:', uniqueOrders.size);
-        }
-      } else {
-        console.log('✅ Žádné duplicity nenalezeny - celkový počet:', uniqueOrders.size);
-      }
-
-      // Vrať počet zbývajících unikátních záznamů po vyčištění
-      return uniqueOrders.size;
-
+      return await DataManager.cleanDuplicates(userId);
     } catch (error) {
       console.error('❌ Chyba při čištění duplicit:', error);
-    }
-  };
-
-  // Funkce pro synchronizaci localStorage dat do Supabase
-  const syncLocalToSupabase = async (userId, localOrders) => {
-    try {
-      console.log('🔄 Začínám synchronizaci:', localOrders.length, 'zakázek');
-      console.log('🔍 Supabase URL:', supabaseUrl);
-      console.log('🔍 Supabase Key exists:', !!supabaseAnonKey);
-
-      // Test připojení k Supabase
-      try {
-        const { data: testData, error: testError } = await supabase
-          .from('orders')
-          .select('count', { count: 'exact' })
-          .eq('user_id', userId);
-
-        console.log('🔍 Test připojení - současný počet zakázek v Supabase:', testData);
-        if (testError) {
-          console.error('❌ Chyba při testu připojení:', testError);
-        }
-      } catch (testErr) {
-        console.error('❌ Kritická chyba připojení:', testErr);
-        return;
-      }
-
-      // Nejprve vytvoř uživatele pokud neexistuje
-      const { error: userError } = await supabase
-        .from('users')
-        .upsert([{
-          id: userId,
-          name: currentUser?.name || 'Administrátor',
-          avatar: currentUser?.avatar || 'AD',
-          color: currentUser?.color || '#6366f1',
-          pin_hash: currentUser?.pin || 'temp'
-        }]);
-
-      if (userError) {
-        console.warn('⚠️ Uživatel již existuje nebo chyba:', userError.message);
-      } else {
-        console.log('✅ Uživatel vytvořen/aktualizován');
-      }
-
-      // Pak synchronizuj zakázky
-      const ordersToSync = localOrders.map(order => ({
-        user_id: userId,
-        datum: order.datum,
-        druh: order.druh,
-        klient: order.klient || '',
-        cislo: order.cislo,
-        castka: order.castka || 0,
-        fee: order.fee || 0,
-        material: order.material || 0,
-        pomocnik: order.pomocnik || 0,
-        palivo: order.palivo || 0,
-        adresa: order.adresa || '',
-        typ: order.typ || 'byt',
-        doba_realizace: order.doba_realizace || 1,
-        poznamka: order.poznamka || '',
-        soubory: order.soubory || [],
-        zisk: order.zisk || 0
-      }));
-
-      console.log('📝 Synchronizuji', ordersToSync.length, 'zakázek do Supabase...');
-
-      console.log('📝 Pripravuji', ordersToSync.length, 'zakázek k synchronizaci...');
-      console.log('📝 Ukázka dat k synchronizaci:', ordersToSync.slice(0, 2));
-
-      const { data, error } = await supabase
-        .from('orders')
-        .insert(ordersToSync)
-        .select();
-
-      if (error) {
-        console.error('❌ Chyba při synchronizaci do Supabase:', error.message);
-        console.error('❌ Detaily chyby:', error);
-        console.error('❌ Ukázkové data které selhaly:', ordersToSync.slice(0, 1));
-      } else {
-        console.log('✅ Synchronizace úspěšně dokončena!');
-        console.log('✅ Vloženo', data?.length || 0, 'zakázek do Supabase');
-        console.log('✅ Ukázka vložených dat:', data?.slice(0, 2));
-
-        // Ověření - zkontroluj že data jsou skutečně v DB
-        try {
-          const { data: verifyData, error: verifyError } = await supabase
-            .from('orders')
-            .select('count', { count: 'exact' })
-            .eq('user_id', userId);
-
-          console.log('🔍 Ověření po synchronizaci - počet zakázek v DB:', verifyData);
-        } catch (verifyErr) {
-          console.warn('⚠️ Chyba při ověření:', verifyErr);
-        }
-      }
-
-    } catch (error) {
-      console.error('❌ Kritická chyba při synchronizaci:', error);
-    }
-  };
-
-  //```jsx
-  // Funkce pro synchronizaci profilů do Supabase
-  const syncUsersToSupabase = async () => {
-    try {
-      if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('undefined')) {
-        console.warn('⚠️ Supabase není správně nakonfigurován');
-        return { success: false, error: 'Supabase není nakonfigurován' };
-      }
-
-      const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-
-      if (users.length === 0) {
-        console.log('📊 Žádní uživatelé k synchronizaci');
-        return { success: true, synced: 0 };
-      }
-
-      console.log('🔄 Synchronizuji', users.length, 'profilů do Supabase...');
-
-      let syncedCount = 0;
-      let errorCount = 0;
-
-      // Synchronizuj všechny uživatele
-      for (const user of users) {
-        try {
-          const { data, error } = await supabase
-            .from('users')
-            .upsert([{
-              id: user.id,
-              name: user.name,
-              avatar: user.avatar,
-              color: user.color,
-              pin_hash: user.pin,
-              created_at: user.createdAt || new Date().toISOString()
-            }], {
-              onConflict: 'id'
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.warn('⚠️ Chyba při synchronizaci uživatele:', user.name, error.message);
-            errorCount++;
-          } else {
-            console.log('✅ Profil synchronizován:', user.name, data);
-            syncedCount++;
-          }
-        } catch (userError) {
-          console.error('❌ Kritická chyba při synchronizaci uživatele:', user.name, userError);
-          errorCount++;
-        }
-      }
-
-      console.log(`✅ Synchronizace dokončena: ${syncedCount} úspěšných, ${errorCount} chyb`);
-      return { success: true, synced: syncedCount, errors: errorCount };
-    } catch (error) {
-      console.error('❌ Chyba při synchronizaci profilů:', error);
-      return { success: false, error: error.message };
     }
   };
 
@@ -946,94 +655,13 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro přidání nové zakázky
   const addUserOrder = async (userId, orderData) => {
     try {
-      console.log('🔄 Přidávám novou zakázku pro uživatele:', userId, orderData);
-
-      // Vytvoř novou zakázku s unikátním ID
-      const newOrder = {
-        ...orderData,
-        id: Date.now() + Math.random(), // Zajistí unikátnost
-        createdAt: new Date().toISOString(),
-        // Přepočítej zisk podle všech nákladů
-        zisk: (orderData.castka || 0) - (orderData.fee || 0) - (orderData.material || 0) - (orderData.pomocnik || 0) - (orderData.palivo || 0)
-      };
-
-      // PRIMÁRNÍ ULOŽENÍ: Supabase
-      if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
-        try {
-          console.log('💾 Ukládám do Supabase (primární)...');
-
-          const { data, error } = await supabase
-            .from('orders')
-            .insert([{
-              user_id: userId,
-              datum: newOrder.datum,
-              druh: newOrder.druh,
-              klient: newOrder.klient || '',
-              cislo: newOrder.cislo,
-              castka: newOrder.castka || 0,
-              fee: newOrder.fee || 0,
-              material: newOrder.material || 0,
-              pomocnik: newOrder.pomocnik || 0,
-              palivo: newOrder.palivo || 0,
-              adresa: newOrder.adresa || '',
-              typ: newOrder.typ || 'byt',
-              doba_realizace: newOrder.doba_realizace || 1,
-              poznamka: newOrder.poznamka || '',
-              soubory: newOrder.soubory || [],
-              zisk: newOrder.zisk
-            }])
-            .select()
-            .single();
-
-          if (error) {
-            console.error('❌ Chyba při ukládání do Supabase:', error.message);
-            throw error;
-          }
-
-          console.log('✅ Zakázka úspěšně uložena do Supabase:', data);
-
-          // ZÁLOHA: localStorage po úspěšném uložení do Supabase
-          const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-          const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const updatedOrders = [...currentOrders, { ...newOrder, id: data.id }]; // Použij ID ze Supabase
-          localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
-          console.log('💾 Zakázka zálohována do localStorage');
-
-          // Načti a vrať aktuální stav ze Supabase
-          const { data: allOrders } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
-          return allOrders || updatedOrders;
-
-        } catch (supabaseError) {
-          console.warn('⚠️ Supabase nedostupný, ukládám do localStorage (fallback):', supabaseError.message);
-
-          // FALLBACK: localStorage když Supabase selže
-          const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-          const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const updatedOrders = [...currentOrders, newOrder];
-          localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
-          console.log('💾 Zakázka uložena do localStorage (fallback)');
-
-          return updatedOrders;
-        }
-      } else {
-        console.warn('⚠️ Supabase není nakonfigurován, ukládám pouze do localStorage');
-
-        // Supabase není dostupný - uložit pouze do localStorage
-        const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-        const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        const updatedOrders = [...currentOrders, newOrder];
-        localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
-        console.log('💾 Zakázka uložena pouze do localStorage');
-
-        return updatedOrders;
-      }
+      console.log('🔄 Přidávám novou zakázku pro uživatele:', userId);
+      const savedOrder = await DataManager.saveUserOrder(userId, orderData);
+      
+      // Načti a vrať aktuální stav
+      return await DataManager.getUserOrders(userId);
     } catch (error) {
-      console.error('❌ Kritická chyba při přidávání zakázky:', error);
+      console.error('❌ Chyba při přidávání zakázky:', error);
       throw error;
     }
   };
@@ -1042,107 +670,12 @@ export const AuthProvider = ({ children }) => {
   const editUserOrder = async (userId, orderId, updatedData) => {
     try {
       console.log('🔄 Upravuji zakázku:', orderId, 'pro uživatele:', userId);
-
-      // Přepočítej zisk po úpravě
-      const updatedOrderData = {
-        ...updatedData,
-        zisk: (updatedData.castka || 0) - (updatedData.fee || 0) - (updatedData.material || 0) - (updatedData.pomocnik || 0) - (updatedData.palivo || 0)
-      };
-
-      // PRIMÁRNÍ AKTUALIZACE: Supabase
-      if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
-        try {
-          console.log('💾 Aktualizuji v Supabase (primární)...');
-
-          const { data, error } = await supabase
-            .from('orders')
-            .update({
-              datum: updatedOrderData.datum,
-              druh: updatedOrderData.druh,
-              klient: updatedOrderData.klient || '',
-              cislo: updatedOrderData.cislo,
-              castka: updatedOrderData.castka || 0,
-              fee: updatedOrderData.fee || 0,
-              material: updatedOrderData.material || 0,
-              pomocnik: updatedOrderData.pomocnik || 0,
-              palivo: updatedOrderData.palivo || 0,
-              adresa: updatedOrderData.adresa || '',
-              typ: updatedOrderData.typ || 'byt',
-              doba_realizace: updatedOrderData.doba_realizace || 1,
-              poznamka: updatedOrderData.poznamka || '',
-              soubory: updatedOrderData.soubory || [],
-              zisk: updatedOrderData.zisk
-            })
-            .eq('id', orderId)
-            .eq('user_id', userId)
-            .select()
-            .single();
-
-          if (error) {
-            console.error('❌ Chyba při aktualizaci v Supabase:', error.message);
-            throw error;
-          }
-
-          console.log('✅ Zakázka úspěšně aktualizována v Supabase');
-
-          // ZÁLOHA: localStorage po úspěšné aktualizaci v Supabase
-          const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-          const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const orderIndex = currentOrders.findIndex(order => order.id == orderId);
-
-          if (orderIndex !== -1) {
-            currentOrders[orderIndex] = { ...currentOrders[orderIndex], ...updatedOrderData };
-            localStorage.setItem(storageKey, JSON.stringify(currentOrders));
-            console.log('💾 Změny zálohované do localStorage');
-          }
-
-          // Načti a vrať aktuální stav ze Supabase
-          const { data: allOrders } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
-          return allOrders || currentOrders;
-
-        } catch (supabaseError) {
-          console.warn('⚠️ Supabase nedostupný, aktualizuji localStorage (fallback):', supabaseError.message);
-
-          // FALLBACK: localStorage když Supabase selže
-          const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-          const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const orderIndex = currentOrders.findIndex(order => order.id == orderId);
-
-          if (orderIndex === -1) {
-            throw new Error('Zakázka nenalezena v localStorage');
-          }
-
-          currentOrders[orderIndex] = { ...currentOrders[orderIndex], ...updatedOrderData };
-          localStorage.setItem(storageKey, JSON.stringify(currentOrders));
-          console.log('💾 Zakázka upravena v localStorage (fallback)');
-
-          return currentOrders;
-        }
-      } else {
-        console.warn('⚠️ Supabase není nakonfigurován, aktualizuji pouze localStorage');
-
-        // Supabase není dostupný - aktualizovat pouze localStorage
-        const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-        const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        const orderIndex = currentOrders.findIndex(order => order.id == orderId);
-
-        if (orderIndex === -1) {
-          throw new Error('Zakázka nenalezena');
-        }
-
-        currentOrders[orderIndex] = { ...currentOrders[orderIndex], ...updatedOrderData };
-        localStorage.setItem(storageKey, JSON.stringify(currentOrders));
-        console.log('💾 Zakázka upravena pouze v localStorage');
-
-        return currentOrders;
-      }
+      await DataManager.updateUserOrder(userId, orderId, updatedData);
+      
+      // Načti a vrať aktuální stav
+      return await DataManager.getUserOrders(userId);
     } catch (error) {
-      console.error('❌ Kritická chyba při editaci zakázky:', error);
+      console.error('❌ Chyba při editaci zakázky:', error);
       throw error;
     }
   };
@@ -1280,9 +813,8 @@ export const AuthProvider = ({ children }) => {
     editUserOrder,
     deleteUserOrder,
     changePin,
-    syncLocalToSupabase, // Exportujeme pro manuální použití
-		syncUsersToSupabase, // Exportujeme pro manuální použití
-    addUser // Exportujeme pro manuální použití
+    cleanDuplicates,
+    addUser
   };
 
   return (
