@@ -504,18 +504,33 @@ const PaintPro = () => {
   // Funkce pro přidání zakázky - OPRAVENO pro async
   const handleAddZakazka = async (zakazkaData) => {
     try {
+      console.log('🔄 handleAddZakazka volána s daty:', zakazkaData);
       const updatedData = await addUserOrder(currentUser.id, zakazkaData);
-      // OPRAVA: Bezpečná kontrola dat před nastavením state
-      const safeData = Array.isArray(updatedData) ? updatedData : [];
-      setZakazkyData(safeData);
-      console.log('✅ Zakázka přidána, nová data:', safeData.length, 'záznamů');
-    } catch (error) {
-      console.error('❌ Chyba při přidávání zakázky:', error);
-      // Znovu načti data z databáze pro jistotu
-      if (currentUser?.id) {
+      
+      // addUserOrder nyní vrací kompletní seznam zakázek
+      if (Array.isArray(updatedData)) {
+        setZakazkyData(updatedData);
+        console.log('✅ Zakázka přidána, celkem zakázek:', updatedData.length);
+      } else {
+        // Fallback - znovu načti data
+        console.warn('⚠️ Neočekávaný formát dat, načítám znovu...');
         const refreshedData = await getUserData(currentUser.id);
         const safeRefreshedData = Array.isArray(refreshedData) ? refreshedData : [];
         setZakazkyData(safeRefreshedData);
+      }
+    } catch (error) {
+      console.error('❌ Chyba při přidávání zakázky:', error);
+      alert('Chyba při přidávání zakázky: ' + error.message);
+      
+      // Znovu načti data z localStorage pro jistotu
+      if (currentUser?.id) {
+        try {
+          const refreshedData = await getUserData(currentUser.id);
+          const safeRefreshedData = Array.isArray(refreshedData) ? refreshedData : [];
+          setZakazkyData(safeRefreshedData);
+        } catch (refreshError) {
+          console.error('❌ Chyba i při načítání dat:', refreshError);
+        }
       }
     }
   };
@@ -523,15 +538,28 @@ const PaintPro = () => {
   // Funkce pro editaci zakázky - OPRAVENO pro async
   const handleEditZakazka = async (zakazkaData) => {
     try {
+      console.log('🔄 handleEditZakazka volána s ID:', editingZakazka.id, 'data:', zakazkaData);
       const updatedData = await editUserOrder(currentUser.id, editingZakazka.id, zakazkaData);
-      // OPRAVA: Bezpečná kontrola dat před nastavením state
-      const safeData = Array.isArray(updatedData) ? updatedData : [];
-      setZakazkyData(safeData);
+      
+      // editUserOrder nyní vrací kompletní seznam zakázek
+      if (Array.isArray(updatedData)) {
+        setZakazkyData(updatedData);
+        console.log('✅ Zakázka upravena, celkem zakázek:', updatedData.length);
+      } else {
+        // Fallback - znovu načti data
+        console.warn('⚠️ Neočekávaný formát dat, načítám znovu...');
+        const refreshedData = await getUserData(currentUser.id);
+        const safeRefreshedData = Array.isArray(refreshedData) ? refreshedData : [];
+        setZakazkyData(safeRefreshedData);
+      }
+      
       setEditingZakazka(null);
-      console.log('✅ Zakázka upravena, nová data:', safeData.length, 'záznamů');
+      setShowEditModal(false);
     } catch (error) {
       console.error('❌ Chyba při úpravě zakázky:', error);
+      alert('Chyba při úpravě zakázky: ' + error.message);
       setEditingZakazka(null);
+      setShowEditModal(false);
     }
   };
 
@@ -730,9 +758,15 @@ const PaintPro = () => {
   }, [zakazkyData, workCategories]);
 
   // Funkce pro přidání zakázky
-  const addZakazka = (newZakazka) => {
-    handleAddZakazka(newZakazka);
-    setShowAddModal(false);
+  const addZakazka = async (newZakazka) => {
+    try {
+      await handleAddZakazka(newZakazka);
+      setShowAddModal(false); // Zavři modal pouze po úspěšném přidání
+      console.log('✅ Modal zavřen po úspěšném přidání zakázky');
+    } catch (error) {
+      console.error('❌ Chyba při přidávání - modal zůstává otevřený:', error);
+      // Modal zůstane otevřený při chybě
+    }
   };
 
   // Funkce pro editaci
