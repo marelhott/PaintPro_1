@@ -619,6 +619,18 @@ export const AuthProvider = ({ children }) => {
           const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
           if (localOrders.length > 0) {
             console.log('📤 Migrace dat z localStorage do Supabase:', localOrders.length, 'zakázek');
+            
+            // Zkontroluj, jestli už nějaké zakázky v Supabase nejsou (prevence duplicit)
+            const { data: existingOrders } = await supabase
+              .from('orders')
+              .select('cislo, datum, klient')
+              .eq('user_id', userId);
+            
+            if (existingOrders && existingOrders.length > 0) {
+              console.log('⚠️ V Supabase už existují data - přeskakuji migraci aby se předešlo duplicitám');
+              return existingOrders;
+            }
+            
             await syncLocalToSupabase(userId, localOrders);
             console.log('✅ Migrace dokončena, data jsou nyní v Supabase');
             return localOrders;
@@ -666,6 +678,65 @@ export const AuthProvider = ({ children }) => {
       }
       
       return [];
+    }
+  };
+
+  // Funkce pro vyčištění duplicitních záznamů v Supabase
+  const cleanDuplicateOrders = async (userId) => {
+    try {
+      console.log('🧹 Čistím duplicitní zakázky v Supabase...');
+      
+      const { data: allOrders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true }); // Nejstarší první
+
+      if (error) {
+        console.error('❌ Chyba při načítání zakázek pro čištění:', error);
+        return;
+      }
+
+      console.log('📊 Celkem zakázek v DB:', allOrders.length);
+
+      // Najdi duplicity podle kombinace číslá zakázky a datumu
+      const uniqueOrders = new Map();
+      const duplicateIds = [];
+
+      allOrders.forEach(order => {
+        const key = `${order.cislo}_${order.datum}_${order.klient}`;
+        
+        if (uniqueOrders.has(key)) {
+          // Toto je duplicita - označíme starší záznam ke smazání
+          duplicateIds.push(order.id);
+          console.log('🔍 Nalezena duplicita:', order.cislo, order.datum, order.klient);
+        } else {
+          uniqueOrders.set(key, order);
+        }
+      });
+
+      if (duplicateIds.length > 0) {
+        console.log('🗑️ Mažu', duplicateIds.length, 'duplicitních záznamů...');
+        
+        const { error: deleteError } = await supabase
+          .from('orders')
+          .delete()
+          .in('id', duplicateIds);
+
+        if (deleteError) {
+          console.error('❌ Chyba při mazání duplicit:', deleteError);
+        } else {
+          console.log('✅ Úspěšně vymazáno', duplicateIds.length, 'duplicitních záznamů');
+        }
+      } else {
+        console.log('✅ Žádné duplicity nenalezeny');
+      }
+
+      // Vrať počet zbývajících unikátních záznamů
+      return uniqueOrders.size;
+
+    } catch (error) {
+      console.error('❌ Chyba při čištění duplicit:', error);
     }
   };
 
@@ -1177,7 +1248,8 @@ export const AuthProvider = ({ children }) => {
     changePin,
     syncLocalToSupabase, // Exportujeme pro manuální použití
 		syncUsersToSupabase, // Exportujeme pro manuální použití
-    addUser // Exportujeme pro manuální použití
+    addUser, // Exportujeme pro manuální použití
+    cleanDuplicateOrders // Exportujeme pro vyčištění duplicit
   };
 
   return (
