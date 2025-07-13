@@ -1302,7 +1302,12 @@ const PaintPro = () => {
                 <div className="chart-value-main">{dashboardData.celkovyZisk} Kč</div>
                 <div className="chart-value-secondary">Měsíc: {(() => {
                   const zisk = parseInt(dashboardData.celkovyZisk.replace(/,/g, ''));
-                  const pocetMesicu = dashboardData.mesicniData.values.filter(v => v > 0).length || 1;
+                  // Počet měsíců s aktivitou podle dat ze zakázek
+                  const uniqueMonths = [...new Set(zakazkyData.map(z => {
+                    const dateParts = z.datum.split('. ');
+                    return `${dateParts[2]}-${dateParts[1]}`;
+                  }))];
+                  const pocetMesicu = uniqueMonths.length || 1;
                   return Math.round(zisk / pocetMesicu).toLocaleString();
                 })()} Kč</div>
               </div>
