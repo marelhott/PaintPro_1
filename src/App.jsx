@@ -1300,17 +1300,6 @@ const PaintPro = () => {
               <h3>PŘEHLED ZISKU</h3>
               <div className="chart-values-dual">
                 <div className="chart-value-main">{dashboardData.celkovyZisk} Kč</div>
-                <div className="chart-value-secondary">Měsíc: {(() => {
-                  const zisk = parseInt(dashboardData.celkovyZisk.replace(/,/g, ''));
-                  // Počet měsíců s aktivitou z filtrovaných hlavních zakázek
-                  const mainOrders = filterMainOrdersOnly(zakazkyData);
-                  const uniqueMonths = [...new Set(mainOrders.map(z => {
-                    const dateParts = z.datum.split('. ');
-                    return `${dateParts[2]}-${dateParts[1]}`;
-                  }))];
-                  const pocetMesicu = uniqueMonths.length || 1;
-                  return Math.round(zisk / pocetMesicu).toLocaleString();
-                })()} Kč</div>
               </div>
             </div>
           </div>
