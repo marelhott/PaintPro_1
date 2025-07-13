@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import "./App.css";
@@ -13,8 +12,41 @@ const LoginScreen = () => {
   const [users, setUsers] = useState([]);
   const { login, addUser } = useAuth();
 
-  // Načtení uživatelů při mount
+  // Načtení uživatelů při mount komponenty
   useEffect(() => {
+    const loadUsers = () => {
+      try {
+        console.log('🔄 Načítám uživatele z localStorage...');
+        const savedUsers = localStorage.getItem('paintpro_users');
+        console.log('📊 Raw data z localStorage:', savedUsers);
+
+        if (savedUsers) {
+          const parsedUsers = JSON.parse(savedUsers);
+          console.log('📊 Parsed users:', parsedUsers);
+          setUsers(parsedUsers);
+          console.log('✅ Načteno', parsedUsers.length, 'uživatelů z localStorage');
+        } else {
+          console.log('⚠️ Žádní uživatelé v localStorage - inicializuji výchozího uživatele');
+          // Pokud nejsou žádní uživatelé, vytvoř administrátora
+          const adminUser = {
+            id: 'admin_1',
+            name: 'Administrátor',
+            avatar: 'AD',
+            color: '#8b5cf6',
+            pin: '123456',
+            isAdmin: true,
+            createdAt: new Date().toISOString()
+          };
+          localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
+          setUsers([adminUser]);
+          console.log('✅ Vytvořen výchozí administrátor');
+        }
+      } catch (error) {
+        console.error('❌ Chyba při načítání uživatelů:', error);
+        setUsers([]);
+      }
+    };
+
     loadUsers();
   }, []);
 
@@ -30,7 +62,7 @@ const LoginScreen = () => {
 
   const loadUsers = () => {
     const storedUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-    
+
     // Pokud nejsou žádní uživatelé, vytvoř administrátora
     if (storedUsers.length === 0) {
       const admin = {
@@ -210,7 +242,7 @@ const LoginScreen = () => {
 
     const handleSubmit = (e) => {
       e.preventDefault();
-      
+
       const updatedUser = {
         ...user,
         name: formData.name.trim(),
@@ -233,7 +265,7 @@ const LoginScreen = () => {
         setError("Nelze smazat administrátora");
         return;
       }
-      
+
       if (window.confirm(`Opravdu chcete smazat profil ${user.name}?`)) {
         const updatedUsers = users.filter(u => u.id !== user.id);
         localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
@@ -303,7 +335,7 @@ const LoginScreen = () => {
   return (
     <div className="login-screen">
       <div className="login-container">
-        
+
 
         {!selectedUser ? (
           <div className="user-selection">
@@ -335,7 +367,7 @@ const LoginScreen = () => {
                   </button>
                 </div>
               ))}
-              
+
               <div className="profile-card add-profile" onClick={() => setShowAddUser(true)}>
                 <div className="add-plus-icon">+</div>
               </div>
@@ -346,7 +378,7 @@ const LoginScreen = () => {
             <button className="back-button" onClick={() => setSelectedUser(null)}>
               ← Zpět
             </button>
-            
+
             <div className="pin-header">
               <div 
                 className="selected-avatar"
@@ -371,7 +403,7 @@ const LoginScreen = () => {
                   autoFocus
                 />
               </div>
-              
+
               {error && <div className="error-message">{error}</div>}
 
               <button
