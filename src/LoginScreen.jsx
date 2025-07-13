@@ -31,6 +31,7 @@ const LoginScreen = () => {
 
   const initializeUsers = async () => {
     console.log('🚀 Inicializuji uživatele...');
+    console.log('🔍 Kontroluji Supabase připojení...');
     
     // Základní admin profil
     const adminUser = {
@@ -92,6 +93,7 @@ const LoginScreen = () => {
 
         finalUsers = [adminUser, lenkaUser];
         console.log('✅ Vytvořeni admin + Lenka v Supabase');
+        console.log('📋 Profil Lenka:', lenkaUser);
       } else {
         // Převeď ze Supabase formátu
         finalUsers = data.map(user => ({
@@ -122,6 +124,7 @@ const LoginScreen = () => {
           
           finalUsers.push(lenkaUser);
           console.log('✅ Profil Lenka přidán do Supabase');
+          console.log('📋 Přidaný profil Lenka:', lenkaUser);
         }
       }
 
@@ -146,7 +149,7 @@ const LoginScreen = () => {
   };
 
   // Komponenta pro přidání uživatele
-  const AddUserModal = () => {
+  const AddUserModal = ({ setError }) => {
     const [formData, setFormData] = useState({
       name: '',
       pin: '',
@@ -535,7 +538,7 @@ const LoginScreen = () => {
           </div>
         )}
 
-        {showAddUser && <AddUserModal />}
+        {showAddUser && <AddUserModal setError={setError} />}
         {showEditUser && <EditUserModal user={showEditUser} />}
       </div>
     </div>
