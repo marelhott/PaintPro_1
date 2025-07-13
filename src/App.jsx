@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import './ModernIcons.css';
-import './GitLockManager.css';
 import html2pdf from 'html2pdf.js';
 import CalendarComponent from './CalendarComponent';
 import CalculatorComponent from './CalculatorComponent';
