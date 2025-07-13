@@ -96,6 +96,10 @@ const LoginScreen = () => {
   const handleUserSelect = (userId) => {
     console.log('🔄 Přihlašuji uživatele:', userId);
     window.location.hash = `#${userId}`;
+    // Vynutíme reload stránky pro jistotu
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   if (isLoading) {

@@ -253,11 +253,20 @@ export const AuthProvider = ({ children }) => {
 
     // Poslouchej změny URL hash
     const handleHashChange = () => {
-      loadUserFromUrl();
+      console.log('🔄 Hash se změnil na:', window.location.hash);
+      setIsLoading(true);
+      loadUserFromUrl().then(() => setIsLoading(false));
     };
 
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    
+    // Také poslouchej storage události pro reload
+    window.addEventListener('storage', handleHashChange);
+    
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('storage', handleHashChange);
+    };
   }, []);
 
   // Context hodnoty
