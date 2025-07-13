@@ -11,7 +11,7 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
-  const { login } = useAuth();
+  const { login, addUser } = useAuth();
 
   // Načtení uživatelů při mount
   useEffect(() => {
@@ -110,29 +110,41 @@ const LoginScreen = () => {
       pin: '',
       color: generateColor()
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
       if (!formData.name.trim() || !formData.pin) {
         setError("Vyplňte všechna pole");
         return;
       }
 
-      const newUser = {
-        id: `user_${Date.now()}`,
-        name: formData.name.trim(),
-        avatar: formData.name.trim().substring(0, 2).toUpperCase(),
-        color: formData.color,
-        pin: hashPin(formData.pin),
-        isAdmin: false,
-        createdAt: new Date().toISOString()
-      };
-
-      const updatedUsers = [...users, newUser];
-      localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
-      setUsers(updatedUsers);
-      setShowAddUser(false);
+      setIsSubmitting(true);
       setError("");
+
+      try {
+        // Použij addUser funkci z AuthContext pro synchronizaci s Supabase
+        const result = await addUser({
+          name: formData.name.trim(),
+          avatar: formData.name.trim().substring(0, 2).toUpperCase(),
+          color: formData.color,
+          pin: hashPin(formData.pin),
+          isAdmin: false
+        });
+
+        if (result.success) {
+          console.log('✅ Nový profil vytvořen a synchronizován:', result.user.name);
+          loadUsers(); // Aktualizuj seznam uživatelů
+          setShowAddUser(false);
+        } else {
+          setError(result.error || "Chyba při vytváření profilu");
+        }
+      } catch (error) {
+        console.error('❌ Chyba při vytváření profilu:', error);
+        setError("Chyba při vytváření profilu");
+      } finally {
+        setIsSubmitting(false);
+      }
     };
 
     return (
@@ -179,8 +191,8 @@ const LoginScreen = () => {
               <button type="button" className="btn btn-secondary" onClick={() => setShowAddUser(false)}>
                 Zrušit
               </button>
-              <button type="submit" className="btn btn-primary">
-                Vytvořit profil
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Vytvářím...' : 'Vytvořit profil'}
               </button>
             </div>
           </form>

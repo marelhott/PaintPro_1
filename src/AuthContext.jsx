@@ -748,41 +748,67 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro synchronizaci profilů do Supabase
   const syncUsersToSupabase = async () => {
     try {
+      if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('undefined')) {
+        console.warn('⚠️ Supabase není správně nakonfigurován');
+        return { success: false, error: 'Supabase není nakonfigurován' };
+      }
+
       const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
 
-      if (users.length === 0) return;
+      if (users.length === 0) {
+        console.log('📊 Žádní uživatelé k synchronizaci');
+        return { success: true, synced: 0 };
+      }
 
       console.log('🔄 Synchronizuji', users.length, 'profilů do Supabase...');
 
+      let syncedCount = 0;
+      let errorCount = 0;
+
       // Synchronizuj všechny uživatele
       for (const user of users) {
-        const { error } = await supabase
-          .from('users')
-          .upsert([{
-            id: user.id,
-            name: user.name,
-            avatar: user.avatar,
-            color: user.color,
-            pin_hash: user.pin,
-            created_at: user.createdAt || new Date().toISOString()
-          }]);
+        try {
+          const { data, error } = await supabase
+            .from('users')
+            .upsert([{
+              id: user.id,
+              name: user.name,
+              avatar: user.avatar,
+              color: user.color,
+              pin_hash: user.pin,
+              created_at: user.createdAt || new Date().toISOString()
+            }], {
+              onConflict: 'id'
+            })
+            .select()
+            .single();
 
-        if (error) {
-          console.warn('⚠️ Chyba při synchronizaci uživatele:', user.name, error.message);
-        } else {
-          console.log('✅ Profil synchronizován:', user.name);
+          if (error) {
+            console.warn('⚠️ Chyba při synchronizaci uživatele:', user.name, error.message);
+            errorCount++;
+          } else {
+            console.log('✅ Profil synchronizován:', user.name, data);
+            syncedCount++;
+          }
+        } catch (userError) {
+          console.error('❌ Kritická chyba při synchronizaci uživatele:', user.name, userError);
+          errorCount++;
         }
       }
 
-      console.log('✅ Synchronizace profilů dokončena');
+      console.log(`✅ Synchronizace dokončena: ${syncedCount} úspěšných, ${errorCount} chyb`);
+      return { success: true, synced: syncedCount, errors: errorCount };
     } catch (error) {
       console.error('❌ Chyba při synchronizaci profilů:', error);
+      return { success: false, error: error.message };
     }
   };
 
   // Funkce pro přidání nového uživatele
   const addUser = async (userData) => {
     try {
+      console.log('🆕 Vytvářím nový profil:', userData.name);
+      
       const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
       const newUser = {
         id: `user_${Date.now()}`,
@@ -793,32 +819,43 @@ export const AuthProvider = ({ children }) => {
       // Uložit lokálně
       users.push(newUser);
       localStorage.setItem('paintpro_users', JSON.stringify(users));
+      console.log('✅ Profil uložen lokálně:', newUser.name);
 
       // Synchronizovat do Supabase
-      try {
-        const { error } = await supabase
-          .from('users')
-          .insert([{
-            id: newUser.id,
-            name: newUser.name,
-            avatar: newUser.avatar,
-            color: newUser.color,
-            pin_hash: newUser.pin,
-            created_at: newUser.createdAt
-          }]);
+      if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
+        try {
+          console.log('🔄 Synchronizuji profil do Supabase...');
+          
+          const { data, error } = await supabase
+            .from('users')
+            .insert([{
+              id: newUser.id,
+              name: newUser.name,
+              avatar: newUser.avatar,
+              color: newUser.color,
+              pin_hash: newUser.pin,
+              created_at: newUser.createdAt
+            }])
+            .select()
+            .single();
 
-        if (error) {
-          console.warn('⚠️ Nepodařilo se uložit profil do Supabase:', error.message);
-        } else {
-          console.log('✅ Nový profil uložen do Supabase:', newUser.name);
+          if (error) {
+            console.error('❌ Chyba při ukládání do Supabase:', error.message);
+            console.error('❌ Detaily chyby:', error);
+            // Nepokračuj s chybou, profil je uložen lokálně
+          } else {
+            console.log('✅ Profil úspěšně uložen do Supabase:', data);
+          }
+        } catch (supabaseError) {
+          console.error('❌ Supabase nedostupný při vytváření profilu:', supabaseError);
         }
-      } catch (supabaseError) {
-        console.warn('⚠️ Supabase nedostupný při vytváření profilu:', supabaseError.message);
+      } else {
+        console.warn('⚠️ Supabase není správně nakonfigurován');
       }
 
       return { success: true, user: newUser };
     } catch (error) {
-      console.error('Chyba při přidávání uživatele:', error);
+      console.error('❌ Chyba při přidávání uživatele:', error);
       return { success: false, error: 'Chyba při přidávání uživatele' };
     }
   };
@@ -929,7 +966,7 @@ export const AuthProvider = ({ children }) => {
 
   // Kontrola přihlášeného uživatele při načtení
   useEffect(() => {
-    const checkCurrentUser = () => {
+    const checkCurrentUser = async () => {
       try {
         // Inicializace výchozího uživatele
         initializeDefaultUser();
@@ -939,6 +976,13 @@ export const AuthProvider = ({ children }) => {
         if (savedUser) {
           const user = JSON.parse(savedUser);
           setCurrentUser(user);
+        }
+
+        // Spusť synchronizaci profilů do Supabase
+        console.log('🔄 Spouštím automatickou synchronizaci profilů...');
+        const syncResult = await syncUsersToSupabase();
+        if (syncResult.success) {
+          console.log('✅ Profily synchronizovány:', syncResult.synced, 'úspěšných');
         }
       } catch (error) {
         console.error('Chyba při kontrole přihlášeného uživatele:', error);
