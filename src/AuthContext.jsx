@@ -611,25 +611,32 @@ export const AuthProvider = ({ children }) => {
           if (supabaseCount >= 0) { // I prázdné Supabase má prioritu
             console.log('✅ POUŽÍVÁM SUPABASE DATA (absolutní priorita) -', supabaseCount, 'zakázek');
             
-            // Pouze v případě více než 0 zakázek čisti duplicity
+            // Vždy vyčisti duplicity a vrať data ze Supabase
             if (supabaseCount > 0) {
-              console.log('🧹 Čistím duplicity...');
+              console.log('🧹 Čistím duplicity v Supabase...');
               await cleanDuplicateOrders(userId);
               
-              // Znovu načti vyčištěná data
-              const { data: cleanedData } = await supabase
+              // KRITICKÉ: Znovu načti data po vyčištění duplicit
+              const { data: finalData, error: finalError } = await supabase
                 .from('orders')
                 .select('*')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false });
 
-              console.log('✅ VRÁCENA VYČIŠTĚNÁ DATA ZE SUPABASE:', cleanedData?.length || 0, 'zakázek');
+              if (finalError) {
+                console.error('❌ Chyba při finálním načtení dat:', finalError);
+                throw finalError;
+              }
+
+              const finalCount = finalData?.length || 0;
+              console.log('✅ FINÁLNÍ DATA ZE SUPABASE PO ČIŠTĚNÍ:', finalCount, 'zakázek');
               
-              // Aktualizuj localStorage jako zálohu (nikdy jako primární zdroj!)
-              localStorage.setItem(storageKey, JSON.stringify(cleanedData || []));
-              console.log('💾 Záloha do localStorage dokončena');
+              // Přepis localStorage s finálními daty ze Supabase
+              localStorage.setItem(storageKey, JSON.stringify(finalData || []));
+              console.log('💾 localStorage přepsán finálními daty ze Supabase');
               
-              return cleanedData || [];
+              // VRAŤ SKUTEČNÁ DATA ZE SUPABASE
+              return finalData || [];
             } else {
               console.log('✅ SUPABASE JE PRÁZDNÝ - vrácena prázdná data');
               
@@ -714,14 +721,16 @@ export const AuthProvider = ({ children }) => {
 
         if (deleteError) {
           console.error('❌ Chyba při mazání duplicit:', deleteError);
+          throw deleteError;
         } else {
           console.log('✅ Úspěšně vymazáno', duplicateIds.length, 'duplicitních záznamů');
+          console.log('📊 Zbývající unikátní záznamy:', uniqueOrders.size);
         }
       } else {
-        console.log('✅ Žádné duplicity nenalezeny');
+        console.log('✅ Žádné duplicity nenalezeny - celkový počet:', uniqueOrders.size);
       }
 
-      // Vrať počet zbývajících unikátních záznamů
+      // Vrať počet zbývajících unikátních záznamů po vyčištění
       return uniqueOrders.size;
 
     } catch (error) {
