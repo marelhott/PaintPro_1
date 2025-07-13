@@ -1619,89 +1619,209 @@ const PaintPro = () => {
 
     // Funkce pro parsování OCR textu a extrakci údajů
     const parseOcrText = (text) => {
+      const originalText = text;
       const cleanText = text.toLowerCase().replace(/\s+/g, ' ');
+      const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
       const extractedData = {};
 
-      // Regex vzory pro různé údaje
+      console.log('🔍 OCR parsing - původní text:', originalText);
+      console.log('🔍 OCR parsing - řádky:', lines);
+
+      // Pokročilé regex vzory pro různé údaje
       const patterns = {
         // Telefonní čísla (české formáty)
         phone: /(\+420\s?)?[0-9]{3}\s?[0-9]{3}\s?[0-9]{3}/g,
         
-        // Částky (Kč, CZK, EUR, €)
-        amount: /(\d+[,.]?\d*)\s?(kč|czk|eur|€)/gi,
+        // Částky - vylepšené rozpoznávání
+        amount: /(\d{1,3}(?:[,.\s]\d{3})*(?:[,.]\d{2})?)\s*(?:kč|czk|eur|€|korun?|crowns?)/gi,
+        amountSimple: /\b(\d{3,})\b/g, // Jednoduchá částka bez měny
         
-        // Datum (DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY)
+        // Datum - více formátů
         date: /(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/g,
+        dateWithText: /(datum|date)[\s:]*(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/gi,
         
         // Číslo faktury/zakázky
-        invoice: /(faktura|invoice|číslo|number|zakázka)[\s:]*([a-z0-9\-\/]+)/gi,
+        invoice: /(faktura|invoice|číslo|number|zakázka|order)[\s:]*([a-z0-9\-\/]+)/gi,
+        invoiceSimple: /[a-z]{2,4}[\-_]?\d{3,}/gi,
         
         // PSČ a město (české PSČ)
         postal: /(\d{3}\s?\d{2})\s+([a-záčďéěíňóřšťúůýž\s]+)/gi,
+        address: /(ulice|street|adresa|address)[\s:]*([^,\n]+)/gi,
         
         // Email
-        email: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi
+        email: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi,
+        
+        // Jména - vylepšené rozpoznávání
+        personName: /\b[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]{2,}\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]{2,}\b/g,
+        clientField: /(klient|client|jméno|name|zákazník|customer)[\s:]*([a-záčďéěíňóřšťúůýž\s]+)/gi
       };
 
-      // Extrakce telefonního čísla
-      const phoneMatch = cleanText.match(patterns.phone);
-      if (phoneMatch) {
-        extractedData.telefon = phoneMatch[0].replace(/\s/g, '');
-      }
-
-      // Extrakce částky
-      const amountMatch = cleanText.match(patterns.amount);
-      if (amountMatch) {
-        const amount = amountMatch[0].match(/\d+[,.]?\d*/)[0].replace(',', '.');
-        extractedData.castka = Math.round(parseFloat(amount));
-      }
-
-      // Extrakce data
-      const dateMatch = cleanText.match(patterns.date);
-      if (dateMatch) {
-        const [, day, month, year] = dateMatch[0].match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
-        extractedData.datum = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-      }
-
-      // Extrakce čísla faktury/zakázky
-      const invoiceMatch = text.match(patterns.invoice);
-      if (invoiceMatch) {
-        extractedData.cislo = invoiceMatch[0].split(/[\s:]+/).pop();
-      }
-
-      // Extrakce adresy (PSČ + město)
-      const postalMatch = text.match(patterns.postal);
-      if (postalMatch) {
-        extractedData.adresa = postalMatch[0];
-      }
-
-      // Extrakce jména (heuristic - slova s velkými písmeny)
-      const namePattern = /\b[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]+\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]+\b/g;
-      const nameMatches = text.match(namePattern);
-      if (nameMatches && nameMatches.length > 0) {
-        // Vezmi první rozumné jméno (ne "Praha", "Česká", apod.)
-        const possibleNames = nameMatches.filter(name => 
-          !['Praha', 'Česká', 'Republika', 'Telefon', 'Email', 'Adresa'].includes(name.split(' ')[0])
-        );
-        if (possibleNames.length > 0) {
-          extractedData.klient = possibleNames[0];
+      // 1. EXTRAKCE KLIENTA/JMÉNA - nejvyšší priorita
+      console.log('🔍 Hledám jméno klienta...');
+      
+      // Nejdřív hledej explicitní označení klienta
+      const clientFieldMatch = originalText.match(patterns.clientField);
+      if (clientFieldMatch) {
+        const clientName = clientFieldMatch[0].split(/[\s:]+/).slice(1).join(' ').trim();
+        if (clientName.length > 2) {
+          extractedData.klient = clientName;
+          console.log('✅ Nalezen klient (z pole):', clientName);
         }
       }
 
-      // Automatická klasifikace druhu práce
+      // Pokud nenalezen, hledej jména ve formátu "Jméno Příjmení"
+      if (!extractedData.klient) {
+        const nameMatches = originalText.match(patterns.personName);
+        if (nameMatches && nameMatches.length > 0) {
+          // Vyfiltruj nechtěná jména
+          const blacklistedNames = [
+            'Praha', 'Česká', 'Republika', 'Telefon', 'Email', 'Adresa', 
+            'Faktura', 'Invoice', 'Částka', 'Amount', 'Datum', 'Date',
+            'Malování', 'Montáž', 'Korálek', 'Adam', 'Czech', 'Republic'
+          ];
+          
+          const validNames = nameMatches.filter(name => {
+            const nameParts = name.split(' ');
+            return !blacklistedNames.some(blacklisted => 
+              nameParts.some(part => part.toLowerCase().includes(blacklisted.toLowerCase()))
+            );
+          });
+          
+          if (validNames.length > 0) {
+            extractedData.klient = validNames[0];
+            console.log('✅ Nalezen klient (pattern):', validNames[0]);
+          }
+        }
+      }
+
+      // 2. EXTRAKCE ČÁSTKY
+      console.log('🔍 Hledám částku...');
+      
+      // Nejdřív hledej částky s měnou
+      const amountMatches = originalText.match(patterns.amount);
+      if (amountMatches && amountMatches.length > 0) {
+        // Vezmi největší částku
+        const amounts = amountMatches.map(match => {
+          const numStr = match.match(/\d{1,3}(?:[,.\s]\d{3})*(?:[,.]\d{2})?/)[0];
+          return parseFloat(numStr.replace(/[,.\s]/g, '').slice(0, -2) + '.' + numStr.slice(-2));
+        });
+        
+        const maxAmount = Math.max(...amounts);
+        if (maxAmount > 100) { // Rozumná minimální částka
+          extractedData.castka = Math.round(maxAmount);
+          console.log('✅ Nalezena částka:', maxAmount);
+        }
+      }
+
+      // Pokud nenalezena, hledej jednoduché číselné částky
+      if (!extractedData.castka) {
+        const simpleAmountMatches = originalText.match(patterns.amountSimple);
+        if (simpleAmountMatches && simpleAmountMatches.length > 0) {
+          const amounts = simpleAmountMatches.map(match => parseInt(match)).filter(amount => amount >= 1000 && amount <= 1000000);
+          if (amounts.length > 0) {
+            extractedData.castka = Math.max(...amounts);
+            console.log('✅ Nalezena částka (jednoduchá):', extractedData.castka);
+          }
+        }
+      }
+
+      // 3. EXTRAKCE DATUMU
+      console.log('🔍 Hledám datum...');
+      
+      const dateWithTextMatch = originalText.match(patterns.dateWithText);
+      if (dateWithTextMatch) {
+        const match = dateWithTextMatch[0].match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+        if (match) {
+          const [, day, month, year] = match;
+          extractedData.datum = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          console.log('✅ Nalezeno datum (s textem):', extractedData.datum);
+        }
+      }
+
+      if (!extractedData.datum) {
+        const dateMatch = originalText.match(patterns.date);
+        if (dateMatch) {
+          const [, day, month, year] = dateMatch[0].match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
+          extractedData.datum = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          console.log('✅ Nalezeno datum:', extractedData.datum);
+        }
+      }
+
+      // 4. EXTRAKCE ČÍSLA ZAKÁZKY
+      console.log('🔍 Hledám číslo zakázky...');
+      
+      const invoiceMatch = originalText.match(patterns.invoice);
+      if (invoiceMatch) {
+        const invoiceNumber = invoiceMatch[0].split(/[\s:]+/).pop().trim();
+        if (invoiceNumber.length > 1) {
+          extractedData.cislo = invoiceNumber;
+          console.log('✅ Nalezeno číslo zakázky:', invoiceNumber);
+        }
+      }
+
+      if (!extractedData.cislo) {
+        const invoiceSimpleMatch = originalText.match(patterns.invoiceSimple);
+        if (invoiceSimpleMatch && invoiceSimpleMatch.length > 0) {
+          extractedData.cislo = invoiceSimpleMatch[0];
+          console.log('✅ Nalezeno číslo zakázky (jednoduchý pattern):', invoiceSimpleMatch[0]);
+        }
+      }
+
+      // 5. EXTRAKCE ADRESY
+      console.log('🔍 Hledám adresu...');
+      
+      // Hledej explicitní pole adresy
+      const addressFieldMatch = originalText.match(patterns.address);
+      if (addressFieldMatch) {
+        const address = addressFieldMatch[0].split(/[\s:]+/).slice(1).join(' ').trim();
+        if (address.length > 5) {
+          extractedData.adresa = address;
+          console.log('✅ Nalezena adresa (z pole):', address);
+        }
+      }
+
+      // Hledej PSČ + město
+      if (!extractedData.adresa) {
+        const postalMatch = originalText.match(patterns.postal);
+        if (postalMatch) {
+          extractedData.adresa = postalMatch[0];
+          console.log('✅ Nalezena adresa (PSČ + město):', postalMatch[0]);
+        }
+      }
+
+      // 6. AUTOMATICKÁ KLASIFIKACE DRUHU PRÁCE
+      console.log('🔍 Klasifikuji druh práce...');
+      
       const workTypeKeywords = {
-        'MVČ': ['malování', 'nátěr', 'barva', 'stěna', 'malíř'],
-        'Adam': ['montáž', 'instalace', 'sestavení', 'oprava'],
-        'Korálek': ['korálek', 'bead', 'výzdoba']
+        'MVČ': ['malování', 'malíř', 'nátěr', 'barva', 'stěna', 'paint', 'painting', 'wall'],
+        'Adam': ['montáž', 'instalace', 'sestavení', 'oprava', 'installation', 'assembly', 'repair'],
+        'Korálek': ['korálek', 'korálky', 'bead', 'beads', 'výzdoba', 'decoration'],
+        'poplavky': ['poplavky', 'plovák', 'float', 'floating', 'voda', 'water']
       };
 
       for (const [workType, keywords] of Object.entries(workTypeKeywords)) {
         if (keywords.some(keyword => cleanText.includes(keyword))) {
           extractedData.druh = workType;
+          console.log('✅ Klasifikován druh práce:', workType);
           break;
         }
       }
 
+      // 7. EXTRAKCE TELEFONNÍHO ČÍSLA
+      const phoneMatch = originalText.match(patterns.phone);
+      if (phoneMatch) {
+        extractedData.telefon = phoneMatch[0].replace(/\s/g, '');
+        console.log('✅ Nalezen telefon:', extractedData.telefon);
+      }
+
+      // 8. EXTRAKCE EMAILU
+      const emailMatch = originalText.match(patterns.email);
+      if (emailMatch) {
+        extractedData.email = emailMatch[0];
+        console.log('✅ Nalezen email:', extractedData.email);
+      }
+
+      console.log('🎯 Finální extrahovaná data:', extractedData);
       return extractedData;
     };
 
