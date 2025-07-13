@@ -29,15 +29,27 @@ const LoginScreen = () => {
     console.log('🔄 Načítám uživatele se synchronizací...');
     
     try {
-      // Pokud máme syncUsers funkci, použij ji
+      // PRIORITA: Zkus načíst přímo ze Supabase
       if (syncUsers) {
         const synchronizedUsers = await syncUsers();
-        setUsers(synchronizedUsers);
-        console.log('✅ Uživatelé načteni a synchronizováni:', synchronizedUsers.length);
-        return;
+        
+        // Pokud máme uživatele ze Supabase, použij je
+        if (synchronizedUsers && synchronizedUsers.length > 0) {
+          // Upravit jména - pokud existuje admin_1, přejmenuj ho na "Administrátor"
+          const updatedUsers = synchronizedUsers.map(user => {
+            if (user.id === 'admin_1') {
+              return { ...user, name: 'Administrátor' };
+            }
+            return user;
+          });
+          
+          setUsers(updatedUsers);
+          console.log('✅ Uživatelé načteni ze Supabase:', updatedUsers.length);
+          return;
+        }
       }
     } catch (error) {
-      console.error('❌ Chyba při synchronizaci:', error);
+      console.error('❌ Chyba při synchronizaci se Supabase:', error);
     }
 
     // Fallback na localStorage
