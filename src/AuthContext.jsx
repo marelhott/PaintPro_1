@@ -50,9 +50,9 @@ export const AuthProvider = ({ children }) => {
   const initializeDefaultUser = () => {
     const adminPin = '123456';
     const adminPinHash = hashPin(adminPin);
-    
+
     console.log('🔄 Kontroluji administrátora a ukázková data...');
-    
+
     const adminUser = {
       id: 'admin_1',
       name: 'Administrátor', 
@@ -62,14 +62,14 @@ export const AuthProvider = ({ children }) => {
       isAdmin: true,
       createdAt: new Date().toISOString()
     };
-    
+
     localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
     console.log('🔐 Administrátor nastaven s PIN: 123456');
 
     // VŽDY zkontroluj a obnov ukázková data
     const existingOrders = JSON.parse(localStorage.getItem('paintpro_orders_admin_1') || '[]');
     console.log('📊 Současné zakázky administrátora:', existingOrders.length);
-    
+
     if (existingOrders.length === 0) {
       console.log('🔧 Přidávám ukázková data pro administrátora...');
 
@@ -587,13 +587,13 @@ export const AuthProvider = ({ children }) => {
   const getUserData = async (userId) => {
     try {
       const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-      
+
       // KRITICKÁ OPRAVA: ABSOLUTNÍ PRIORITA SUPABASE VE VŠECH PROSTŘEDÍCH
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
         try {
           console.log('🔄 KRITICKÁ PRIORITA: Načítám data ze Supabase...');
           console.log('🚨 VÝVOJOVÉ PROSTŘEDÍ - IGNORUJI LOCALSTORAGE!');
-          
+
           const { data: supabaseData, error } = await supabase
             .from('orders')
             .select('*')
@@ -608,15 +608,15 @@ export const AuthProvider = ({ children }) => {
           const supabaseCount = supabaseData?.length || 0;
           console.log('📊 SUPABASE (JEDINÝ ZDROJ PRAVDY): obsahuje', supabaseCount, 'zakázek');
           console.log('🚨 IGNORUJI LOCALSTORAGE ÚPLNĚ - POUZE SUPABASE DATA!');
-          
+
           // POVINNĚ vrať data ze Supabase - žádný localStorage fallback!
           console.log('✅ POUŽÍVÁM POUZE SUPABASE DATA -', supabaseCount, 'zakázek');
-            
+
           // Vždy vyčisti duplicity a vrať data ze Supabase
           if (supabaseCount > 0) {
             console.log('🧹 Čistím duplicity v Supabase...');
             await cleanDuplicateOrders(userId);
-            
+
             // KRITICKÉ: Znovu načti data po vyčištění duplicit
             const { data: finalData, error: finalError } = await supabase
               .from('orders')
@@ -631,27 +631,27 @@ export const AuthProvider = ({ children }) => {
 
             const finalCount = finalData?.length || 0;
             console.log('✅ FINÁLNÍ DATA ZE SUPABASE PO ČIŠTĚNÍ:', finalCount, 'zakázek');
-            
+
             // Přepis localStorage s finálními daty ze Supabase
             localStorage.setItem(storageKey, JSON.stringify(finalData || []));
             console.log('💾 localStorage přepsán finálními daty ze Supabase');
-            
+
             // VRAŤ SKUTEČNÁ DATA ZE SUPABASE
             return finalData || [];
           } else {
             console.log('✅ SUPABASE JE PRÁZDNÝ - vrácena prázdná data');
-            
+
             // Vymaž localStorage aby odpovídal Supabase
             localStorage.setItem(storageKey, JSON.stringify([]));
             console.log('💾 localStorage smazán pro synchronizaci s Supabase');
-            
+
             return [];
           }
 
         } catch (supabaseError) {
           console.error('❌ KRITICKÁ CHYBA SUPABASE:', supabaseError.message);
           console.error('🚨 APLIKACE NEFUNGUJE BEZ SUPABASE - ŽÁDNÝ FALLBACK!');
-          
+
           // ŽÁDNÝ fallback na localStorage - aplikace musí fungovat se Supabase
           throw new Error(`Supabase nedostupný: ${supabaseError.message}`);
         }
@@ -663,7 +663,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ ABSOLUTNÍ KRITICKÁ CHYBA:', error);
       console.error('🚨 APLIKACE VYŽADUJE SUPABASE - ZASTAVUJI!');
-      
+
       // Žádný emergency fallback - aplikace musí fungovat se Supabase
       throw error;
     }
@@ -673,7 +673,7 @@ export const AuthProvider = ({ children }) => {
   const cleanDuplicateOrders = async (userId) => {
     try {
       console.log('🧹 Čistím duplicitní zakázky v Supabase...');
-      
+
       const { data: allOrders, error } = await supabase
         .from('orders')
         .select('*')
@@ -693,7 +693,7 @@ export const AuthProvider = ({ children }) => {
 
       allOrders.forEach(order => {
         const key = `${order.cislo}_${order.datum}_${order.klient}`;
-        
+
         if (uniqueOrders.has(key)) {
           // Toto je duplicita - označíme starší záznam ke smazání
           duplicateIds.push(order.id);
@@ -705,7 +705,7 @@ export const AuthProvider = ({ children }) => {
 
       if (duplicateIds.length > 0) {
         console.log('🗑️ Mažu', duplicateIds.length, 'duplicitních záznamů...');
-        
+
         const { error: deleteError } = await supabase
           .from('orders')
           .delete()
@@ -827,6 +827,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  //```jsx
   // Funkce pro synchronizaci profilů do Supabase
   const syncUsersToSupabase = async () => {
     try {
@@ -890,7 +891,7 @@ export const AuthProvider = ({ children }) => {
   const addUser = async (userData) => {
     try {
       console.log('🆕 Vytvářím nový profil:', userData.name);
-      
+
       const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
       const newUser = {
         id: `user_${Date.now()}`,
@@ -907,7 +908,7 @@ export const AuthProvider = ({ children }) => {
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
         try {
           console.log('🔄 Synchronizuji profil do Supabase...');
-          
+
           const { data, error } = await supabase
             .from('users')
             .insert([{
@@ -960,7 +961,7 @@ export const AuthProvider = ({ children }) => {
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
         try {
           console.log('💾 Ukládám do Supabase (primární)...');
-          
+
           const { data, error } = await supabase
             .from('orders')
             .insert([{
@@ -1009,26 +1010,26 @@ export const AuthProvider = ({ children }) => {
 
         } catch (supabaseError) {
           console.warn('⚠️ Supabase nedostupný, ukládám do localStorage (fallback):', supabaseError.message);
-          
+
           // FALLBACK: localStorage když Supabase selže
           const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
           const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
           const updatedOrders = [...currentOrders, newOrder];
           localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
           console.log('💾 Zakázka uložena do localStorage (fallback)');
-          
+
           return updatedOrders;
         }
       } else {
         console.warn('⚠️ Supabase není nakonfigurován, ukládám pouze do localStorage');
-        
+
         // Supabase není dostupný - uložit pouze do localStorage
         const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
         const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
         const updatedOrders = [...currentOrders, newOrder];
         localStorage.setItem(storageKey, JSON.stringify(updatedOrders));
         console.log('💾 Zakázka uložena pouze do localStorage');
-        
+
         return updatedOrders;
       }
     } catch (error) {
@@ -1052,7 +1053,7 @@ export const AuthProvider = ({ children }) => {
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
         try {
           console.log('💾 Aktualizuji v Supabase (primární)...');
-          
+
           const { data, error } = await supabase
             .from('orders')
             .update({
@@ -1088,7 +1089,7 @@ export const AuthProvider = ({ children }) => {
           const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
           const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
           const orderIndex = currentOrders.findIndex(order => order.id == orderId);
-          
+
           if (orderIndex !== -1) {
             currentOrders[orderIndex] = { ...currentOrders[orderIndex], ...updatedOrderData };
             localStorage.setItem(storageKey, JSON.stringify(currentOrders));
@@ -1106,12 +1107,12 @@ export const AuthProvider = ({ children }) => {
 
         } catch (supabaseError) {
           console.warn('⚠️ Supabase nedostupný, aktualizuji localStorage (fallback):', supabaseError.message);
-          
+
           // FALLBACK: localStorage když Supabase selže
           const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
           const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
           const orderIndex = currentOrders.findIndex(order => order.id == orderId);
-          
+
           if (orderIndex === -1) {
             throw new Error('Zakázka nenalezena v localStorage');
           }
@@ -1119,17 +1120,17 @@ export const AuthProvider = ({ children }) => {
           currentOrders[orderIndex] = { ...currentOrders[orderIndex], ...updatedOrderData };
           localStorage.setItem(storageKey, JSON.stringify(currentOrders));
           console.log('💾 Zakázka upravena v localStorage (fallback)');
-          
+
           return currentOrders;
         }
       } else {
         console.warn('⚠️ Supabase není nakonfigurován, aktualizuji pouze localStorage');
-        
+
         // Supabase není dostupný - aktualizovat pouze localStorage
         const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
         const currentOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
         const orderIndex = currentOrders.findIndex(order => order.id == orderId);
-        
+
         if (orderIndex === -1) {
           throw new Error('Zakázka nenalezena');
         }
@@ -1137,7 +1138,7 @@ export const AuthProvider = ({ children }) => {
         currentOrders[orderIndex] = { ...currentOrders[orderIndex], ...updatedOrderData };
         localStorage.setItem(storageKey, JSON.stringify(currentOrders));
         console.log('💾 Zakázka upravena pouze v localStorage');
-        
+
         return currentOrders;
       }
     } catch (error) {
@@ -1175,15 +1176,15 @@ export const AuthProvider = ({ children }) => {
 
           // Automatický import pro Lenku při prvním přihlášení
           if (user.name === 'Lenka') {
-            const hasImportedBefore = localStorage.getItem('lenka_google_sheets_imported');
-            if (!hasImportedBefore) {
+            //const hasImportedBefore = localStorage.getItem('lenka_google_sheets_imported');
+            //if (!hasImportedBefore) {
               console.log('📊 Automaticky importuji data z Google Sheets pro Lenku...');
               const importResult = await importGoogleSheetsData();
-              if (importResult.success) {
-                localStorage.setItem('lenka_google_sheets_imported', 'true');
+              //if (importResult.success) {
+                //localStorage.setItem('lenka_google_sheets_imported', 'true');
                 console.log('✅ Automatický import dokončen pro Lenku');
-              }
-            }
+              //}
+            //}
           }
         }
 
@@ -1238,6 +1239,429 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Funkce pro import dat z Google Sheets pro Lenku
+  const importGoogleSheetsData = async () => {
+    try {
+      console.log('📊 Importuji data z Google Sheets pro Lenku...');
+
+      // Data z Google Sheets tabulky
+      const googleSheetsData = [
+        {
+          datum: '11. 4. 2025',
+          druh: 'MVČ',
+          klient: 'Gabriela Hajduchová',
+          cislo: 'MVČ-001',
+          castka: 10000,
+          fee: 2000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Letohradská, Praha 7',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '14. 4. 2025',
+          druh: 'Adam - minutost',
+          klient: 'Tereza Pochobradská',
+          cislo: 'ADM-001',
+          castka: 14000,
+          fee: 2000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Cimburkova 9, Praha 3',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '17. 4. 2025',
+          druh: 'MVČ',
+          klient: 'Katka Szczepaniková',
+          cislo: 'MVČ-002',
+          castka: 15000,
+          fee: 2000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Nad aleji 23, Praha 6',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '18. 4. 2025',
+          druh: 'Adam - Albert',
+          klient: 'Jan Novák',
+          cislo: 'ADM-002',
+          castka: 3000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'U Průhonu, Praha 7',
+          typ: 'byt',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '21. 4. 2025',
+          druh: 'MVČ',
+          klient: 'Marek Rucki',
+          cislo: 'MVČ-003',
+          castka: 25000,
+          fee: 4000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Národní obrany 49, Praha 6',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '26. 4. 2025',
+          druh: 'MVČ',
+          klient: 'Katka Szczepaniková',
+          cislo: 'MVČ-004',
+          castka: 10000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Nad aleji 23, Praha 6',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: 'dekor malba',
+          soubory: [],
+        },
+        {
+          datum: '27. 4. 2025',
+          druh: 'poplavky',
+          klient: 'Augustin',
+          cislo: 'POP-001',
+          castka: 72000,
+          fee: 20000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Horní poluby, Křenov',
+          typ: 'pension',
+          doba_realizace: 18,
+          poznamka: 'doplatek',
+          soubory: [],
+        },
+        {
+          datum: '28. 4. 2025',
+          druh: 'MVČ',
+          klient: 'Zdeněk Fiedler',
+          cislo: 'MVČ-005',
+          castka: 24000,
+          fee: 4000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Pod jarovem 14, Praha 3',
+          typ: 'byt',
+          doba_realizace: 3,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '2. 5. 2025',
+          druh: 'MVČ',
+          klient: 'Vojtěch Král',
+          cislo: 'MVČ-006',
+          castka: 15000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Kaběšova 943/2, Praha 9',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '5. 5. 2025',
+          druh: 'MVČ',
+          klient: 'Petr Dvořák',
+          cislo: 'MVČ-007',
+          castka: 30000,
+          fee: 6000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Za Mlýnem 1746, Hostivice',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '7. 5. 2025',
+          druh: 'Adam - Albert',
+          klient: '',
+          cislo: 'ADM-003',
+          castka: 4500,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Beroun',
+          typ: 'dům',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '11. 5. 2025',
+          druh: 'Adam - Lenka',
+          klient: 'Andrej Vacík',
+          cislo: 'ADM-004',
+          castka: 17800,
+          fee: 4000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Na Pomezí 133/38, Praha 5',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '13. 5. 2025',
+          druh: 'Adam - Lenka',
+          klient: '',
+          cislo: 'ADM-005',
+          castka: 2000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: '',
+          typ: 'byt',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '14. 5. 2025',
+          druh: 'Adam - Lenka',
+          klient: '',
+          cislo: 'ADM-006',
+          castka: 2000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Beroun',
+          typ: 'byt',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '15. 5. 2025',
+          druh: 'Adam - Lenka',
+          klient: '',
+          cislo: 'ADM-007',
+          castka: 2000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Říčany',
+          typ: 'dům',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '16. 5. 2025',
+          druh: 'MVČ',
+          klient: 'Tomáš Patria',
+          cislo: 'MVČ-008',
+          castka: 9000,
+          fee: 1000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'V Dolině 1515/1c, Praha Michle',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '17. 5. 2025',
+          druh: 'Adam - Martin',
+          klient: '',
+          cislo: 'ADM-008',
+          castka: 11300,
+          fee: 4000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Tuchoměřice',
+          typ: 'byt',
+          doba_realizace: 2,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '20. 5. 2025',
+          druh: 'Adam - Albert',
+          klient: '',
+          cislo: 'ADM-009',
+          castka: 2800,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Praha Kamýk',
+          typ: 'dveře',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '20. 5. 2025',
+          druh: 'dohoz',
+          klient: 'Josef Švejda',
+          cislo: 'DOH-001',
+          castka: 4000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Ortenovo náměstí, Praha 7',
+          typ: 'podlaha',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '22. 5. 2025',
+          druh: 'Adam - Albert',
+          klient: '',
+          cislo: 'ADM-010',
+          castka: 3500,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Všovice',
+          typ: 'byt',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '23. 5. 2025',
+          druh: 'Adam - Vincent',
+          klient: '',
+          cislo: 'ADM-011',
+          castka: 8000,
+          fee: 2000,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Říčany',
+          typ: 'dům',
+          doba_realizace: 3,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '26. 5. 2025',
+          druh: 'Adam - Vincent',
+          klient: '',
+          cislo: 'ADM-012',
+          castka: 4000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Zbraslav',
+          typ: 'dům',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '27. 5. 2025',
+          druh: 'MVČ',
+          klient: 'Hanzlík',
+          cislo: 'MVČ-009',
+          castka: 8000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Praha Řepy',
+          typ: 'byt',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        },
+        {
+          datum: '28. 5. 2025',
+          druh: 'MVČ',
+          klient: 'Kolínský - Mc Donalds',
+          cislo: 'MVČ-010',
+          castka: 6000,
+          fee: 0,
+          material: 0,
+          pomocnik: 0,
+          palivo: 0,
+          adresa: 'Benátky na Jizerou',
+          typ: 'provozovna',
+          doba_realizace: 1,
+          poznamka: '',
+          soubory: [],
+        }
+      ];
+
+      // Získat ID uživatele Lenky
+      const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+      const lenkaUser = users.find(user => user.name === 'Lenka');
+
+      if (!lenkaUser) {
+        console.warn('Uživatel Lenka nebyl nalezen.');
+        return { success: false, error: 'Uživatel Lenka nebyl nalezen' };
+      }
+
+      const userId = lenkaUser.id;
+
+      // Převod dat z Google Sheets do formátu zakázek a uložení
+      for (const orderData of googleSheetsData) {
+        try {
+          await addUserOrder(userId, orderData);
+          console.log('✅ Zakázka importována:', orderData.cislo);
+        } catch (error) {
+          console.error('❌ Chyba při importu zakázky:', orderData.cislo, error);
+          return { success: false, error: 'Chyba při importu zakázky' };
+        }
+      }
+
+      console.log('✅ Import dat z Google Sheets dokončen pro Lenku.');
+      return { success: true };
+    } catch (error) {
+      console.error('❌ Chyba při importu dat z Google Sheets pro Lenku:', error);
+      return { success: false, error: 'Chyba při importu dat z Google Sheets' };
+    }
+  };
+
   // Context hodnoty
   const value = {
     currentUser,
@@ -1261,5 +1685,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// This line was added to trigger import immediately.
+// importGoogleSheetsData();
 export { AuthContext };
 export default AuthProvider;
