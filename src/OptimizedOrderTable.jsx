@@ -288,7 +288,7 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
       <td>
         {zakazka.dobaRealizace ? `${zakazka.dobaRealizace} ${zakazka.dobaRealizace === 1 ? 'den' : zakazka.dobaRealizace <= 4 ? 'dny' : 'dní'}` : '1 den'}
       </td>
-      <td>{zakazka.poznamky || '-'}</td>
+      <td>{zakazka.poznamka || zakazka.poznamky || '-'}</td>
       <td>
         <FileUploadCell zakazka={zakazka} onFilesUpdate={(files) => onFilesUpdate(zakazka.id, files)} />
       </td>
