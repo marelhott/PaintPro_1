@@ -673,8 +673,8 @@ export const AuthProvider = ({ children }) => {
         .from('users')
         .upsert([{
           id: userId,
-          name: currentUser?.name || 'Dušan',
-          avatar: currentUser?.avatar || 'DU',
+          name: currentUser?.name || 'Administrátor',
+          avatar: currentUser?.avatar || 'AD',
           color: currentUser?.color || '#6366f1',
           pin_hash: currentUser?.pin || 'temp'
         }]);
