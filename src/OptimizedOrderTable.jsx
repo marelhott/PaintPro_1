@@ -274,7 +274,7 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
       <td>{zakazka.cislo}</td>
       <td className="amount-bold-black">{zakazka.castka.toLocaleString()}</td>
       <td>{zakazka.fee.toLocaleString()}</td>
-      <td>{zakazka.castka - zakazka.fee).toLocaleString()}</td>
+      <td>{(zakazka.castka - zakazka.fee).toLocaleString()}</td>
       <td>{zakazka.palivo.toLocaleString()}</td>
       <td>{zakazka.material.toLocaleString()}</td>
       <td>{zakazka.pomocnik.toLocaleString()}</td>
