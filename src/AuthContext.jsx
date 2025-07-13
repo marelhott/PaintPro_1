@@ -74,11 +74,11 @@ export const AuthProvider = ({ children }) => {
         }
         return user;
       });
-      
+
       if (needsUpdate) {
         localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
         console.log('✅ Jméno uživatele změněno z "Dušan" na "Administrátor"');
-        
+
         // Aktualizuj i aktuálního uživatele pokud je přihlášený
         const currentUser = JSON.parse(localStorage.getItem('paintpro_current_user') || 'null');
         if (currentUser && currentUser.name === 'Dušan') {
@@ -566,7 +566,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
       const hashedPin = hashPin(pin);
-      
+
       let user;
       if (userId) {
         // Pokud je zadáno userId, najdi konkrétního uživatele
@@ -645,7 +645,7 @@ export const AuthProvider = ({ children }) => {
 
         } catch (supabaseError) {
           console.warn('⚠️ Supabase chyba při synchronizaci:', supabaseError.message);
-          
+
           // Fallback na localStorage (už je deklarovaný nahoře)
           if (localOrders.length > 0) {
             console.log('✅ Data načtena z localStorage (fallback) pro uživatele:', userId, 'počet zakázek:', localOrders.length);
@@ -746,14 +746,14 @@ export const AuthProvider = ({ children }) => {
         console.log('✅ Synchronizace úspěšně dokončena!');
         console.log('✅ Vloženo', data?.length || 0, 'zakázek do Supabase');
         console.log('✅ Ukázka vložených dat:', data?.slice(0, 2));
-        
+
         // Ověření - zkontroluj že data jsou skutečně v DB
         try {
           const { data: verifyData, error: verifyError } = await supabase
             .from('orders')
             .select('count', { count: 'exact' })
             .eq('user_id', userId);
-          
+
           console.log('🔍 Ověření po synchronizaci - počet zakázek v DB:', verifyData);
         } catch (verifyErr) {
           console.warn('⚠️ Chyba při ověření:', verifyErr);
@@ -762,6 +762,84 @@ export const AuthProvider = ({ children }) => {
 
     } catch (error) {
       console.error('❌ Kritická chyba při synchronizaci:', error);
+    }
+  };
+
+  // Funkce pro synchronizaci profilů do Supabase
+  const syncUsersToSupabase = async () => {
+    try {
+      const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+
+      if (users.length === 0) return;
+
+      console.log('🔄 Synchronizuji', users.length, 'profilů do Supabase...');
+
+      // Synchronizuj všechny uživatele
+      for (const user of users) {
+        const { error } = await supabase
+          .from('users')
+          .upsert([{
+            id: user.id,
+            name: user.name,
+            avatar: user.avatar,
+            color: user.color,
+            pin_hash: user.pin,
+            created_at: user.createdAt || new Date().toISOString()
+          }]);
+
+        if (error) {
+          console.warn('⚠️ Chyba při synchronizaci uživatele:', user.name, error.message);
+        } else {
+          console.log('✅ Profil synchronizován:', user.name);
+        }
+      }
+
+      console.log('✅ Synchronizace profilů dokončena');
+    } catch (error) {
+      console.error('❌ Chyba při synchronizaci profilů:', error);
+    }
+  };
+
+  // Funkce pro přidání nového uživatele
+  const addUser = async (userData) => {
+    try {
+      const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+      const newUser = {
+        id: `user_${Date.now()}`,
+        ...userData,
+        createdAt: new Date().toISOString()
+      };
+
+      // Uložit lokálně
+      users.push(newUser);
+      localStorage.setItem('paintpro_users', JSON.stringify(users));
+
+      // Synchronizovat do Supabase
+      try {
+        const { error } = await supabase
+          .from('users')
+          .insert([{
+            id: newUser.id,
+            name: newUser.name,
+            avatar: newUser.avatar,
+            color: newUser.color,
+            pin_hash: newUser.pin,
+            created_at: newUser.createdAt
+          }]);
+
+        if (error) {
+          console.warn('⚠️ Nepodařilo se uložit profil do Supabase:', error.message);
+        } else {
+          console.log('✅ Nový profil uložen do Supabase:', newUser.name);
+        }
+      } catch (supabaseError) {
+        console.warn('⚠️ Supabase nedostupný při vytváření profilu:', supabaseError.message);
+      }
+
+      return { success: true, user: newUser };
+    } catch (error) {
+      console.error('Chyba při přidávání uživatele:', error);
+      return { success: false, error: 'Chyba při přidávání uživatele' };
     }
   };
 
@@ -907,19 +985,19 @@ export const AuthProvider = ({ children }) => {
       // Změň PIN
       const hashedNewPin = hashPin(newPinPlain);
       const userIndex = users.findIndex(u => u.id === currentUser.id);
-      
+
       if (userIndex !== -1) {
         users[userIndex].pin = hashedNewPin;
         localStorage.setItem('paintpro_users', JSON.stringify(users));
-        
+
         // Aktualizuj současného uživatele
         const updatedUser = { ...currentUser, pin: hashedNewPin };
         setCurrentUser(updatedUser);
         localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUser));
-        
+
         return { success: true };
       }
-      
+
       return { success: false, error: 'Uživatel nenalezen' };
     } catch (error) {
       console.error('Chyba při změně PINu:', error);
@@ -938,7 +1016,9 @@ export const AuthProvider = ({ children }) => {
     editUserOrder,
     deleteUserOrder,
     changePin,
-    syncLocalToSupabase // Exportujeme pro manuální použití
+    syncLocalToSupabase, // Exportujeme pro manuální použití
+		syncUsersToSupabase, // Exportujeme pro manuální použití
+    addUser // Exportujeme pro manuální použití
   };
 
   return (
