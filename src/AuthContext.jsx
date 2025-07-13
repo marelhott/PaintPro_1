@@ -580,10 +580,17 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro získání dat uživatele
   const getUserData = async (userId) => {
     try {
-      return await DataManager.getUserOrders(userId);
+      console.log('🔄 AuthContext: Načítám data pro uživatele:', userId);
+      
+      // Nejdříve vynutit synchronizaci ze Supabase
+      const supabaseData = await DataManager.forceSyncFromSupabase(userId);
+      console.log('✅ Vynucená synchronizace dokončena:', supabaseData.length, 'zakázek');
+      
+      return supabaseData;
     } catch (error) {
       console.error('❌ Chyba při načítání dat:', error);
-      throw error;
+      // Fallback na normální načtení
+      return await DataManager.getUserOrders(userId);
     }
   };
 

@@ -34,11 +34,15 @@ class DataManager {
         const supabaseData = await this.loadFromSupabase(userId);
         console.log('📊 Supabase obsahuje:', supabaseData.length, 'zakázek');
         
-        // 2. ZÁLOHA: Uložit do localStorage (přepsat kompletně)
+        // 2. VŽDY přepsat localStorage daty ze Supabase
+        console.log('💾 Přepisuji localStorage daty ze Supabase...');
         this.saveToLocalStorage(userId, supabaseData);
-        console.log('💾 Zálohování ze Supabase do localStorage...');
         
-        console.log('✅ Data načtena ze Supabase a zálohována lokálně');
+        // 3. Kontrola po uložení
+        const verifyLocal = this.loadFromLocalStorage(userId);
+        console.log('✅ Verifikace localStorage po uložení:', verifyLocal.length, 'zakázek');
+        
+        console.log('✅ Data načtena ze Supabase a uložena do localStorage');
         return supabaseData;
       } else {
         // 3. OFFLINE: Načti z localStorage
@@ -219,7 +223,12 @@ class DataManager {
 
   saveToLocalStorage(userId, data) {
     const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
+    console.log('💾 Ukládám do localStorage klíč:', key, 'počet zakázek:', data.length);
     localStorage.setItem(key, JSON.stringify(data));
+    
+    // Verifikace uložení
+    const verification = JSON.parse(localStorage.getItem(key) || '[]');
+    console.log('✅ Verifikace uložení - localStorage nyní obsahuje:', verification.length, 'zakázek');
   }
 
   appendToLocalStorage(userId, newOrder) {
