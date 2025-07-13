@@ -402,9 +402,35 @@ const PaintPro = () => {
         try {
           const data = await getUserData(currentUser.id);
           // OPRAVA: Bezpečná kontrola dat z AuthContext
-          const safeData = Array.isArray(data) ? data : [];
-          setZakazkyData(safeData);
-          console.log('✅ Data načtena pro uživatele:', currentUser.id, 'počet zakázek:', safeData.length);
+          let safeData = Array.isArray(data) ? data : [];
+          
+          // MIGRACE: Přesun hodnot z fee do pomocník
+          const migratedData = safeData.map(zakazka => {
+            // Pokud má zakázka fee hodnotu a pomocník je 0 nebo undefined
+            if (zakazka.fee > 0 && (!zakazka.pomocnik || zakazka.pomocnik === 0)) {
+              return {
+                ...zakazka,
+                pomocnik: zakazka.fee, // Přesun fee do pomocník
+                fee: 0 // Vynulování fee
+              };
+            }
+            return zakazka;
+          });
+          
+          // Pokud proběhla migrace, uložit změny
+          if (JSON.stringify(migratedData) !== JSON.stringify(safeData)) {
+            console.log('🔄 Migruji data z fee do pomocník...');
+            // Aktualizovat každou zakázku s migrovanými daty
+            for (const zakazka of migratedData) {
+              if (zakazka.fee === 0 && zakazka.pomocnik > 0) {
+                await editUserOrder(currentUser.id, zakazka.id, zakazka);
+              }
+            }
+            console.log('✅ Migrace dokončena');
+          }
+          
+          setZakazkyData(migratedData);
+          console.log('✅ Data načtena pro uživatele:', currentUser.id, 'počet zakázek:', migratedData.length);
         } catch (error) {
           console.error('❌ Chyba při načítání dat:', error);
           setZakazkyData([]); // Fallback na prázdné pole
