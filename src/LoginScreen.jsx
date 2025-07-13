@@ -162,51 +162,65 @@ const LoginScreen = () => {
       setError("");
 
       try {
-        // PŘÍMÉ ULOŽENÍ DO SUPABASE
-        const novyProfil = {
-          id: `user_${Date.now()}`,
-          name: formData.name.trim(),
-          avatar: formData.name.trim().substring(0, 2).toUpperCase(),
-          color: formData.color,
-          pin: hashPin(formData.pin),
-          isAdmin: false,
-          createdAt: new Date().toISOString()
-        };
-
-        console.log('💾 Ukládám profil přímo do Supabase:', novyProfil.name);
+        console.log('💾 Vytvářím nový profil:', formData.name);
 
         // ULOŽIT PŘÍMO DO SUPABASE
         const { data, error: supabaseError } = await window.supabase
           .from('users')
           .insert([{
-            id: novyProfil.id,
-            name: novyProfil.name,
-            avatar: novyProfil.avatar,
-            color: novyProfil.color,
-            pin: novyProfil.pin,
-            is_admin: novyProfil.isAdmin,
-            created_at: novyProfil.createdAt
+            id: `user_${Date.now()}`,
+            name: formData.name.trim(),
+            avatar: formData.name.trim().substring(0, 2).toUpperCase(),
+            color: formData.color,
+            pin: hashPin(formData.pin),
+            is_admin: false,
+            created_at: new Date().toISOString()
           }])
           .select()
           .single();
 
         if (supabaseError) {
           console.error('❌ Chyba při ukládání do Supabase:', supabaseError);
-          setError("Chyba při ukládání profilu do databáze");
+          setError("Chyba při ukládání profilu do databáze: " + supabaseError.message);
           return;
         }
 
         console.log('✅ Profil uložen do Supabase:', data);
 
-        // NAČTI VŠECHNY PROFILY ZE SUPABASE
-        await nactiUzivatele();
+        // ZNOVU NAČTI VŠECHNY PROFILY ZE SUPABASE
+        console.log('🔄 Znovu načítám profily ze Supabase...');
+        const { data: allUsers, error: loadError } = await window.supabase
+          .from('users')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (loadError) {
+          console.error('❌ Chyba při načítání:', loadError);
+          setError("Chyba při načítání profilů");
+          return;
+        }
+
+        // PŘEVEĎ A NASTAV PROFILY
+        const supabaseUsers = (allUsers || []).map(user => ({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          color: user.color,
+          pin: user.pin,
+          isAdmin: user.is_admin,
+          createdAt: user.created_at
+        }));
+
+        console.log('✅ Aktualizuji profily:', supabaseUsers.length);
+        setUsers(supabaseUsers);
+        localStorage.setItem('paintpro_users', JSON.stringify(supabaseUsers));
         
         setShowAddUser(false);
         setError("");
-        console.log('✅ Profil vytvořen a načten ze Supabase');
+        console.log('✅ Profil vytvořen a profily aktualizovány!');
       } catch (error) {
         console.error('❌ Chyba při vytváření profilu:', error);
-        setError("Chyba při vytváření profilu");
+        setError("Chyba při vytváření profilu: " + error.message);
       } finally {
         setIsSubmitting(false);
       }
