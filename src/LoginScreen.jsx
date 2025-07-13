@@ -15,17 +15,26 @@ const LoginScreen = () => {
 
   // Hash funkce pro PIN
   const hashPin = (pin) => {
+    if (!pin) {
+      console.error('❌ hashPin: PIN je prázdný!', pin);
+      return '';
+    }
+    console.log('🔑 hashPin vstup:', pin, 'typ:', typeof pin);
     let hash = 0;
-    for (let i = 0; i < pin.length; i++) {
-      const char = pin.charCodeAt(i);
+    const pinStr = String(pin);
+    for (let i = 0; i < pinStr.length; i++) {
+      const char = pinStr.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
       hash = hash & hash;
     }
-    return hash.toString();
+    const result = hash.toString();
+    console.log('🔑 hashPin výstup:', result);
+    return result;
   };
 
   // Načtení uživatelů při startu
   useEffect(() => {
+    console.log('🎯 LoginScreen useEffect - spouštím initializeUsers...');
     initializeUsers();
   }, []);
 
@@ -130,6 +139,10 @@ const LoginScreen = () => {
 
       setUsers(finalUsers);
       console.log('✅ Uživatelé načteni:', finalUsers.length);
+      console.log('👥 Seznam profilů:');
+      finalUsers.forEach(user => {
+        console.log(`- ${user.name} (${user.id}): PIN hash = ${user.pin}`);
+      });
 
     } catch (error) {
       console.error('❌ Chyba při načítání:', error);
@@ -423,7 +436,14 @@ const LoginScreen = () => {
     setError("");
 
     try {
+      console.log('🔐 PŘIHLAŠOVÁNÍ - uživatel:', selectedUser.name);
+      console.log('🔐 PŘIHLAŠOVÁNÍ - zadaný PIN:', pin);
+      console.log('🔐 PŘIHLAŠOVÁNÍ - uložený hash:', selectedUser.pin);
+      
       const hashedPin = hashPin(pin);
+      console.log('🔐 PŘIHLAŠOVÁNÍ - nový hash:', hashedPin);
+      console.log('🔐 PŘIHLAŠOVÁNÍ - shoda?', selectedUser.pin === hashedPin);
+      
       if (selectedUser.pin === hashedPin) {
         const result = await login(pin, selectedUser.id);
         if (!result.success) {
@@ -433,6 +453,7 @@ const LoginScreen = () => {
         setError("Neplatný PIN");
       }
     } catch (error) {
+      console.error('❌ Chyba při přihlašování:', error);
       setError("Chyba při přihlašování");
     } finally {
       setIsLoading(false);
