@@ -12,41 +12,54 @@ const LoginScreen = () => {
   const [users, setUsers] = useState([]);
   const { login, addUser } = useAuth();
 
+  // Funkce pro načítání uživatelů
+  const loadUsers = () => {
+    try {
+      console.log('🔄 Načítám uživatele z localStorage...');
+      const savedUsers = localStorage.getItem('paintpro_users');
+      console.log('📊 Raw data z localStorage:', savedUsers);
+
+      if (savedUsers) {
+        const parsedUsers = JSON.parse(savedUsers);
+        console.log('📊 Parsed users:', parsedUsers);
+        setUsers(parsedUsers);
+        console.log('✅ Načteno', parsedUsers.length, 'uživatelů z localStorage');
+      } else {
+        console.log('⚠️ Žádní uživatelé v localStorage - inicializuji výchozího uživatele');
+        // Pokud nejsou žádní uživatelé, vytvoř administrátora
+        const adminUser = {
+          id: 'admin_1',
+          name: 'Administrátor',
+          avatar: 'AD',
+          color: '#8b5cf6',
+          pin: hashPin('123456'),
+          isAdmin: true,
+          createdAt: new Date().toISOString()
+        };
+        localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
+        setUsers([adminUser]);
+        console.log('✅ Vytvořen výchozí administrátor');
+      }
+    } catch (error) {
+      console.error('❌ Chyba při načítání uživatelů:', error);
+      // Pokud je chyba, vytvoř alespoň administrátora
+      const adminUser = {
+        id: 'admin_1',
+        name: 'Administrátor',
+        avatar: 'AD',
+        color: '#8b5cf6',
+        pin: hashPin('123456'),
+        isAdmin: true,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
+      setUsers([adminUser]);
+      console.log('🔧 Záložní administrátor vytvořen po chybě');
+    }
+  };
+
   // Načtení uživatelů při mount komponenty
   useEffect(() => {
-    const loadUsers = () => {
-      try {
-        console.log('🔄 Načítám uživatele z localStorage...');
-        const savedUsers = localStorage.getItem('paintpro_users');
-        console.log('📊 Raw data z localStorage:', savedUsers);
-
-        if (savedUsers) {
-          const parsedUsers = JSON.parse(savedUsers);
-          console.log('📊 Parsed users:', parsedUsers);
-          setUsers(parsedUsers);
-          console.log('✅ Načteno', parsedUsers.length, 'uživatelů z localStorage');
-        } else {
-          console.log('⚠️ Žádní uživatelé v localStorage - inicializuji výchozího uživatele');
-          // Pokud nejsou žádní uživatelé, vytvoř administrátora
-          const adminUser = {
-            id: 'admin_1',
-            name: 'Administrátor',
-            avatar: 'AD',
-            color: '#8b5cf6',
-            pin: '123456',
-            isAdmin: true,
-            createdAt: new Date().toISOString()
-          };
-          localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
-          setUsers([adminUser]);
-          console.log('✅ Vytvořen výchozí administrátor');
-        }
-      } catch (error) {
-        console.error('❌ Chyba při načítání uživatelů:', error);
-        setUsers([]);
-      }
-    };
-
     loadUsers();
   }, []);
 
@@ -60,27 +73,7 @@ const LoginScreen = () => {
     return hash.toString();
   };
 
-  const loadUsers = () => {
-    const storedUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-
-    // Pokud nejsou žádní uživatelé, vytvoř administrátora
-    if (storedUsers.length === 0) {
-      const admin = {
-        id: 'admin_1',
-        name: 'Administrátor',
-        avatar: 'AD',
-        color: '#8b5cf6',
-        pin: hashPin('123456'),
-        isAdmin: true,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('paintpro_users', JSON.stringify([admin]));
-      setUsers([admin]);
-      console.log('🔐 Administrátor vytvořen s PIN: 123456');
-    } else {
-      setUsers(storedUsers);
-    }
-  };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -168,6 +161,7 @@ const LoginScreen = () => {
           console.log('✅ Nový profil vytvořen a synchronizován:', result.user.name);
           loadUsers(); // Aktualizuj seznam uživatelů
           setShowAddUser(false);
+          setError(""); // Vymaž chyby
         } else {
           setError(result.error || "Chyba při vytváření profilu");
         }
