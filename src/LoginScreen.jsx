@@ -143,7 +143,7 @@ const LoginScreen = () => {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  const AddUserModal = () => {
+  const AddUserModal = ({ setUsers }) => {
     const [formData, setFormData] = useState({
       name: '',
       pin: '',
@@ -466,7 +466,7 @@ const LoginScreen = () => {
           </div>
         )}
 
-        {showAddUser && <AddUserModal />}
+        {showAddUser && <AddUserModal setUsers={setUsers} />}
         {showEditUser && <EditUserModal user={showEditUser} />}
       </div>
     </div>
