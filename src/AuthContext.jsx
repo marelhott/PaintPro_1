@@ -588,10 +588,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
       
-      // PRIMÁRNÍ ZDROJ: Supabase - VŽDY první pokus
+      // ABSOLUTNÍ PRIORITA: Supabase
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
         try {
-          console.log('🔄 Načítám data z Supabase (PRIMÁRNÍ zdroj)...');
+          console.log('🔄 ABSOLUTNÍ PRIORITA: Načítám data ze Supabase...');
           
           const { data: supabaseData, error } = await supabase
             .from('orders')
@@ -605,70 +605,67 @@ export const AuthProvider = ({ children }) => {
           }
 
           const supabaseCount = supabaseData?.length || 0;
-          const localCount = JSON.parse(localStorage.getItem(storageKey) || '[]').length;
-          console.log('📊 Supabase obsahuje:', supabaseCount, 'zakázek');
-          console.log('📊 localStorage obsahuje:', localCount, 'zakázek');
-
-          // Pokud Supabase má data, VŽDY je použij
-          if (supabaseCount > 0) {
-            console.log('✅ Používám data ze Supabase (' + supabaseCount + ' zakázek) - VŽDY PRIMÁRNÍ');
-            
-            // Vyčisti duplicity před vrácením dat
-            console.log('🧹 Čistím duplicity...');
-            await cleanDuplicateOrders(userId);
-            
-            // Znovu načti vyčištěná data
-            const { data: cleanedData } = await supabase
-              .from('orders')
-              .select('*')
-              .eq('user_id', userId)
-              .order('created_at', { ascending: false });
-
-            // Aktualizuj localStorage jako zálohu (POUZE po úspěšném načtení ze Supabase)
-            console.log('💾 Zálohování vyčištěných dat ze Supabase do localStorage...');
-            localStorage.setItem(storageKey, JSON.stringify(cleanedData || []));
-            console.log('✅ Data načtena ze Supabase a zálohována lokálně');
-            
-            return cleanedData || [];
-          }
+          console.log('📊 SUPABASE (MASTER): obsahuje', supabaseCount, 'zakázek');
           
-          // Pokud je Supabase prázdný, ale localStorage má data - migrace
-          if (supabaseCount === 0 && localCount > 0) {
-            const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            console.log('📤 Migrace dat z localStorage do Supabase:', localOrders.length, 'zakázek');
-            await syncLocalToSupabase(userId, localOrders);
-            console.log('✅ Migrace dokončena');
-            return localOrders;
+          // VŽDY vrať data ze Supabase bez ohledu na localStorage
+          if (supabaseCount >= 0) { // I prázdné Supabase má prioritu
+            console.log('✅ POUŽÍVÁM SUPABASE DATA (absolutní priorita) -', supabaseCount, 'zakázek');
+            
+            // Pouze v případě více než 0 zakázek čisti duplicity
+            if (supabaseCount > 0) {
+              console.log('🧹 Čistím duplicity...');
+              await cleanDuplicateOrders(userId);
+              
+              // Znovu načti vyčištěná data
+              const { data: cleanedData } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+
+              console.log('✅ VRÁCENA VYČIŠTĚNÁ DATA ZE SUPABASE:', cleanedData?.length || 0, 'zakázek');
+              
+              // Aktualizuj localStorage jako zálohu (nikdy jako primární zdroj!)
+              localStorage.setItem(storageKey, JSON.stringify(cleanedData || []));
+              console.log('💾 Záloha do localStorage dokončena');
+              
+              return cleanedData || [];
+            } else {
+              console.log('✅ SUPABASE JE PRÁZDNÝ - vrácena prázdná data');
+              
+              // Vymaž localStorage aby odpovídal Supabase
+              localStorage.setItem(storageKey, JSON.stringify([]));
+              console.log('💾 localStorage smazán pro synchronizaci s Supabase');
+              
+              return [];
+            }
           }
-          
-          // Oba zdroje jsou prázdné
-          console.log('📊 Žádná data v obou zdrojích');
-          return [];
 
         } catch (supabaseError) {
-          console.warn('⚠️ Supabase nedostupný, fallback na localStorage:', supabaseError.message);
+          console.error('❌ KRITICKÁ CHYBA SUPABASE:', supabaseError.message);
+          console.error('❌ FALLBACK na localStorage (pouze v případě chyby)');
           
-          // FALLBACK: localStorage pouze když Supabase není dostupný
+          // POUZE v případě kritické chyby Supabase
           const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          console.log('✅ Data načtena z localStorage (fallback):', localOrders.length, 'zakázek');
+          console.log('🆘 EMERGENCY FALLBACK - localStorage:', localOrders.length, 'zakázek');
           return localOrders;
         }
       } else {
-        console.warn('⚠️ Supabase není nakonfigurován');
+        console.error('❌ SUPABASE NENÍ NAKONFIGUROVÁN!');
         
-        // Pokud Supabase není dostupný, použij localStorage
+        // Pouze pokud Supabase vůbec není dostupný
         const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        console.log('✅ Data načtena z localStorage (bez Supabase):', localOrders.length, 'zakázek');
+        console.log('📊 localStorage (bez Supabase):', localOrders.length, 'zakázek');
         return localOrders;
       }
 
     } catch (error) {
-      console.error('❌ Kritická chyba při načítání dat:', error);
+      console.error('❌ ABSOLUTNÍ KRITICKÁ CHYBA:', error);
       
-      // Emergency fallback - localStorage
+      // Absolutní emergency fallback
       const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
       const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      console.log('🆘 Emergency fallback - localStorage:', localOrders.length, 'zakázek');
+      console.log('🆘 ABSOLUTNÍ EMERGENCY:', localOrders.length, 'zakázek');
       return localOrders;
     }
   };
