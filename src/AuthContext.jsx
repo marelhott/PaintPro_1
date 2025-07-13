@@ -615,7 +615,7 @@ export const AuthProvider = ({ children }) => {
 
         } catch (supabaseError) {
           console.warn('⚠️ Supabase chyba při synchronizaci:', supabaseError.message);
-          
+
           // Fallback na localStorage (už je deklarovaný nahoře)
           if (localOrders.length > 0) {
             console.log('✅ Data načtena z localStorage (fallback) pro uživatele:', userId, 'počet zakázek:', localOrders.length);
@@ -716,14 +716,14 @@ export const AuthProvider = ({ children }) => {
         console.log('✅ Synchronizace úspěšně dokončena!');
         console.log('✅ Vloženo', data?.length || 0, 'zakázek do Supabase');
         console.log('✅ Ukázka vložených dat:', data?.slice(0, 2));
-        
+
         // Ověření - zkontroluj že data jsou skutečně v DB
         try {
           const { data: verifyData, error: verifyError } = await supabase
             .from('orders')
             .select('count', { count: 'exact' })
             .eq('user_id', userId);
-          
+
           console.log('🔍 Ověření po synchronizaci - počet zakázek v DB:', verifyData);
         } catch (verifyErr) {
           console.warn('⚠️ Chyba při ověření:', verifyErr);
