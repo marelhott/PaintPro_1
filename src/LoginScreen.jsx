@@ -119,22 +119,27 @@ const LoginScreen = () => {
       setError("");
 
       try {
-        const result = await addUser({
+        // PŘÍMÉ VYTVOŘENÍ PROFILU - BEZ KOMPLIKACÍ
+        const novyProfil = {
+          id: `user_${Date.now()}`,
           name: formData.name.trim(),
           avatar: formData.name.trim().substring(0, 2).toUpperCase(),
           color: formData.color,
           pin: hashPin(formData.pin),
-          isAdmin: false
-        });
+          isAdmin: false,
+          createdAt: new Date().toISOString()
+        };
 
-        if (result.success) {
-          console.log('✅ Nový profil vytvořen:', result.user.name);
-          await nactiUzivatele(); // Znovu načti uživatele
-          setShowAddUser(false);
-          setError("");
-        } else {
-          setError(result.error || "Chyba při vytváření profilu");
-        }
+        // Přidej k existujícím profilům
+        const aktualniProfily = [...users, novyProfil];
+        setUsers(aktualniProfily);
+        
+        // Ulož do localStorage
+        localStorage.setItem('paintpro_users', JSON.stringify(aktualniProfily));
+        
+        console.log('✅ PŘÍMÉ VYTVOŘENÍ: Profil vytvořen:', novyProfil.name);
+        setShowAddUser(false);
+        setError("");
       } catch (error) {
         console.error('❌ Chyba při vytváření profilu:', error);
         setError("Chyba při vytváření profilu");
