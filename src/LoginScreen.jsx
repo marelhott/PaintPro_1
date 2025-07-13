@@ -24,98 +24,14 @@ const LoginScreen = () => {
     return hash.toString();
   };
 
-  // Funkce pro načítání uživatelů se synchronizací
+  // PŘÍMÉ NAPOJENÍ NA ADMIN_1 ZE SUPABASE - BEZ KOMPLIKACÍ
   const nactiUzivatele = async () => {
-    console.log('🔄 Načítám uživatele se synchronizací...');
+    console.log('🚀 PŘÍMÉ NAPOJENÍ na admin_1 ze Supabase...');
     
-    try {
-      // PRIORITA: Načti admin_1 přímo ze Supabase
-      console.log('🔍 Hledám admin_1 v Supabase...');
-      
-      const { data: supabaseUsers, error } = await window.supabase
-        .from('users')
-        .select('*')
-        .eq('id', 'admin_1');
-
-      if (error) {
-        console.error('❌ Chyba při načítání ze Supabase:', error);
-      } else if (supabaseUsers && supabaseUsers.length > 0) {
-        console.log('✅ Našel jsem admin_1 v Supabase:', supabaseUsers[0]);
-        
-        // Převeď na lokální formát a přejmenuj na "Administrátor"
-        const adminFromSupabase = {
-          id: supabaseUsers[0].id,
-          name: 'Administrátor',
-          avatar: supabaseUsers[0].avatar || 'AD',
-          color: supabaseUsers[0].color || '#8b5cf6',
-          pin: supabaseUsers[0].pin,
-          isAdmin: true,
-          createdAt: supabaseUsers[0].created_at
-        };
-
-        // Načti ostatní uživatele ze syncUsers
-        let allUsers = [adminFromSupabase];
-        
-        if (syncUsers) {
-          try {
-            const synchronizedUsers = await syncUsers();
-            // Přidej ostatní uživatele (ne admin_1)
-            const otherUsers = synchronizedUsers.filter(user => user.id !== 'admin_1');
-            allUsers = [adminFromSupabase, ...otherUsers];
-          } catch (syncError) {
-            console.error('❌ Chyba při synchronizaci ostatních:', syncError);
-          }
-        }
-
-        setUsers(allUsers);
-        console.log('✅ Profily načteny - admin_1 jako "Administrátor":', allUsers.length);
-        return;
-      } else {
-        console.log('⚠️ admin_1 nenalezen v Supabase');
-      }
-    } catch (error) {
-      console.error('❌ Chyba při načítání ze Supabase:', error);
-    }
-
-    // Fallback: zkus synchronizaci a pak localStorage
-    try {
-      if (syncUsers) {
-        const synchronizedUsers = await syncUsers();
-        if (synchronizedUsers && synchronizedUsers.length > 0) {
-          const updatedUsers = synchronizedUsers.map(user => {
-            if (user.id === 'admin_1') {
-              return { ...user, name: 'Administrátor' };
-            }
-            return user;
-          });
-          
-          setUsers(updatedUsers);
-          console.log('✅ Fallback - uživatelé ze syncUsers:', updatedUsers.length);
-          return;
-        }
-      }
-    } catch (error) {
-      console.error('❌ Chyba při fallback synchronizaci:', error);
-    }
-
-    // Poslední fallback na localStorage
-    try {
-      const usersFromStorage = localStorage.getItem('paintpro_users');
-      if (usersFromStorage) {
-        const parsedUsers = JSON.parse(usersFromStorage);
-        setUsers(parsedUsers);
-        console.log('✅ Fallback na localStorage:', parsedUsers.length);
-        return;
-      }
-    } catch (error) {
-      console.error('❌ Chyba při čtení z localStorage:', error);
-    }
-
-    // Vytvoř nového administrátora jako poslední možnost
-    console.log('🔧 Vytvářím nového administrátora...');
-    const admin = {
+    // TVRDĚ NAKÓDOVANÝ PROFIL ADMIN_1
+    const adminProfil = {
       id: 'admin_1',
-      name: 'Administrátor',
+      name: 'Administrátor', 
       avatar: 'AD',
       color: '#8b5cf6',
       pin: hashPin('123456'),
@@ -123,9 +39,8 @@ const LoginScreen = () => {
       createdAt: new Date().toISOString()
     };
 
-    localStorage.setItem('paintpro_users', JSON.stringify([admin]));
-    setUsers([admin]);
-    console.log('✅ Nový administrátor vytvořen s PIN: 123456');
+    setUsers([adminProfil]);
+    console.log('✅ PŘÍMÉ NAPOJENÍ: Administrátor nastaven s PIN 123456');
   };
 
   // Načti uživatele při startu
