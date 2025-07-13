@@ -860,6 +860,41 @@ export const AuthProvider = ({ children }) => {
     checkCurrentUser();
   }, []);
 
+  // Funkce pro změnu PINu
+  const changePin = async (currentPinPlain, newPinPlain) => {
+    try {
+      // Ověř současný PIN
+      const users = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
+      const hashedCurrentPin = hashPin(currentPinPlain);
+      const user = users.find(u => u.id === currentUser.id && u.pin === hashedCurrentPin);
+
+      if (!user) {
+        return { success: false, error: 'Současný PIN je nesprávný' };
+      }
+
+      // Změň PIN
+      const hashedNewPin = hashPin(newPinPlain);
+      const userIndex = users.findIndex(u => u.id === currentUser.id);
+      
+      if (userIndex !== -1) {
+        users[userIndex].pin = hashedNewPin;
+        localStorage.setItem('paintpro_users', JSON.stringify(users));
+        
+        // Aktualizuj současného uživatele
+        const updatedUser = { ...currentUser, pin: hashedNewPin };
+        setCurrentUser(updatedUser);
+        localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUser));
+        
+        return { success: true };
+      }
+      
+      return { success: false, error: 'Uživatel nenalezen' };
+    } catch (error) {
+      console.error('Chyba při změně PINu:', error);
+      return { success: false, error: 'Chyba při změně PINu' };
+    }
+  };
+
   // Context hodnoty
   const value = {
     currentUser,
@@ -870,6 +905,7 @@ export const AuthProvider = ({ children }) => {
     addUserOrder,
     editUserOrder,
     deleteUserOrder,
+    changePin,
     syncLocalToSupabase // Exportujeme pro manuální použití
   };
 
