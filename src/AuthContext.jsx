@@ -82,9 +82,15 @@ export const AuthProvider = ({ children }) => {
   const loadUserFromUrl = async () => {
     try {
       const hash = window.location.hash.slice(1); // Odstraň #
-      let userId = hash || 'admin'; // Výchozí admin
+      
+      // Pokud není hash, nezobrazuj automaticky uživatele
+      if (!hash) {
+        console.log('🔍 Žádný hash v URL - zobrazujem výběr profilu');
+        setCurrentUser(null);
+        return;
+      }
 
-      console.log('🔍 Načítám uživatele z URL:', userId);
+      console.log('🔍 Načítám uživatele z URL:', hash);
 
       // Načti uživatele ze Supabase
       const { data: users } = await window.supabase
@@ -92,43 +98,34 @@ export const AuthProvider = ({ children }) => {
         .select('*');
 
       // Najdi uživatele podle ID
-      let user = users?.find(u => u.id === userId);
+      let user = users?.find(u => u.id === hash);
 
-      // Pokud uživatel neexistuje, přesměruj na admin
+      // Pokud uživatel neexistuje, zobraz výběr profilu
       if (!user) {
-        console.log('⚠️ Uživatel nenalezen, přesměrovávám na admin');
-        window.location.hash = '#admin';
-        userId = 'admin';
-        user = users?.find(u => u.id === 'admin');
+        console.log('⚠️ Uživatel nenalezen, zobrazujem výběr profilu');
+        window.location.hash = '';
+        setCurrentUser(null);
+        return;
       }
 
-      if (user) {
-        const formattedUser = {
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          color: user.color,
-          isAdmin: user.is_admin
-        };
+      const formattedUser = {
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        color: user.color,
+        isAdmin: user.is_admin
+      };
 
-        setCurrentUser(formattedUser);
-        console.log('✅ Uživatel načten:', formattedUser.name);
+      setCurrentUser(formattedUser);
+      console.log('✅ Uživatel načten:', formattedUser.name);
 
-        // Inicializuj ukázková data pro admin
-        if (userId === 'admin') {
-          await initializeAdminData();
-        }
+      // Inicializuj ukázková data pro admin
+      if (hash === 'admin') {
+        await initializeAdminData();
       }
     } catch (error) {
       console.error('❌ Chyba při načítání uživatele:', error);
-      // Fallback na admin
-      setCurrentUser({
-        id: 'admin',
-        name: 'Administrátor',
-        avatar: 'AD',
-        color: '#8b5cf6',
-        isAdmin: true
-      });
+      setCurrentUser(null);
     }
   };
 
