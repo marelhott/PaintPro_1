@@ -43,6 +43,17 @@ const LoginScreen = () => {
       createdAt: new Date().toISOString()
     };
 
+    // PROFIL LENKA
+    const lenkaUser = {
+      id: 'user_lenka',
+      name: 'Lenka',
+      avatar: 'LE',
+      color: '#22c55e',
+      pin: hashPin('321321'),
+      isAdmin: false,
+      createdAt: new Date().toISOString()
+    };
+
     try {
       // Zkus načíst ze Supabase
       const { data, error } = await window.supabase
@@ -55,20 +66,32 @@ const LoginScreen = () => {
       if (error || !data || data.length === 0) {
         console.log('📝 Supabase prázdný, vytvářím základní data...');
         
-        // Vytvoř admin v Supabase
+        // Vytvoř admin + Lenka v Supabase
         await window.supabase
           .from('users')
-          .insert([{
-            id: adminUser.id,
-            name: adminUser.name,
-            avatar: adminUser.avatar,
-            color: adminUser.color,
-            pin: adminUser.pin,
-            is_admin: true,
-            created_at: adminUser.createdAt
-          }]);
+          .insert([
+            {
+              id: adminUser.id,
+              name: adminUser.name,
+              avatar: adminUser.avatar,
+              color: adminUser.color,
+              pin: adminUser.pin,
+              is_admin: true,
+              created_at: adminUser.createdAt
+            },
+            {
+              id: lenkaUser.id,
+              name: lenkaUser.name,
+              avatar: lenkaUser.avatar,
+              color: lenkaUser.color,
+              pin: lenkaUser.pin,
+              is_admin: false,
+              created_at: lenkaUser.createdAt
+            }
+          ]);
 
-        finalUsers = [adminUser];
+        finalUsers = [adminUser, lenkaUser];
+        console.log('✅ Vytvořeni admin + Lenka v Supabase');
       } else {
         // Převeď ze Supabase formátu
         finalUsers = data.map(user => ({
@@ -80,6 +103,26 @@ const LoginScreen = () => {
           isAdmin: user.is_admin,
           createdAt: user.created_at
         }));
+
+        // KONTROLA: Existuje Lenka? Pokud ne, přidej ji
+        const lenkaExists = finalUsers.find(user => user.id === 'user_lenka');
+        if (!lenkaExists) {
+          console.log('🆕 Přidávám profil Lenka do Supabase...');
+          await window.supabase
+            .from('users')
+            .insert([{
+              id: lenkaUser.id,
+              name: lenkaUser.name,
+              avatar: lenkaUser.avatar,
+              color: lenkaUser.color,
+              pin: lenkaUser.pin,
+              is_admin: false,
+              created_at: lenkaUser.createdAt
+            }]);
+          
+          finalUsers.push(lenkaUser);
+          console.log('✅ Profil Lenka přidán do Supabase');
+        }
       }
 
       setUsers(finalUsers);
@@ -87,8 +130,8 @@ const LoginScreen = () => {
 
     } catch (error) {
       console.error('❌ Chyba při načítání:', error);
-      // Fallback - jen admin lokálně
-      setUsers([adminUser]);
+      // Fallback - admin + Lenka lokálně
+      setUsers([adminUser, lenkaUser]);
     }
   };
 
