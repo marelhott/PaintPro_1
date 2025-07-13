@@ -291,15 +291,7 @@ const LoginScreen = () => {
   return (
     <div className="login-screen">
       <div className="login-container">
-        <div className="login-header">
-          <div className="logo">
-            <div className="modern-icon size-large icon-dashboard"></div>
-            <div className="logo-text">
-              <div className="logo-title">PaintPro</div>
-              <div className="logo-subtitle">Správa malířských zakázek</div>
-            </div>
-          </div>
-        </div>
+        
 
         {!selectedUser ? (
           <div className="user-selection">
@@ -333,10 +325,7 @@ const LoginScreen = () => {
               ))}
               
               <div className="profile-card add-profile" onClick={() => setShowAddUser(true)}>
-                <div className="add-avatar">
-                  <div className="add-icon">+</div>
-                </div>
-                <div className="profile-name">Přidat profil</div>
+                <div className="add-plus-icon">+</div>
               </div>
             </div>
           </div>
