@@ -796,15 +796,37 @@ This file contains the complete code with the table rebuilt and updated.
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
-  margin: 0 0 4px 0;
+  margin: 0 0 8px 0;
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
 
 .chart-value-small {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 500;
+  font-size: 18px;
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.chart-value-small.blue {
+  color: var(--accent-blue);
+}
+
+.chart-value-small.green {
+  color: var(--accent-green);
+}
+
+.chart-value-small.orange {
+  color: var(--accent-orange);
+}
+
+.chart-value-small.purple {
+  color: var(--accent-purple);
+}
+
+.chart-container-small {
+  height: 200px;
+  position: relative;
 }
 
 .charts-grid-4 {
@@ -814,8 +836,53 @@ This file contains the complete code with the table rebuilt and updated.
   margin-top: 24px;
 }
 
+.charts-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.chart-card-full {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.08) 0%, 
+    rgba(255, 255, 255, 0.02) 50%,
+    rgba(255, 255, 255, 0.06) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.04),
+    0 4px 8px rgba(139, 92, 246, 0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  margin-top: 24px;
+}
+
+.chart-card-full:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 16px 48px rgba(0, 0, 0, 0.08),
+    0 8px 16px rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.chart-container-large {
+  height: 400px;
+  position: relative;
+}
+
+.chart-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
 @media (max-width: 1200px) {
-  .charts-grid-4 {
+  .charts-grid-4,
+  .charts-grid-2 {
     grid-template-columns: 1fr;
     gap: 20px;
   }
