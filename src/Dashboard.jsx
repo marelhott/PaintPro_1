@@ -1,17 +1,17 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 
 const Dashboard = () => {
   const { currentUser, getUserData } = useAuth();
-  const [stats, setStats] = React.useState({
+  const [stats, setStats] = useState({
     totalRevenue: 0,
     totalProfit: 0,
     orderCount: 0,
     avgOrderValue: 0
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadStats = async () => {
       if (!currentUser) return;
 
@@ -29,6 +29,12 @@ const Dashboard = () => {
           orderCount,
           avgOrderValue
         });
+
+        console.log('=== DASHBOARD STATS ===');
+        console.log('Celkové tržby:', totalRevenue);
+        console.log('Celkový zisk:', totalProfit);
+        console.log('Počet zakázek:', orderCount);
+        console.log('Průměrná zakázka:', avgOrderValue);
       } catch (error) {
         console.error('Chyba při načítání statistik:', error);
       }
@@ -37,14 +43,12 @@ const Dashboard = () => {
     loadStats();
   }, [currentUser, getUserData]);
 
-  if (!currentUser) {
-    return null;
-  }
+  if (!currentUser) return null;
 
   return (
     <div className="dashboard">
       <div className="dashboard-header">
-        <h2>Dashboard - {currentUser.name}</h2>
+        <h2>📊 Přehled</h2>
       </div>
       
       <div className="stats-grid">
