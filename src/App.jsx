@@ -1946,9 +1946,6 @@ const PaintPro = () => {
           <button className="btn btn-secondary" onClick={() => document.getElementById('csv-import').click()}>
             📁 Import CSV
           </button>
-          <button className="btn btn-secondary" onClick={addSampleData}>
-            📊 Přidat ukázková data
-          </button>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
             <div className="modern-icon size-small icon-add"></div>
             Přidat zakázku
