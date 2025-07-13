@@ -116,8 +116,14 @@ export const AuthProvider = ({ children }) => {
       
       if (user) {
         console.log('✅ Uživatel načten:', user.name);
+        console.log('🔄 Nastavuji currentUser:', user);
         setCurrentUser(user);
         setIsLoading(false);
+        
+        // Krátká pauza pro stabilizaci stavu
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        console.log('✅ currentUser nastaven, isLoading:', false);
         
         // Inicializuj ukázková data pro admin
         if (hash === 'admin') {

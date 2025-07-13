@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 const LoginScreen = () => {
@@ -95,6 +94,7 @@ const LoginScreen = () => {
 
   const handleUserSelect = (userId) => {
     console.log('🔄 Přihlašuji uživatele:', userId);
+    console.log('🔄 Nastavuji hash na:', `#${userId}`);
     window.location.hash = `#${userId}`;
   };
 
