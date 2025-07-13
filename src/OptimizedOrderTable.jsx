@@ -138,13 +138,20 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
                   color: '#374151',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '12px',
                   transition: 'background-color 0.2s ease'
                 }}
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
-                ✏️ Upravit
+                <div className="modern-icon size-small icon-edit" style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
+                  background: 'transparent',
+                  color: '#6b7280'
+                }}></div>
+                Upravit
               </button>
               <div style={{
                 height: '1px',
@@ -168,13 +175,20 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
                   color: '#dc2626',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
+                  gap: '12px',
                   transition: 'background-color 0.2s ease'
                 }}
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
-                🗑️ Smazat
+                <div className="modern-icon size-small icon-delete" style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
+                  background: 'transparent',
+                  color: '#dc2626'
+                }}></div>
+                Smazat
               </button>
             </div>
           )}
