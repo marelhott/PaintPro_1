@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from "react";
-import "./App.css";
+
+import React, { useState, useEffect } from 'react';
 
 const LoginScreen = () => {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Načtení uživatelů ze Supabase
   useEffect(() => {
     const loadUsers = async () => {
       try {
@@ -15,39 +14,32 @@ const LoginScreen = () => {
           return;
         }
 
-        const { data, error } = await window.supabase
+        const { data: usersData } = await window.supabase
           .from('users')
           .select('*')
           .order('created_at', { ascending: true });
 
-        if (error) {
-          console.error('❌ Chyba při načítání uživatelů:', error);
-        } else {
-          setUsers(data || []);
-        }
+        setUsers(usersData || []);
+        console.log('✅ Uživatelé načteni:', usersData);
       } catch (error) {
-        console.error('❌ Chyba při komunikaci s Supabase:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('❌ Chyba při načítání uživatelů:', error);
       }
+      setIsLoading(false);
     };
 
     loadUsers();
   }, []);
 
-  // Výběr uživatele
   const handleUserSelect = (userId) => {
-    console.log('👤 Přepínám na uživatele:', userId);
+    console.log('🔄 Přihlašuji uživatele:', userId);
     window.location.hash = `#${userId}`;
-    // Stránka se automaticky znovu načte díky AuthContext
   };
 
   if (isLoading) {
     return (
       <div className="login-screen">
-        <div className="login-container">
-          <div className="loading">Načítám profily...</div>
-        </div>
+        <div className="loading-spinner"></div>
+        <p>Načítám profily...</p>
       </div>
     );
   }
@@ -55,35 +47,34 @@ const LoginScreen = () => {
   return (
     <div className="login-screen">
       <div className="login-container">
-        <div className="user-selection">
-          <h2>Vyberte profil</h2>
-          <p className="subtitle">Klikněte na profil pro přístup k aplikaci</p>
+        <div className="login-header">
+          <h1>PaintPro</h1>
+          <p>Vyberte svůj profil</p>
+        </div>
 
-          <div className="profiles-grid">
-            {users.map(user => (
+        <div className="profiles-grid">
+          {users.map((user) => (
+            <div
+              key={user.id}
+              className="profile-card"
+              onClick={() => handleUserSelect(user.id)}
+            >
               <div 
-                key={user.id}
-                className="profile-card"
-                onClick={() => handleUserSelect(user.id)}
+                className="profile-avatar"
+                style={{ backgroundColor: user.color }}
               >
-                <div 
-                  className="profile-avatar"
-                  style={{ backgroundColor: user.color }}
-                >
-                  {user.avatar}
-                </div>
-                <div className="profile-name">{user.name}</div>
-                {user.is_admin && <div className="admin-badge">Admin</div>}
+                {user.avatar}
               </div>
-            ))}
-          </div>
+              <div className="profile-name">{user.name}</div>
+              {user.is_admin && (
+                <div className="admin-badge">Admin</div>
+              )}
+            </div>
+          ))}
+        </div>
 
-          <div className="url-info">
-            <h3>💡 Tip pro pokročilé</h3>
-            <p>Můžete přímo použít URL:</p>
-            <code>zakazky.malirivcernem.cz/#admin</code><br/>
-            <code>zakazky.malirivcernem.cz/#lenka</code>
-          </div>
+        <div className="login-hint">
+          Klikněte na váš profil pro přihlášení do aplikace
         </div>
       </div>
     </div>
