@@ -607,12 +607,22 @@ export const AuthProvider = ({ children }) => {
           const supabaseCount = supabaseData?.length || 0;
           console.log('📊 Supabase obsahuje:', supabaseCount, 'zakázek');
 
-          // Pokud máme data ze Supabase, uložíme je jako zálohu do localStorage
+          // Pokud máme data ze Supabase, automaticky vyčistíme duplicity
           if (supabaseData && supabaseData.length > 0) {
-            console.log('💾 Zálohování dat ze Supabase do localStorage...');
-            localStorage.setItem(storageKey, JSON.stringify(supabaseData));
+            console.log('🧹 Automaticky čistím duplicity...');
+            await cleanDuplicateOrders(userId);
+            
+            // Znovu načteme data po vyčištění
+            const { data: cleanedData } = await supabase
+              .from('orders')
+              .select('*')
+              .eq('user_id', userId)
+              .order('created_at', { ascending: false });
+
+            console.log('💾 Zálohování vyčištěných dat ze Supabase do localStorage...');
+            localStorage.setItem(storageKey, JSON.stringify(cleanedData || []));
             console.log('✅ Data načtena ze Supabase a zálohována lokálně');
-            return supabaseData;
+            return cleanedData || [];
           }
 
           // Pokud Supabase je prázdný, zkontroluj localStorage pro případnou migraci
@@ -1248,8 +1258,7 @@ export const AuthProvider = ({ children }) => {
     changePin,
     syncLocalToSupabase, // Exportujeme pro manuální použití
 		syncUsersToSupabase, // Exportujeme pro manuální použití
-    addUser, // Exportujeme pro manuální použití
-    cleanDuplicateOrders // Exportujeme pro vyčištění duplicit
+    addUser // Exportujeme pro manuální použití
   };
 
   return (
