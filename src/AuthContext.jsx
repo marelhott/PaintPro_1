@@ -83,97 +83,56 @@ export const AuthProvider = ({ children }) => {
     try {
       const hash = window.location.hash.slice(1); // Odstraň #
       
-      // Pokud není hash, nezobrazuj automaticky uživatele
+      console.log('🔍 loadUserFromUrl volána s hash:', hash);
+      
+      // Pokud není hash, zobraz výběr profilu
       if (!hash) {
-        console.log('🔍 Žádný hash v URL - zobrazujem výběr profilu');
+        console.log('📋 Žádný hash - zobrazujem výběr profilu');
         setCurrentUser(null);
+        setIsLoading(false);
         return;
       }
 
-      console.log('🔍 Načítám uživatele z URL:', hash);
-
-      // Počkej na inicializaci Supabase
-      let attempts = 0;
-      while (!window.supabase && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (!window.supabase) {
-        console.error('❌ Supabase není dostupné!');
-        // Použij fallback uživatele
-        const fallbackUsers = [
-          {
-            id: 'admin',
-            name: 'Administrátor',
-            avatar: 'AD',
-            color: '#8b5cf6',
-            is_admin: true
-          },
-          {
-            id: 'lenka',
-            name: 'Lenka',
-            avatar: 'LE',
-            color: '#22c55e',
-            is_admin: false
-          }
-        ];
-
-        const user = fallbackUsers.find(u => u.id === hash);
-        if (user) {
-          const formattedUser = {
-            id: user.id,
-            name: user.name,
-            avatar: user.avatar,
-            color: user.color,
-            isAdmin: user.is_admin
-          };
-          setCurrentUser(formattedUser);
-          console.log('✅ Uživatel načten (fallback):', formattedUser.name);
+      // Fallback uživatelé pro rychlé načtení
+      const fallbackUsers = [
+        {
+          id: 'admin',
+          name: 'Administrátor',
+          avatar: 'AD',
+          color: '#8b5cf6',
+          isAdmin: true
+        },
+        {
+          id: 'lenka',
+          name: 'Lenka',
+          avatar: 'LE',
+          color: '#22c55e',
+          isAdmin: false
         }
-        return;
-      }
+      ];
 
-      // Načti uživatele ze Supabase
-      const { data: users, error } = await window.supabase
-        .from('users')
-        .select('*');
-
-      if (error) {
-        console.error('❌ Chyba při načítání uživatelů:', error);
-        setCurrentUser(null);
-        return;
-      }
-
-      // Najdi uživatele podle ID
-      let user = users?.find(u => u.id === hash);
-
-      // Pokud uživatel neexistuje, zobraz výběr profilu
-      if (!user) {
+      // Najdi uživatele ve fallback datech
+      const user = fallbackUsers.find(u => u.id === hash);
+      
+      if (user) {
+        console.log('✅ Uživatel načten:', user.name);
+        setCurrentUser(user);
+        setIsLoading(false);
+        
+        // Inicializuj ukázková data pro admin
+        if (hash === 'admin') {
+          await initializeAdminData();
+        }
+      } else {
         console.log('⚠️ Uživatel nenalezen, zobrazujem výběr profilu');
         window.location.hash = '';
         setCurrentUser(null);
-        return;
-      }
-
-      const formattedUser = {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        color: user.color,
-        isAdmin: user.is_admin
-      };
-
-      setCurrentUser(formattedUser);
-      console.log('✅ Uživatel načten:', formattedUser.name);
-
-      // Inicializuj ukázková data pro admin
-      if (hash === 'admin') {
-        await initializeAdminData();
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('❌ Chyba při načítání uživatele:', error);
       setCurrentUser(null);
+      setIsLoading(false);
     }
   };
 
@@ -291,17 +250,14 @@ export const AuthProvider = ({ children }) => {
 
   // Inicializace při načtení
   useEffect(() => {
-    const init = async () => {
-      await initializeUsers();
-      await loadUserFromUrl();
-      setIsLoading(false);
-    };
-
-    init();
+    console.log('🚀 AuthContext inicializace...');
+    
+    // Okamžitě načti uživatele z URL
+    loadUserFromUrl();
 
     // Poslouchej změny URL hash
     const handleHashChange = () => {
-      console.log('🔄 Hash se změnil na:', window.location.hash);
+      console.log('🔄 Hash change na:', window.location.hash);
       loadUserFromUrl();
     };
 
