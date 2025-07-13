@@ -51,8 +51,7 @@ export const AuthProvider = ({ children }) => {
     const adminPin = '123456';
     const adminPinHash = hashPin(adminPin);
     
-    // RESET: Vymaž všechny uživatele a vytvoř administrátora znovu
-    console.log('🔄 Resetuji uživatele a vytvářím nového administrátora...');
+    console.log('🔄 Kontroluji administrátora a ukázková data...');
     
     const adminUser = {
       id: 'admin_1',
@@ -65,19 +64,16 @@ export const AuthProvider = ({ children }) => {
     };
     
     localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
-    console.log('🔐 NOVÝ administrátor vytvořen s PIN: 123456');
-    console.log('🔐 PIN hash:', adminPinHash);
+    console.log('🔐 Administrátor nastaven s PIN: 123456');
+
+    // VŽDY zkontroluj a obnov ukázková data
+    const existingOrders = JSON.parse(localStorage.getItem('paintpro_orders_admin_1') || '[]');
+    console.log('📊 Současné zakázky administrátora:', existingOrders.length);
     
-    // Vymaž současného uživatele
-    localStorage.removeItem('paintpro_current_user');
-    setCurrentUser(null);
-
-    // OPRAVA: Vždy zkontroluj a přidej ukázková data, pokud nejsou
-    const existingOrders = JSON.parse(localStorage.getItem('paintpro_orders_user_1') || '[]');
     if (existingOrders.length === 0) {
-      console.log('🔧 Přidávám ukázková data...');
+      console.log('🔧 Přidávám ukázková data pro administrátora...');
 
-      // Přidání ukázkových zakázek pro výchozího uživatele
+      // Přidání ukázkových zakázek pro administrátora
       const sampleOrders = [
         {
           id: 1,
@@ -537,10 +533,10 @@ export const AuthProvider = ({ children }) => {
         }
       ];
 
-      localStorage.setItem('paintpro_orders_user_1', JSON.stringify(sampleOrders));
-      console.log('✅ Ukázková data přidána:', sampleOrders.length, 'zakázek');
+      localStorage.setItem('paintpro_orders_admin_1', JSON.stringify(sampleOrders));
+      console.log('✅ Ukázková data přidána pro administrátora:', sampleOrders.length, 'zakázek');
     } else {
-      console.log('📊 Existující data:', existingOrders.length, 'zakázek');
+      console.log('📊 Administrátor má existující data:', existingOrders.length, 'zakázek');
     }
   };
 
@@ -590,9 +586,10 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro získání dat uživatele
   const getUserData = async (userId) => {
     try {
-      // Nejprve načti z localStorage
-      const localOrders = JSON.parse(localStorage.getItem(`paintpro_orders_${userId}`) || '[]');
-      console.log('📊 localStorage obsahuje:', localOrders.length, 'zakázek');
+      // Nejprve načti z localStorage - pro administrátora použij správný klíč
+      const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
+      const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      console.log('📊 localStorage obsahuje pro', userId, ':', localOrders.length, 'zakázek');
 
       // Pokud máme Supabase nastavený, zkus synchronizaci
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
