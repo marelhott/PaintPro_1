@@ -24,10 +24,15 @@ const LoginScreen = () => {
     return hash.toString();
   };
 
-  // Inicializace administrátora
-  const initializeAdmin = async () => {
-    console.log('🔧 Inicializuji administrátora...');
+  // Načtení uživatelů při startu
+  useEffect(() => {
+    initializeUsers();
+  }, []);
+
+  const initializeUsers = async () => {
+    console.log('🚀 Inicializuji uživatele...');
     
+    // Základní admin profil
     const adminUser = {
       id: 'admin_1',
       name: 'Administrátor',
@@ -39,17 +44,19 @@ const LoginScreen = () => {
     };
 
     try {
-      // Zkontroluj, jestli admin existuje v Supabase
-      const { data: existingAdmin, error: checkError } = await window.supabase
+      // Zkus načíst ze Supabase
+      const { data, error } = await window.supabase
         .from('users')
         .select('*')
-        .eq('id', 'admin_1')
-        .single();
+        .order('created_at', { ascending: true });
 
-      if (checkError && checkError.code === 'PGRST116') {
-        // Admin neexistuje, vytvoř ho
-        console.log('👤 Vytvářím administrátora v Supabase...');
-        const { data, error } = await window.supabase
+      let finalUsers = [];
+
+      if (error || !data || data.length === 0) {
+        console.log('📝 Supabase prázdný, vytvářím základní data...');
+        
+        // Vytvoř admin v Supabase
+        await window.supabase
           .from('users')
           .insert([{
             id: adminUser.id,
@@ -59,80 +66,31 @@ const LoginScreen = () => {
             pin: adminUser.pin,
             is_admin: true,
             created_at: adminUser.createdAt
-          }])
-          .select()
-          .single();
+          }]);
 
-        if (error) {
-          console.error('❌ Chyba při vytváření administrátora:', error);
-        } else {
-          console.log('✅ Administrátor vytvořen v Supabase');
-        }
-      } else if (existingAdmin) {
-        console.log('✅ Administrátor již existuje v Supabase');
+        finalUsers = [adminUser];
+      } else {
+        // Převeď ze Supabase formátu
+        finalUsers = data.map(user => ({
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          color: user.color,
+          pin: user.pin,
+          isAdmin: user.is_admin,
+          createdAt: user.created_at
+        }));
       }
 
-      // Vždy nastav lokálně
-      setUsers([adminUser]);
-      localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
-      
+      setUsers(finalUsers);
+      console.log('✅ Uživatelé načteni:', finalUsers.length);
+
     } catch (error) {
-      console.error('❌ Chyba při inicializaci administrátora:', error);
-      // Fallback - nastav pouze lokálně
+      console.error('❌ Chyba při načítání:', error);
+      // Fallback - jen admin lokálně
       setUsers([adminUser]);
-      localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
     }
   };
-
-  // Načtení všech uživatelů
-  const loadUsers = async () => {
-    console.log('🔄 Načítám uživatele...');
-    
-    try {
-      const { data, error } = await window.supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('❌ Chyba při načítání ze Supabase:', error);
-        // Fallback na localStorage
-        const localUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-        setUsers(localUsers);
-        return;
-      }
-
-      const supabaseUsers = (data || []).map(user => ({
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        color: user.color,
-        pin: user.pin,
-        isAdmin: user.is_admin,
-        createdAt: user.created_at
-      }));
-
-      console.log('✅ Načteno ze Supabase:', supabaseUsers.length, 'uživatelů');
-      setUsers(supabaseUsers);
-      localStorage.setItem('paintpro_users', JSON.stringify(supabaseUsers));
-      
-    } catch (error) {
-      console.error('❌ Chyba při komunikaci se Supabase:', error);
-      // Fallback na localStorage
-      const localUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-      setUsers(localUsers);
-    }
-  };
-
-  // Inicializace při startu
-  useEffect(() => {
-    const initialize = async () => {
-      await initializeAdmin();
-      await loadUsers();
-    };
-    
-    initialize();
-  }, []);
 
   // Generování náhodné barvy
   const generateColor = () => {
@@ -174,10 +132,10 @@ const LoginScreen = () => {
           createdAt: new Date().toISOString()
         };
 
-        console.log('💾 Vytvářím nový profil:', newUser.name);
+        console.log('💾 Přidávám uživatele:', newUser.name);
 
-        // Ulož do Supabase
-        const { data, error: supabaseError } = await window.supabase
+        // Přidej do Supabase BEZ složitostí
+        const { error: insertError } = await window.supabase
           .from('users')
           .insert([{
             id: newUser.id,
@@ -187,28 +145,25 @@ const LoginScreen = () => {
             pin: newUser.pin,
             is_admin: false,
             created_at: newUser.createdAt
-          }])
-          .select()
-          .single();
+          }]);
 
-        if (supabaseError) {
-          console.error('❌ Chyba při ukládání do Supabase:', supabaseError);
-          setError("Chyba při ukládání profilu: " + supabaseError.message);
+        if (insertError) {
+          console.error('❌ Supabase chyba:', insertError);
+          setError("Chyba při ukládání: " + insertError.message);
           return;
         }
 
-        console.log('✅ Profil uložen do Supabase:', data);
-
-        // Znovu načti všechny uživatele
-        await loadUsers();
+        // Aktualizuj lokální seznam
+        const updatedUsers = [...users, newUser];
+        setUsers(updatedUsers);
         
         setShowAddUser(false);
         setError("");
-        console.log('✅ Profil vytvořen a seznam aktualizován');
+        console.log('✅ Uživatel přidán úspěšně');
         
       } catch (error) {
-        console.error('❌ Chyba při vytváření profilu:', error);
-        setError("Chyba při vytváření profilu: " + error.message);
+        console.error('❌ Chyba při přidávání:', error);
+        setError("Chyba: " + error.message);
       } finally {
         setIsSubmitting(false);
       }
@@ -298,23 +253,23 @@ const LoginScreen = () => {
             name: updatedUser.name,
             avatar: updatedUser.avatar,
             color: updatedUser.color,
-            pin: updatedUser.pin
+            ...(formData.pin && { pin: updatedUser.pin })
           })
           .eq('id', user.id);
 
         if (error) {
-          console.error('❌ Chyba při aktualizaci v Supabase:', error);
-          setError("Chyba při aktualizaci profilu");
+          setError("Chyba při aktualizaci");
           return;
         }
 
-        // Znovu načti uživatele
-        await loadUsers();
+        // Aktualizuj lokální seznam
+        const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
+        setUsers(updatedUsers);
+        
         setShowEditUser(null);
         
       } catch (error) {
-        console.error('❌ Chyba při editaci profilu:', error);
-        setError("Chyba při editaci profilu");
+        setError("Chyba při editaci");
       }
     };
 
@@ -332,18 +287,18 @@ const LoginScreen = () => {
             .eq('id', user.id);
 
           if (error) {
-            console.error('❌ Chyba při mazání ze Supabase:', error);
-            setError("Chyba při mazání profilu");
+            setError("Chyba při mazání");
             return;
           }
 
-          // Znovu načti uživatele
-          await loadUsers();
+          // Odstraň z lokálního seznamu
+          const updatedUsers = users.filter(u => u.id !== user.id);
+          setUsers(updatedUsers);
+          
           setShowEditUser(null);
           
         } catch (error) {
-          console.error('❌ Chyba při mazání profilu:', error);
-          setError("Chyba při mazání profilu");
+          setError("Chyba při mazání");
         }
       }
     };
