@@ -596,6 +596,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Funkce pro vynucenou synchronizaci ze Supabase
+  const forceSyncFromSupabase = async (userId) => {
+    try {
+      console.log('🔄 Spouštím vynucenou synchronizaci ze Supabase...');
+      return await DataManager.forceSyncFromSupabase(userId);
+    } catch (error) {
+      console.error('❌ Chyba při vynucené synchronizaci:', error);
+      throw error;
+    }
+  };
+
   // Funkce pro přidání nového uživatele
   const addUser = async (userData) => {
     try {
@@ -814,7 +825,8 @@ export const AuthProvider = ({ children }) => {
     deleteUserOrder,
     changePin,
     cleanDuplicates,
-    addUser
+    addUser,
+    forceSyncFromSupabase
   };
 
   return (

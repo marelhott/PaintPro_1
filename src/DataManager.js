@@ -24,17 +24,21 @@ class DataManager {
     });
   }
 
-  // HLAVNÍ METODA PRO NAČTENÍ DAT
+  // HLAVNÍ METODA PRO NAČTENÍ DAT - OPRAVENO
   async getUserOrders(userId) {
     try {
       if (this.isOnline) {
+        console.log('🔄 Načítám data ze Supabase pro uživatele:', userId);
+        
         // 1. PRIMÁRNÍ: Načti ze Supabase
         const supabaseData = await this.loadFromSupabase(userId);
+        console.log('📊 Supabase obsahuje:', supabaseData.length, 'zakázek');
         
-        // 2. ZÁLOHA: Uložit do localStorage
+        // 2. ZÁLOHA: Uložit do localStorage (přepsat kompletně)
         this.saveToLocalStorage(userId, supabaseData);
+        console.log('💾 Zálohování ze Supabase do localStorage...');
         
-        console.log('✅ Data načtena ze Supabase:', supabaseData.length, 'zakázek');
+        console.log('✅ Data načtena ze Supabase a zálohována lokálně');
         return supabaseData;
       } else {
         // 3. OFFLINE: Načti z localStorage
@@ -43,9 +47,29 @@ class DataManager {
         return localData;
       }
     } catch (error) {
-      console.error('❌ Chyba při načítání dat:', error);
+      console.error('❌ Chyba při načítání dat ze Supabase:', error);
+      console.log('📱 Fallback na localStorage...');
       // FALLBACK: localStorage v případě chyby
       return this.loadFromLocalStorage(userId);
+    }
+  }
+
+  // NOVÁ METODA PRO VYNUCENOU SYNCHRONIZACI
+  async forceSyncFromSupabase(userId) {
+    try {
+      console.log('🔄 Vynucená synchronizace ze Supabase...');
+      
+      const supabaseData = await this.loadFromSupabase(userId);
+      console.log('📊 Supabase má:', supabaseData.length, 'zakázek');
+      
+      // Přepsat localStorage kompletně
+      this.saveToLocalStorage(userId, supabaseData);
+      console.log('✅ localStorage přepsán daty ze Supabase');
+      
+      return supabaseData;
+    } catch (error) {
+      console.error('❌ Chyba při vynucené synchronizaci:', error);
+      throw error;
     }
   }
 
@@ -188,7 +212,9 @@ class DataManager {
   // POMOCNÉ METODY - LOCALSTORAGE
   loadFromLocalStorage(userId) {
     const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-    return JSON.parse(localStorage.getItem(key) || '[]');
+    const data = JSON.parse(localStorage.getItem(key) || '[]');
+    console.log('📊 localStorage obsahuje pro', userId, ':', data.length, 'zakázek');
+    return data;
   }
 
   saveToLocalStorage(userId, data) {
@@ -276,6 +302,9 @@ class DataManager {
 
         if (error) throw error;
         console.log('✅ Vymazáno', toDelete.length, 'duplicit');
+        
+        // Po vyčištění aktualizuj localStorage
+        await this.forceSyncFromSupabase(userId);
       }
     } catch (error) {
       console.error('❌ Chyba při čištění duplicit:', error);
