@@ -64,6 +64,29 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('paintpro_users', JSON.stringify([adminUser]));
 
       console.log('🔐 Administrátor vytvořen s PIN: 123456');
+    } else {
+      // Aktualizuj existujícího uživatele pokud má staré jméno "Dušan"
+      let needsUpdate = false;
+      const updatedUsers = users.map(user => {
+        if (user.name === 'Dušan') {
+          needsUpdate = true;
+          return { ...user, name: 'Administrátor', avatar: 'AD' };
+        }
+        return user;
+      });
+      
+      if (needsUpdate) {
+        localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
+        console.log('✅ Jméno uživatele změněno z "Dušan" na "Administrátor"');
+        
+        // Aktualizuj i aktuálního uživatele pokud je přihlášený
+        const currentUser = JSON.parse(localStorage.getItem('paintpro_current_user') || 'null');
+        if (currentUser && currentUser.name === 'Dušan') {
+          const updatedCurrentUser = { ...currentUser, name: 'Administrátor', avatar: 'AD' };
+          localStorage.setItem('paintpro_current_user', JSON.stringify(updatedCurrentUser));
+          setCurrentUser(updatedCurrentUser);
+        }
+      }
     }
 
     // OPRAVA: Vždy zkontroluj a přidej ukázková data, pokud nejsou
