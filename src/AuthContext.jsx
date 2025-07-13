@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import DataManager from './DataManager';
+import CSVImporter from './CSVImporter';
 
 // Vytvoření AuthContext
 const AuthContext = createContext();
@@ -618,6 +619,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Funkce pro import ze Supabase CSV
+  const importFromCSV = async () => {
+    try {
+      console.log('🔄 Spouštím import z CSV dat...');
+      const result = await CSVImporter.importFromAttachedCSV();
+      
+      if (result.success) {
+        console.log('✅ CSV import dokončen:', result.totalImported, 'zakázek');
+        
+        // Aktualizuj data pro současného uživatele
+        if (currentUser) {
+          await forceSyncFromSupabase(currentUser.id);
+        }
+        
+        return result;
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (error) {
+      console.error('❌ Chyba při CSV importu:', error);
+      throw error;
+    }
+  };
+
   // Funkce pro přidání nového uživatele
   const addUser = async (userData) => {
     try {
@@ -837,7 +862,8 @@ export const AuthProvider = ({ children }) => {
     changePin,
     cleanDuplicates,
     addUser,
-    forceSyncFromSupabase
+    forceSyncFromSupabase,
+    importFromCSV
   };
 
   return (
