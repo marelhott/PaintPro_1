@@ -1172,6 +1172,19 @@ export const AuthProvider = ({ children }) => {
         if (savedUser) {
           const user = JSON.parse(savedUser);
           setCurrentUser(user);
+
+          // Automatický import pro Lenku při prvním přihlášení
+          if (user.name === 'Lenka') {
+            const hasImportedBefore = localStorage.getItem('lenka_google_sheets_imported');
+            if (!hasImportedBefore) {
+              console.log('📊 Automaticky importuji data z Google Sheets pro Lenku...');
+              const importResult = await importGoogleSheetsData();
+              if (importResult.success) {
+                localStorage.setItem('lenka_google_sheets_imported', 'true');
+                console.log('✅ Automatický import dokončen pro Lenku');
+              }
+            }
+          }
         }
 
         // Spusť synchronizaci profilů do Supabase
