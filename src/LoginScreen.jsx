@@ -29,13 +29,59 @@ const LoginScreen = () => {
     console.log('🔄 Načítám uživatele se synchronizací...');
     
     try {
-      // PRIORITA: Zkus načíst přímo ze Supabase
+      // PRIORITA: Načti admin_1 přímo ze Supabase
+      console.log('🔍 Hledám admin_1 v Supabase...');
+      
+      const { data: supabaseUsers, error } = await window.supabase
+        .from('users')
+        .select('*')
+        .eq('id', 'admin_1');
+
+      if (error) {
+        console.error('❌ Chyba při načítání ze Supabase:', error);
+      } else if (supabaseUsers && supabaseUsers.length > 0) {
+        console.log('✅ Našel jsem admin_1 v Supabase:', supabaseUsers[0]);
+        
+        // Převeď na lokální formát a přejmenuj na "Administrátor"
+        const adminFromSupabase = {
+          id: supabaseUsers[0].id,
+          name: 'Administrátor',
+          avatar: supabaseUsers[0].avatar || 'AD',
+          color: supabaseUsers[0].color || '#8b5cf6',
+          pin: supabaseUsers[0].pin,
+          isAdmin: true,
+          createdAt: supabaseUsers[0].created_at
+        };
+
+        // Načti ostatní uživatele ze syncUsers
+        let allUsers = [adminFromSupabase];
+        
+        if (syncUsers) {
+          try {
+            const synchronizedUsers = await syncUsers();
+            // Přidej ostatní uživatele (ne admin_1)
+            const otherUsers = synchronizedUsers.filter(user => user.id !== 'admin_1');
+            allUsers = [adminFromSupabase, ...otherUsers];
+          } catch (syncError) {
+            console.error('❌ Chyba při synchronizaci ostatních:', syncError);
+          }
+        }
+
+        setUsers(allUsers);
+        console.log('✅ Profily načteny - admin_1 jako "Administrátor":', allUsers.length);
+        return;
+      } else {
+        console.log('⚠️ admin_1 nenalezen v Supabase');
+      }
+    } catch (error) {
+      console.error('❌ Chyba při načítání ze Supabase:', error);
+    }
+
+    // Fallback: zkus synchronizaci a pak localStorage
+    try {
       if (syncUsers) {
         const synchronizedUsers = await syncUsers();
-        
-        // Pokud máme uživatele ze Supabase, použij je
         if (synchronizedUsers && synchronizedUsers.length > 0) {
-          // Upravit jména - pokud existuje admin_1, přejmenuj ho na "Administrátor"
           const updatedUsers = synchronizedUsers.map(user => {
             if (user.id === 'admin_1') {
               return { ...user, name: 'Administrátor' };
@@ -44,31 +90,29 @@ const LoginScreen = () => {
           });
           
           setUsers(updatedUsers);
-          console.log('✅ Uživatelé načteni ze Supabase:', updatedUsers.length);
+          console.log('✅ Fallback - uživatelé ze syncUsers:', updatedUsers.length);
           return;
         }
       }
     } catch (error) {
-      console.error('❌ Chyba při synchronizaci se Supabase:', error);
+      console.error('❌ Chyba při fallback synchronizaci:', error);
     }
 
-    // Fallback na localStorage
+    // Poslední fallback na localStorage
     try {
       const usersFromStorage = localStorage.getItem('paintpro_users');
-      console.log('📊 Fallback - data z localStorage:', usersFromStorage);
-      
       if (usersFromStorage) {
         const parsedUsers = JSON.parse(usersFromStorage);
-        console.log('👥 Nalezeni uživatelé (fallback):', parsedUsers);
         setUsers(parsedUsers);
+        console.log('✅ Fallback na localStorage:', parsedUsers.length);
         return;
       }
     } catch (error) {
       console.error('❌ Chyba při čtení z localStorage:', error);
     }
 
-    // Pokud nejsou žádní uživatelé, vytvoř administrátora
-    console.log('🔧 Vytvářím výchozího administrátora...');
+    // Vytvoř nového administrátora jako poslední možnost
+    console.log('🔧 Vytvářím nového administrátora...');
     const admin = {
       id: 'admin_1',
       name: 'Administrátor',
@@ -81,7 +125,7 @@ const LoginScreen = () => {
 
     localStorage.setItem('paintpro_users', JSON.stringify([admin]));
     setUsers([admin]);
-    console.log('✅ Administrátor vytvořen s PIN: 123456');
+    console.log('✅ Nový administrátor vytvořen s PIN: 123456');
   };
 
   // Načti uživatele při startu
