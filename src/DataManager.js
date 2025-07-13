@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://lseqrqmtjymukewnejdd.supabase.co';
@@ -18,7 +17,7 @@ class DataManager {
       this.isOnline = true;
       this.processSyncQueue();
     });
-    
+
     window.addEventListener('offline', () => {
       this.isOnline = false;
     });
@@ -29,19 +28,19 @@ class DataManager {
     try {
       if (this.isOnline) {
         console.log('🔄 FORCE LOADING ze Supabase pro uživatele:', userId);
-        
+
         // 1. NAČTI ZE SUPABASE
         const supabaseData = await this.loadFromSupabase(userId);
         console.log('📊 Supabase obsahuje:', supabaseData.length, 'zakázek');
-        
+
         // 2. SMAŽ localStorage KOMPLETNĚ
-        const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
+        const key = `paintpro_orders_${userId}`;
         localStorage.removeItem(key);
         console.log('🗑️ localStorage vymazán pro:', key);
-        
+
         // 3. ULOŽ DATA ZE SUPABASE DO localStorage
         this.saveToLocalStorage(userId, supabaseData);
-        
+
         // 4. VŽDY VRAŤ DATA ZE SUPABASE (NE localStorage)
         console.log('✅ Vracím data přímo ze Supabase:', supabaseData.length, 'zakázek');
         return supabaseData;
@@ -62,24 +61,24 @@ class DataManager {
   async forceSyncFromSupabase(userId) {
     try {
       console.log('🔄 FORCE SYNC: Vynucená synchronizace ze Supabase...');
-      
+
       // 1. NAČTI ZE SUPABASE
       const supabaseData = await this.loadFromSupabase(userId);
       console.log('📊 FORCE SYNC: Supabase má:', supabaseData.length, 'zakázek');
-      
+
       // 2. KOMPLETNĚ SMAŽ localStorage
-      const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
+      const key = `paintpro_orders_${userId}`;
       localStorage.removeItem(key);
       console.log('🗑️ FORCE SYNC: localStorage smazán pro:', key);
-      
+
       // 3. ZNOVU ULOŽ DATA ZE SUPABASE
       this.saveToLocalStorage(userId, supabaseData);
       console.log('💾 FORCE SYNC: Data uložena do localStorage');
-      
+
       // 4. DALŠÍ KONTROLA
       const verification = this.loadFromLocalStorage(userId);
       console.log('✅ FORCE SYNC: Verifikace - localStorage má:', verification.length, 'zakázek');
-      
+
       // 5. VŽDY VRAŤ DATA ZE SUPABASE
       return supabaseData;
     } catch (error) {
@@ -101,17 +100,17 @@ class DataManager {
       if (this.isOnline) {
         // 1. PRIMÁRNÍ: Ulož do Supabase
         const savedOrder = await this.saveToSupabase(userId, newOrder);
-        
+
         // 2. ZÁLOHA: Ulož do localStorage
         this.appendToLocalStorage(userId, savedOrder);
-        
+
         console.log('✅ Zakázka uložena do Supabase + localStorage');
         return savedOrder;
       } else {
         // 3. OFFLINE: Ulož do localStorage + fronty
         this.appendToLocalStorage(userId, newOrder);
         this.addToSyncQueue('create', userId, newOrder);
-        
+
         console.log('📱 OFFLINE: Zakázka uložena do localStorage + fronty');
         return newOrder;
       }
@@ -135,17 +134,17 @@ class DataManager {
       if (this.isOnline) {
         // 1. PRIMÁRNÍ: Aktualizuj v Supabase
         await this.updateInSupabase(userId, orderId, orderData);
-        
+
         // 2. ZÁLOHA: Aktualizuj v localStorage
         this.updateInLocalStorage(userId, orderId, orderData);
-        
+
         console.log('✅ Zakázka aktualizována v Supabase + localStorage');
         return orderData;
       } else {
         // 3. OFFLINE: Aktualizuj v localStorage + frontě
         this.updateInLocalStorage(userId, orderId, orderData);
         this.addToSyncQueue('update', userId, { id: orderId, ...orderData });
-        
+
         console.log('📱 OFFLINE: Zakázka aktualizována v localStorage + frontě');
         return orderData;
       }
@@ -226,17 +225,16 @@ class DataManager {
 
   // POMOCNÉ METODY - LOCALSTORAGE
   loadFromLocalStorage(userId) {
-    const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
+    const key = `paintpro_orders_${userId}`;
     const data = JSON.parse(localStorage.getItem(key) || '[]');
-    console.log('📊 localStorage obsahuje pro', userId, ':', data.length, 'zakázek');
+    console.log('📱 localStorage obsahuje pro', userId, ':', data.length, 'zakázek');
     return data;
   }
 
   saveToLocalStorage(userId, data) {
-    const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-    console.log('💾 Ukládám do localStorage klíč:', key, 'počet zakázek:', data.length);
+    const key = `paintpro_orders_${userId}`;
     localStorage.setItem(key, JSON.stringify(data));
-    
+
     // Verifikace uložení
     const verification = JSON.parse(localStorage.getItem(key) || '[]');
     console.log('✅ Verifikace uložení - localStorage nyní obsahuje:', verification.length, 'zakázek');
@@ -300,7 +298,7 @@ class DataManager {
 
     try {
       console.log('🧹 Čistím duplicity...');
-      
+
       const allOrders = await this.loadFromSupabase(userId);
       const seen = new Set();
       const toDelete = [];
@@ -322,7 +320,7 @@ class DataManager {
 
         if (error) throw error;
         console.log('✅ Vymazáno', toDelete.length, 'duplicit');
-        
+
         // Po vyčištění aktualizuj localStorage
         await this.forceSyncFromSupabase(userId);
       }
