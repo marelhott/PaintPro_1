@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import DataManager from './DataManager';
+import { supabase } from './supabase';
 
 // Vytvoření AuthContext
 const AuthContext = createContext();
@@ -635,8 +636,32 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('paintpro_users', JSON.stringify(users));
       console.log('✅ Profil uložen lokálně:', newUser.name);
 
-      // Synchronizace do Supabase dočasně přeskočena
-      console.log('🔄 Synchronizace nového profilu do Supabase přeskočena - používá se localStorage');
+      // Pokus o synchronizaci do Supabase
+      try {
+        console.log('🔄 Synchronizuji nový profil do Supabase...');
+        
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{
+            id: newUser.id,
+            name: newUser.name,
+            avatar: newUser.avatar,
+            color: newUser.color,
+            pin_hash: newUser.pin,
+            created_at: newUser.createdAt
+          }])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('❌ Chyba při ukládání profilu do Supabase:', error.message);
+          // Profil zůstane uložen lokálně
+        } else {
+          console.log('✅ Profil úspěšně uložen do Supabase:', data);
+        }
+      } catch (supabaseError) {
+        console.error('❌ Supabase nedostupný při vytváření profilu:', supabaseError);
+      }
 
       return { success: true, user: newUser };
     } catch (error) {
