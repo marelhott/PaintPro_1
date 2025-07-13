@@ -11,7 +11,7 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
-  const { login, addUser } = useAuth();
+  const { login, addUser, syncUsers } = useAuth();
 
   // Hash funkce pro PIN
   const hashPin = (pin) => {
@@ -24,17 +24,30 @@ const LoginScreen = () => {
     return hash.toString();
   };
 
-  // JEDNA JEDINÁ funkce pro načítání uživatelů
-  const nactiUzivatele = () => {
-    console.log('🔄 Načítám uživatele...');
+  // Funkce pro načítání uživatelů se synchronizací
+  const nactiUzivatele = async () => {
+    console.log('🔄 Načítám uživatele se synchronizací...');
     
     try {
+      // Pokud máme syncUsers funkci, použij ji
+      if (syncUsers) {
+        const synchronizedUsers = await syncUsers();
+        setUsers(synchronizedUsers);
+        console.log('✅ Uživatelé načteni a synchronizováni:', synchronizedUsers.length);
+        return;
+      }
+    } catch (error) {
+      console.error('❌ Chyba při synchronizaci:', error);
+    }
+
+    // Fallback na localStorage
+    try {
       const usersFromStorage = localStorage.getItem('paintpro_users');
-      console.log('📊 Data z localStorage:', usersFromStorage);
+      console.log('📊 Fallback - data z localStorage:', usersFromStorage);
       
       if (usersFromStorage) {
         const parsedUsers = JSON.parse(usersFromStorage);
-        console.log('👥 Nalezeni uživatelé:', parsedUsers);
+        console.log('👥 Nalezeni uživatelé (fallback):', parsedUsers);
         setUsers(parsedUsers);
         return;
       }
@@ -62,7 +75,7 @@ const LoginScreen = () => {
   // Načti uživatele při startu
   useEffect(() => {
     nactiUzivatele();
-  }, []);
+  }, [syncUsers]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -145,7 +158,7 @@ const LoginScreen = () => {
 
         if (result.success) {
           console.log('✅ Nový profil vytvořen:', result.user.name);
-          nactiUzivatele(); // Znovu načti uživatele
+          await nactiUzivatele(); // Znovu načti uživatele
           setShowAddUser(false);
           setError("");
         } else {
