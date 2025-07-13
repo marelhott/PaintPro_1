@@ -1984,6 +1984,89 @@ const PaintPro = () => {
     event.target.value = ''; // Reset input
   };
 
+  // Funkce pro export CSV
+  const handleCSVExport = () => {
+    try {
+      // Použijeme filtrované hlavní zakázky (bez kalendářových)
+      const dataToExport = filterMainOrdersOnly(zakazkyData);
+      
+      if (dataToExport.length === 0) {
+        alert('❌ Žádné zakázky k exportu');
+        return;
+      }
+
+      // CSV header
+      const headers = [
+        'Datum',
+        'Druh práce',
+        'Klient',
+        'Číslo zakázky',
+        'Tržba (Kč)',
+        'Fee (Kč)',
+        'Materiál (Kč)',
+        'Pomocník (Kč)',
+        'Palivo (Kč)',
+        'Adresa',
+        'Typ objektu',
+        'Doba realizace',
+        'Poznámky',
+        'Čistý zisk (Kč)'
+      ];
+
+      // CSV data rows
+      const rows = dataToExport.map(zakazka => [
+        zakazka.datum,
+        zakazka.druh || '',
+        zakazka.klient || '',
+        zakazka.cislo || '',
+        zakazka.castka || 0,
+        zakazka.fee || 0,
+        zakazka.material || 0,
+        zakazka.pomocnik || 0,
+        zakazka.palivo || 0,
+        zakazka.adresa || '',
+        zakazka.typ || '',
+        zakazka.dobaRealizace || zakazka.delkaRealizace || 1,
+        zakazka.poznamky || zakazka.poznamka || '',
+        zakazka.zisk || 0
+      ]);
+
+      // Kombinace headers a rows
+      const csvContent = [headers, ...rows]
+        .map(row => row.map(field => {
+          // Escape commas and quotes in fields
+          const stringField = String(field);
+          if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+            return `"${stringField.replace(/"/g, '""')}"`;
+          }
+          return stringField;
+        }).join(','))
+        .join('\n');
+
+      // Create and download file
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      
+      if (navigator.msSaveBlob) { // IE 10+
+        navigator.msSaveBlob(blob, filename);
+      } else {
+        link.href = URL.createObjectURL(blob);
+        const currentDate = new Date().toLocaleDateString('cs-CZ').replace(/\./g, '_');
+        link.download = `PaintPro_Zakazky_Export_${currentDate}.csv`;
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      alert(`✅ Export dokončen! Exportováno ${dataToExport.length} zakázek do CSV souboru.`);
+      
+    } catch (error) {
+      console.error('Chyba při exportu CSV:', error);
+      alert('❌ Chyba při exportu CSV souboru');
+    }
+  };
+
   // Funkce pro přidání ukázkových dat
   const addSampleData = async () => {
     const sampleOrders = [
@@ -2020,6 +2103,9 @@ const PaintPro = () => {
           />
           <button className="btn btn-secondary" onClick={() => document.getElementById('csv-import').click()}>
             📁 Import CSV
+          </button>
+          <button className="btn btn-secondary" onClick={handleCSVExport}>
+            📤 Export CSV
           </button>
           <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
             <div className="modern-icon size-small icon-add"></div>
