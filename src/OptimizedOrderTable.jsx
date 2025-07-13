@@ -4,7 +4,13 @@ import React, { memo, useMemo, useState, useRef } from 'react';
 const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [localFiles, setLocalFiles] = useState(zakazka.soubory || []);
   const fileInputRef = useRef(null);
+
+  // Synchronizuj lokální stav s props při změně
+  React.useEffect(() => {
+    setLocalFiles(zakazka.soubory || []);
+  }, [zakazka.soubory]);
 
   const handleFileUpload = async (event) => {
     const selectedFiles = Array.from(event.target.files);
@@ -40,11 +46,19 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
         newUploadedFiles.push(fileObject);
       }
 
-      const currentFiles = zakazka.soubory || [];
+      const currentFiles = localFiles || [];
       const updatedFiles = [...currentFiles, ...newUploadedFiles];
+      
+      // Aktualizuj lokální stav okamžitě
+      setLocalFiles(updatedFiles);
+      
+      // Zavolej callback pro aktualizaci v rodičovské komponentě
       onFilesUpdate(updatedFiles);
 
+      console.log(`✅ Nahráno ${newUploadedFiles.length} souborů pro zakázku ${zakazka.id}`);
+
     } catch (error) {
+      console.error('❌ Chyba při uploadu:', error);
       alert(`Chyba při nahrávání: ${error.message}`);
     } finally {
       setIsUploading(false);
@@ -68,12 +82,13 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
   };
 
   const handleFileDelete = (fileId) => {
-    const currentFiles = zakazka.soubory || [];
+    const currentFiles = localFiles || [];
     const updatedFiles = currentFiles.filter(file => file.id !== fileId);
+    setLocalFiles(updatedFiles);
     onFilesUpdate(updatedFiles);
   };
 
-  const filesCount = zakazka.soubory?.length || 0;
+  const filesCount = localFiles?.length || 0;
   const hasFiles = filesCount > 0;
 
   return (
@@ -175,7 +190,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                 </button>
               </div>
 
-              {zakazka.soubory.map((file, index) => (
+              {localFiles.map((file, index) => (
                 <div 
                   key={file.id || index} 
                   style={{ 
@@ -183,7 +198,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                     justifyContent: 'space-between', 
                     alignItems: 'center',
                     padding: '12px 0',
-                    borderBottom: index < zakazka.soubory.length - 1 ? '1px solid #f3f4f6' : 'none'
+                    borderBottom: index < localFiles.length - 1 ? '1px solid #f3f4f6' : 'none'
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>

@@ -725,25 +725,35 @@ const PaintPro = () => {
   // Funkce pro aktualizaci souborů zakázky
   const handleFilesUpdate = async (zakazkaId, newFiles) => {
     try {
+      console.log(`🔄 Aktualizuji soubory pro zakázku ${zakazkaId}, počet souborů: ${newFiles.length}`);
+      
       // Najdi zakázku v aktuálních datech
       const updatedZakazky = zakazkyData.map(zakazka => {
         if (zakazka.id === zakazkaId) {
-          return { ...zakazka, soubory: newFiles };
+          const updated = { ...zakazka, soubory: newFiles };
+          console.log(`✅ Zakázka ${zakazkaId} aktualizována s ${newFiles.length} soubory`);
+          return updated;
         }
         return zakazka;
       });
 
-      // Aktualizuj v Supabase
+      // Aktualizuj lokální state okamžitě
+      setZakazkyData(updatedZakazky);
+
+      // Aktualizuj v Supabase na pozadí
       const zakazkaToUpdate = zakazkyData.find(z => z.id === zakazkaId);
       if (zakazkaToUpdate && currentUser?.id) {
-        await editUserOrder(currentUser.id, zakazkaId, {
-          ...zakazkaToUpdate,
-          soubory: newFiles
-        });
+        try {
+          await editUserOrder(currentUser.id, zakazkaId, {
+            ...zakazkaToUpdate,
+            soubory: newFiles
+          });
+          console.log(`💾 Soubory uloženy do databáze pro zakázku ${zakazkaId}`);
+        } catch (dbError) {
+          console.error('❌ Chyba při ukládání do databáze:', dbError);
+          // I když se nepodaří uložit do DB, lokální stav zůstane aktualizovaný
+        }
       }
-
-      // Aktualizuj lokální state
-      setZakazkyData(updatedZakazky);
 
     } catch (error) {
       console.error('❌ Chyba při aktualizaci souborů:', error);
