@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import './ModernIcons.css';
+import './GitLockManager.css';
 import html2pdf from 'html2pdf.js';
 import CalendarComponent from './CalendarComponent';
 import CalculatorComponent from './CalculatorComponent';
 import { AuthProvider, useAuth } from './AuthContext';
 import LoginScreen from './LoginScreen';
+import gitLockManager from './GitLockManager.js';
 
 // Funkce pro kompletní PDF export všech stránek
 const exportCompletePDF = async (activeTab, setActiveTab, userData) => {
@@ -394,6 +396,31 @@ const PaintPro = () => {
 
   // OPRAVA: Inicializace zakazkyData jako prázdné pole
   const [zakazkyData, setZakazkyData] = useState([]);
+
+  // Git lock manager inicializace
+  useEffect(() => {
+    // Automatická kontrola git lock souborů při načtení aplikace
+    gitLockManager.checkAndCleanLockFiles();
+
+    // Global error handler pro git chyby
+    const handleGitError = (error) => {
+      if (gitLockManager.detectLockProblem(error.message || error.toString())) {
+        console.warn('🔍 Detekován git lock problém:', error);
+        gitLockManager.showUnlockButton();
+      }
+    };
+
+    // Globální error listener
+    window.addEventListener('error', handleGitError);
+    window.addEventListener('unhandledrejection', (event) => {
+      handleGitError(event.reason);
+    });
+
+    return () => {
+      window.removeEventListener('error', handleGitError);
+      window.removeEventListener('unhandledrejection', handleGitError);
+    };
+  }, []);
 
   // Načtení dat při přihlášení uživatele
   useEffect(() => {
