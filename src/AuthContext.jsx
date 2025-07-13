@@ -580,17 +580,21 @@ export const AuthProvider = ({ children }) => {
   // Funkce pro získání dat uživatele
   const getUserData = async (userId) => {
     try {
-      console.log('🔄 AuthContext: Načítám data pro uživatele:', userId);
+      console.log('🔄 AuthContext: FORCE LOADING dat pro uživatele:', userId);
       
-      // Nejdříve vynutit synchronizaci ze Supabase
+      // PŘÍMO VOLAT forceSyncFromSupabase
       const supabaseData = await DataManager.forceSyncFromSupabase(userId);
-      console.log('✅ Vynucená synchronizace dokončena:', supabaseData.length, 'zakázek');
+      console.log('✅ AuthContext: FORCE SYNC dokončena:', supabaseData.length, 'zakázek');
       
-      return supabaseData;
+      // DVOJITÁ KONTROLA - zavolat znovu getUserOrders
+      const finalData = await DataManager.getUserOrders(userId);
+      console.log('✅ AuthContext: Finální data:', finalData.length, 'zakázek');
+      
+      return finalData;
     } catch (error) {
-      console.error('❌ Chyba při načítání dat:', error);
-      // Fallback na normální načtení
-      return await DataManager.getUserOrders(userId);
+      console.error('❌ AuthContext: Chyba při načítání dat:', error);
+      // Fallback na localStorage
+      return DataManager.loadFromLocalStorage(userId);
     }
   };
 

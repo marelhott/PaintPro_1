@@ -24,28 +24,29 @@ class DataManager {
     });
   }
 
-  // HLAVNÍ METODA PRO NAČTENÍ DAT - OPRAVENO
+  // HLAVNÍ METODA PRO NAČTENÍ DAT - VŽDY SUPABASE FIRST
   async getUserOrders(userId) {
     try {
       if (this.isOnline) {
-        console.log('🔄 Načítám data ze Supabase pro uživatele:', userId);
+        console.log('🔄 FORCE LOADING ze Supabase pro uživatele:', userId);
         
-        // 1. PRIMÁRNÍ: Načti ze Supabase
+        // 1. NAČTI ZE SUPABASE
         const supabaseData = await this.loadFromSupabase(userId);
         console.log('📊 Supabase obsahuje:', supabaseData.length, 'zakázek');
         
-        // 2. VŽDY přepsat localStorage daty ze Supabase
-        console.log('💾 Přepisuji localStorage daty ze Supabase...');
+        // 2. SMAŽ localStorage KOMPLETNĚ
+        const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
+        localStorage.removeItem(key);
+        console.log('🗑️ localStorage vymazán pro:', key);
+        
+        // 3. ULOŽ DATA ZE SUPABASE DO localStorage
         this.saveToLocalStorage(userId, supabaseData);
         
-        // 3. Kontrola po uložení
-        const verifyLocal = this.loadFromLocalStorage(userId);
-        console.log('✅ Verifikace localStorage po uložení:', verifyLocal.length, 'zakázek');
-        
-        console.log('✅ Data načtena ze Supabase a uložena do localStorage');
+        // 4. VŽDY VRAŤ DATA ZE SUPABASE (NE localStorage)
+        console.log('✅ Vracím data přímo ze Supabase:', supabaseData.length, 'zakázek');
         return supabaseData;
       } else {
-        // 3. OFFLINE: Načti z localStorage
+        // OFFLINE: Načti z localStorage
         const localData = this.loadFromLocalStorage(userId);
         console.log('📱 OFFLINE: Data načtena z localStorage:', localData.length, 'zakázek');
         return localData;
@@ -53,7 +54,6 @@ class DataManager {
     } catch (error) {
       console.error('❌ Chyba při načítání dat ze Supabase:', error);
       console.log('📱 Fallback na localStorage...');
-      // FALLBACK: localStorage v případě chyby
       return this.loadFromLocalStorage(userId);
     }
   }
@@ -61,15 +61,26 @@ class DataManager {
   // NOVÁ METODA PRO VYNUCENOU SYNCHRONIZACI
   async forceSyncFromSupabase(userId) {
     try {
-      console.log('🔄 Vynucená synchronizace ze Supabase...');
+      console.log('🔄 FORCE SYNC: Vynucená synchronizace ze Supabase...');
       
+      // 1. NAČTI ZE SUPABASE
       const supabaseData = await this.loadFromSupabase(userId);
-      console.log('📊 Supabase má:', supabaseData.length, 'zakázek');
+      console.log('📊 FORCE SYNC: Supabase má:', supabaseData.length, 'zakázek');
       
-      // Přepsat localStorage kompletně
+      // 2. KOMPLETNĚ SMAŽ localStorage
+      const key = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
+      localStorage.removeItem(key);
+      console.log('🗑️ FORCE SYNC: localStorage smazán pro:', key);
+      
+      // 3. ZNOVU ULOŽ DATA ZE SUPABASE
       this.saveToLocalStorage(userId, supabaseData);
-      console.log('✅ localStorage přepsán daty ze Supabase');
+      console.log('💾 FORCE SYNC: Data uložena do localStorage');
       
+      // 4. DALŠÍ KONTROLA
+      const verification = this.loadFromLocalStorage(userId);
+      console.log('✅ FORCE SYNC: Verifikace - localStorage má:', verification.length, 'zakázek');
+      
+      // 5. VŽDY VRAŤ DATA ZE SUPABASE
       return supabaseData;
     } catch (error) {
       console.error('❌ Chyba při vynucené synchronizaci:', error);
