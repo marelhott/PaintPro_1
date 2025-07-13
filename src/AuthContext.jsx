@@ -588,10 +588,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
       
-      // ABSOLUTNÍ PRIORITA: Supabase
+      // KRITICKÁ OPRAVA: ABSOLUTNÍ PRIORITA SUPABASE VE VŠECH PROSTŘEDÍCH
       if (supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('undefined')) {
         try {
-          console.log('🔄 ABSOLUTNÍ PRIORITA: Načítám data ze Supabase...');
+          console.log('🔄 KRITICKÁ PRIORITA: Načítám data ze Supabase...');
+          console.log('🚨 VÝVOJOVÉ PROSTŘEDÍ - IGNORUJI LOCALSTORAGE!');
           
           const { data: supabaseData, error } = await supabase
             .from('orders')
@@ -600,16 +601,16 @@ export const AuthProvider = ({ children }) => {
             .order('created_at', { ascending: false });
 
           if (error) {
-            console.warn('⚠️ Chyba při načítání ze Supabase:', error.message);
+            console.error('❌ KRITICKÁ CHYBA SUPABASE:', error.message);
             throw error;
           }
 
           const supabaseCount = supabaseData?.length || 0;
-          console.log('📊 SUPABASE (MASTER): obsahuje', supabaseCount, 'zakázek');
+          console.log('📊 SUPABASE (JEDINÝ ZDROJ PRAVDY): obsahuje', supabaseCount, 'zakázek');
+          console.log('🚨 IGNORUJI LOCALSTORAGE ÚPLNĚ - POUZE SUPABASE DATA!');
           
-          // VŽDY vrať data ze Supabase bez ohledu na localStorage
-          if (supabaseCount >= 0) { // I prázdné Supabase má prioritu
-            console.log('✅ POUŽÍVÁM SUPABASE DATA (absolutní priorita) -', supabaseCount, 'zakázek');
+          // POVINNĚ vrať data ze Supabase - žádný localStorage fallback!
+          console.log('✅ POUŽÍVÁM POUZE SUPABASE DATA -', supabaseCount, 'zakázek');
             
             // Vždy vyčisti duplicity a vrať data ze Supabase
             if (supabaseCount > 0) {
@@ -650,30 +651,22 @@ export const AuthProvider = ({ children }) => {
 
         } catch (supabaseError) {
           console.error('❌ KRITICKÁ CHYBA SUPABASE:', supabaseError.message);
-          console.error('❌ FALLBACK na localStorage (pouze v případě chyby)');
+          console.error('🚨 APLIKACE NEFUNGUJE BEZ SUPABASE - ŽÁDNÝ FALLBACK!');
           
-          // POUZE v případě kritické chyby Supabase
-          const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          console.log('🆘 EMERGENCY FALLBACK - localStorage:', localOrders.length, 'zakázek');
-          return localOrders;
+          // ŽÁDNÝ fallback na localStorage - aplikace musí fungovat se Supabase
+          throw new Error(`Supabase nedostupný: ${supabaseError.message}`);
         }
       } else {
         console.error('❌ SUPABASE NENÍ NAKONFIGUROVÁN!');
-        
-        // Pouze pokud Supabase vůbec není dostupný
-        const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        console.log('📊 localStorage (bez Supabase):', localOrders.length, 'zakázek');
-        return localOrders;
+        throw new Error('Supabase konfigurace chybí - aplikace nefunguje bez databáze');
       }
 
     } catch (error) {
       console.error('❌ ABSOLUTNÍ KRITICKÁ CHYBA:', error);
+      console.error('🚨 APLIKACE VYŽADUJE SUPABASE - ZASTAVUJI!');
       
-      // Absolutní emergency fallback
-      const storageKey = userId === 'admin_1' ? 'paintpro_orders_admin_1' : `paintpro_orders_${userId}`;
-      const localOrders = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      console.log('🆘 ABSOLUTNÍ EMERGENCY:', localOrders.length, 'zakázek');
-      return localOrders;
+      // Žádný emergency fallback - aplikace musí fungovat se Supabase
+      throw error;
     }
   };
 
