@@ -461,56 +461,57 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Vytvoření profilu Lenka
+  // Vytvoření profilu Lenka - jednorázová funkce
   const createLenkaProfile = async () => {
     try {
-      const users = await loadUsers();
-      const lenkaExists = users.find(u => u.name === 'Lenka');
+      console.log('🔧 Kontroluji profil Lenka...');
       
-      if (!lenkaExists) {
-        console.log('🔧 Vytvářím profil Lenka...');
-        
-        const lenkaProfile = {
-          id: 'user_lenka_' + Date.now(),
-          name: 'Lenka',
-          avatar: 'LE',
-          color: '#ec4899',
-          pin_hash: hashPin('321321'),
-          is_admin: false,
-          created_at: new Date().toISOString()
-        };
+      const lenkaProfile = {
+        id: 'user_lenka_123',
+        name: 'Lenka',
+        avatar: 'LE',
+        color: '#ec4899',
+        pin_hash: hashPin('321321'),
+        is_admin: false,
+        created_at: new Date().toISOString()
+      };
 
-        // Aktualizuj cache
-        const cached = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
-        cached.push(lenkaProfile);
-        localStorage.setItem('paintpro_users_cache', JSON.stringify(cached));
+      // Přidej přímo do cache
+      const cached = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
+      
+      // Zkontroluj, jestli už neexistuje
+      const exists = cached.find(u => u.name === 'Lenka');
+      if (exists) {
+        console.log('ℹ️ Profil Lenka již existuje');
+        return exists;
+      }
 
-        // Synchronizuj se Supabase
-        if (isOnline) {
-          try {
-            const { data, error } = await supabase.from('users').insert([lenkaProfile]);
-            if (error) throw error;
-            console.log('✅ Profil Lenka vytvořen v Supabase');
-          } catch (supabaseError) {
-            console.warn('⚠️ Supabase nedostupný pro Lenka profil, přidáno do queue');
-            addToQueue({
-              type: 'create_user',
-              data: lenkaProfile
-            });
-          }
-        } else {
+      // Přidej do cache
+      cached.push(lenkaProfile);
+      localStorage.setItem('paintpro_users_cache', JSON.stringify(cached));
+
+      // Synchronizuj se Supabase
+      if (isOnline) {
+        try {
+          const { data, error } = await supabase.from('users').insert([lenkaProfile]);
+          if (error) throw error;
+          console.log('✅ Profil Lenka vytvořen v Supabase');
+        } catch (supabaseError) {
+          console.warn('⚠️ Supabase nedostupný, přidáno do queue');
           addToQueue({
             type: 'create_user',
             data: lenkaProfile
           });
         }
-
-        console.log('✅ Profil Lenka vytvořen:', lenkaProfile);
-        return lenkaProfile;
       } else {
-        console.log('ℹ️ Profil Lenka již existuje');
-        return lenkaExists;
+        addToQueue({
+          type: 'create_user',
+          data: lenkaProfile
+        });
       }
+
+      console.log('✅ Profil Lenka vytvořen lokálně:', lenkaProfile);
+      return lenkaProfile;
     } catch (error) {
       console.error('❌ Chyba při vytváření profilu Lenka:', error);
       return null;
@@ -527,7 +528,8 @@ export const AuthProvider = ({ children }) => {
           setCurrentUser(JSON.parse(savedUser));
         }
 
-        // Vytvoř profil Lenka pokud neexistuje
+        // Vynutit vytvoření profilu Lenka
+        console.log('🔧 Vynuceně vytvářím profil Lenka...');
         await createLenkaProfile();
 
         // Zpracuj queue při startu
