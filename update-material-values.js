@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Připoj se k Supabase
 const supabase = createClient(
-  'https://your-project-id.supabase.co',
-  'your-anon-key'
+  'https://lseqrqmtjymukewnejdd.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZXFycW10anltdWtld25lamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNjQ2MjcsImV4cCI6MjA2Nzg0MDYyN30.SgWjc-GETZ_D0tJNtErxXhUaH6z_MgRJtxc94RsUXPw'
 );
 
 // Mapování hodnot materiálu podle fotky
