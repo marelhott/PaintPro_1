@@ -4387,6 +4387,11 @@ const PaintPro = () => {
   };
 
   const MapaZakazek = () => {
+    const [mapInitialized, setMapInitialized] = useState(false);
+    const [mapError, setMapError] = useState(null);
+    const mapContainerRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+
     // Funkce pro klasifikaci lokace podle adresy
     const getLocationCategory = (adresa) => {
       if (!adresa) return 'Okolí Prahy';
@@ -4396,61 +4401,25 @@ const PaintPro = () => {
       const pragueAreas = [
         'prague', 'praha', 'wenceslas', 'charles', 'old town', 'town square', 
         'castle', 'kampa', 'vinohrady', 'smíchov', 'karlín', 'dejvice', 
-        'nové město', 'břevnov'
+        'nové město', 'břevnov', 'letohradská', 'vyžlovská', 'lužická'
       ];
 
       const isPrague = pragueAreas.some(area => addressLower.includes(area));
       return isPrague ? 'Praha' : 'Okolí Prahy';
     };
 
-    // Handler pro přidání nové zakázky z kalendáře
-    const handleAddCalendarOrder = async (orderData) => {
-      try {
-        if (currentUser?.id) {
-          // Use handleAddZakazka instead of addCalendarOrder
-          await handleAddZakazka(orderData);
-          console.log('✅ Kalendářová událost přidána:', orderData);
-        } else {
-          alert('Chyba: Uživatel není přihlášen');
-        }
-      } catch (error) {
-        console.error('❌ Chyba při přidávání kalendářové události:', error);
-        alert('Chyba při přidávání události. Zkuste to prosím znovu.');
-      }
-    };
-
     // Výpočet statistik podle lokace
     const locationStats = React.useMemo(() => {
       if (!zakazkyData || zakazkyData.length === 0) {
         return {
-          'Praha': {
-            count: 0,
-            revenue: 0,
-            profit: 0,
-            orders: []
-          },
-          'Okolí Prahy': {
-            count: 0,
-            revenue: 0,
-            profit: 0,
-            orders: []
-          }
+          'Praha': { count: 0, revenue: 0, profit: 0, orders: [] },
+          'Okolí Prahy': { count: 0, revenue: 0, profit: 0, orders: [] }
         };
       }
 
       const stats = {
-        'Praha': {
-          count: 0,
-          revenue: 0,
-          profit: 0,
-          orders: []
-        },
-        'Okolí Prahy': {
-          count: 0,
-          revenue: 0,
-          profit: 0,
-          orders: []
-        }
+        'Praha': { count: 0, revenue: 0, profit: 0, orders: [] },
+        'Okolí Prahy': { count: 0, revenue: 0, profit: 0, orders: [] }
       };
 
       zakazkyData.forEach(zakazka => {
@@ -4470,70 +4439,71 @@ const PaintPro = () => {
     const getCoordinatesFromAddress = (adresa) => {
       if (!adresa) return null;
 
-      // Simulace geocoding pro ukázkové adresy
+      // Mapování reálných adres z dat
       const addressMapping = {
-        'wenceslas square 1, prague 1': [50.0814, 14.4262],
-        'charles square 15, prague 2': [50.0748, 14.4175],
-        'old town square 10, prague 1': [50.0875, 14.4214],
-        'kampa island 5, prague 1': [50.0819, 14.4065],
-        'prague castle, prague 1': [50.0909, 14.4018],
-        'letná park 12, prague 7': [50.0994, 14.4169],
-        'vinohrady 25, prague 2': [50.0756, 14.4378],
-        'smíchov 8, prague 5': [50.0704, 14.4037],
-        'karlín 18, prague 8': [50.0922, 14.4460],
-        'dejvice 32, prague 6': [50.1036, 14.3901],
-        'nové město 44, prague 1': [50.0796, 14.4205],
-        'břevnov 21, prague 6': [50.0839, 14.3505],
-        'malá strana 12, prague 1': [50.0879, 14.4034],
-        'hradčany 8, prague 1': [50.0913, 14.3990]
+        'letohradská 1': [50.1067, 14.4378],
+        'vyžlovská 2251/52': [50.0650, 14.4950],
+        'lužická 9': [50.0889, 14.4400],
+        'národní obrany 49': [50.1036, 14.3901],
+        'cimburkova 9': [50.0900, 14.4460],
+        'nad aleji 23': [50.1020, 14.3800]
       };
 
       const addressLower = adresa.toLowerCase();
-      const exactMatch = addressMapping[addressLower];
-      if (exactMatch) return exactMatch;
+      
+      // Hledáme přesné shody nebo částečné shody
+      for (const [key, coords] of Object.entries(addressMapping)) {
+        if (addressLower.includes(key) || key.includes(addressLower.split(' ')[0])) {
+          return coords;
+        }
+      }
 
       // Fallback: generování souřadnic podle typu oblasti
-      const isPrague = ['prague', 'praha', 'wenceslas', 'charles', 'old town', 'castle', 'kampa', 'vinohrady', 'smíchov', 'karlín', 'dejvice', 'nové město', 'břevnov', 'malá strana', 'hradčany'].some(area => addressLower.includes(area));
+      const isPrague = getLocationCategory(adresa) === 'Praha';
 
       if (isPrague) {
         // Praha centrum: 50.0755, 14.4378 +/- malé odchylky
         return [
-          50.0755 + (Math.random() - 0.5) * 0.06, // rozsah cca 3km
-          14.4378 + (Math.random() - 0.5) * 0.08
+          50.0755 + (Math.random() - 0.5) * 0.08,
+          14.4378 + (Math.random() - 0.5) * 0.10
         ];
       } else {
         // Okolí Prahy: větší rozptyl
         return [
-          50.0755 + (Math.random() - 0.5) * 0.15, // rozsah cca 8km
-          14.4378 + (Math.random() - 0.5) * 0.20
+          50.0755 + (Math.random() - 0.5) * 0.20,
+          14.4378 + (Math.random() - 0.5) * 0.25
         ];
       }
     };
 
-    // OpenStreetMap komponenta s Leaflet
-    const OpenStreetMapComponent = () => {
-      const mapRef = React.useRef(null);
+    // Inicializace mapy
+    useEffect(() => {
+      let isMounted = true;
 
-      React.useEffect(() => {
-        // Dynamicky načteme Leaflet po mount
-        import('leaflet').then((L) => {
+      const initializeMap = async () => {
+        try {
+          // Načteme Leaflet dynamicky
+          const L = await import('leaflet');
+          
+          if (!isMounted) return;
+
           // Cleanup existing map
-          if (mapRef.current) {
-            mapRef.current.remove();
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
           }
 
-          // Praha centrum
-          const pragueCenter = [50.0755, 14.4378];
+          if (!mapContainerRef.current) return;
 
           // Vytvoření mapy
-          const map = L.map('leaflet-map', {
-            center: pragueCenter,
+          const map = L.map(mapContainerRef.current, {
+            center: [50.0755, 14.4378], // Praha centrum
             zoom: 11,
             zoomControl: true,
             scrollWheelZoom: true
           });
 
-          mapRef.current = map;
+          mapInstanceRef.current = map;
 
           // Přidání OpenStreetMap tiles
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -4542,20 +4512,20 @@ const PaintPro = () => {
           }).addTo(map);
 
           // Přidání markerů pro zakázky
-          zakazkyData.forEach((zakazka) => {
+          zakazkyData.forEach((zakazka, index) => {
             const coords = getCoordinatesFromAddress(zakazka.adresa);
             if (coords) {
-              // Barva markeru podle druhu práce - dynamicky ze správce kategorií
+              // Barva markeru podle druhu práce
               const color = workCategoryManager.getCategoryColor(zakazka.druh);
 
-              // Vytvoření custom markeru s kontextovou ikonou
+              // Ikona podle druhu práce
               const getIconForCategory = (druh) => {
                 const categoryLower = druh.toLowerCase();
-                if (categoryLower.includes('malování') || categoryLower.includes('malíř')) return '🎨';
-                if (categoryLower.includes('korálek') || categoryLower.includes('bead')) return '⚪';
+                if (categoryLower.includes('mvč') || categoryLower.includes('malování')) return '🎨';
                 if (categoryLower.includes('adam')) return '👤';
-                if (categoryLower.includes('mvč')) return '🏢';
-                return '📋'; // Default pro ostatní
+                if (categoryLower.includes('korálek')) return '⚪';
+                if (categoryLower.includes('poplavky')) return '🎣';
+                return '📋';
               };
 
               const marker = L.marker(coords, {
@@ -4563,55 +4533,58 @@ const PaintPro = () => {
                   className: 'custom-div-icon',
                   html: `<div style="
                     background-color: ${color};
-                    width: 32px;
-                    height: 32px;
+                    width: 36px;
+                    height: 36px;
                     border-radius: 50%;
                     border: 3px solid white;
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     position: relative;
-                    backdrop-filter: blur(2px);
                   ">
                     <div style="
                       color: white;
-                      font-size: 18px;
+                      font-size: 16px;
                       font-weight: 700;
                       text-shadow: 0 1px 3px rgba(0,0,0,0.6);
                       line-height: 1;
-                      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
                     ">${getIconForCategory(zakazka.druh)}</div>
                   </div>`,
-                  iconSize: [38, 38],
-                  iconAnchor: [19, 19]
+                  iconSize: [42, 42],
+                  iconAnchor: [21, 21]
                 })
               }).addTo(map);
 
               // Popup s informacemi o zakázce
               marker.bindPopup(`
-                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-width: 200px;">
-                  <h3 style="margin: 0 0 8px 0; color: ${color}; font-size: 14px; font-weight: 700;">
+                <div style="font-family: system-ui, sans-serif; min-width: 220px; max-width: 300px;">
+                  <h3 style="margin: 0 0 12px 0; color: ${color}; font-size: 16px; font-weight: 700; border-bottom: 2px solid ${color}; padding-bottom: 6px;">
                     ${zakazka.klient}
                   </h3>
-                  <div style="font-size: 12px; line-height: 1.4;">
-                    <div style="margin-bottom: 4px;">
-                      <strong>Druh:</strong> <span style="color: ${color}; font-weight: 600;">${zakazka.druh}</span>
+                  <div style="font-size: 13px; line-height: 1.5;">
+                    <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                      <strong>Druh:</strong> 
+                      <span style="color: ${color}; font-weight: 600;">${zakazka.druh}</span>
                     </div>
-                    <div style="margin-bottom: 4px;">
-                      <strong>Datum:</strong> ${zakazka.datum}
+                    <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                      <strong>Datum:</strong> 
+                      <span>${zakazka.datum}</span>
                     </div>
-                    <div style="margin-bottom: 4px;">
-                      <strong>Částka:</strong> <span style="color: #10b981; font-weight: 600;">${zakazka.castka.toLocaleString()} Kč</span>
+                    <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                      <strong>Částka:</strong> 
+                      <span style="color: #059669; font-weight: 700;">${zakazka.castka.toLocaleString()} Kč</span>
                     </div>
-                    <div style="margin-bottom: 4px;">
-                      <strong>Zisk:</strong> <span style="color: #10b981; font-weight: 700;">${zakazka.zisk.toLocaleString()} Kč</span>
+                    <div style="margin-bottom: 6px; display: flex; justify-content: space-between;">
+                      <strong>Zisk:</strong> 
+                      <span style="color: #059669; font-weight: 700;">${zakazka.zisk.toLocaleString()} Kč</span>
                     </div>
-                    <div style="margin-bottom: 4px;">
-                      <strong>Adresa:</strong> ${zakazka.adresa}
+                    <div style="margin-bottom: 8px;">
+                      <strong>Adresa:</strong><br>
+                      <span style="font-style: italic;">${zakazka.adresa}</span>
                     </div>
-                    <div style="font-size: 10px; color: #6b7280; margin-top: 8px;">
-                      Zakázka #${zakazka.cislo}
+                    <div style="font-size: 11px; color: #6b7280; margin-top: 8px; text-align: center; padding-top: 6px; border-top: 1px solid #e5e7eb;">
+                      Zakázka #${zakazka.cislo || index + 1}
                     </div>
                   </div>
                 </div>
@@ -4619,20 +4592,23 @@ const PaintPro = () => {
             }
           });
 
-          // Přidání dynamické legendy
+          // Přidání legendy
           const legend = L.control({position: 'bottomright'});
           legend.onAdd = function(map) {
             const div = L.DomUtil.create('div', 'info legend');
             const categories = workCategories;
 
             const legendItems = categories.map(category => 
-              `<div style="margin-bottom: 4px;"><span style="display: inline-block; width: 12px; height: 12px; background: ${category.color}; border-radius: 50%; margin-right: 6px;"></span>${category.name}</div>`
+              `<div style="margin-bottom: 6px; display: flex; align-items: center;">
+                <span style="display: inline-block; width: 16px; height: 16px; background: ${category.color}; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></span>
+                <span style="font-weight: 500;">${category.name}</span>
+              </div>`
             ).join('');
 
             div.innerHTML = `
-              <div style="background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-                <h4 style="margin: 0 0 8px 0; font-size: 12px; font-weight: 600; color: #374151;">Druhy prací</h4>
-                <div style="font-size: 11px; line-height: 1.4;">
+              <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); font-family: system-ui, sans-serif; border: 1px solid #e5e7eb;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #374151; text-align: center;">Druhy prací</h4>
+                <div style="font-size: 12px; line-height: 1.4;">
                   ${legendItems}
                 </div>
               </div>
@@ -4641,25 +4617,31 @@ const PaintPro = () => {
           };
           legend.addTo(map);
 
-        }).catch((error) => {
-          console.error('Error loading Leaflet:', error);
-        });
-
-        // Cleanup při unmount
-        return () => {
-          if (mapRef.current) {
-            mapRef.current.remove();
-            mapRef.current = null;
+          if (isMounted) {
+            setMapInitialized(true);
+            setMapError(null);
           }
-        };
-      }, [zakazkyData, workCategories]);
 
-      return (
-        <div style={{ width: '100%', height: '600px', borderRadius: '16px', overflow: 'hidden' }}>
-          <div id="leaflet-map" style={{ width: '100%', height: '100%' }}></div>
-        </div>
-      );
-    };
+        } catch (error) {
+          console.error('Error initializing map:', error);
+          if (isMounted) {
+            setMapError('Chyba při načítání mapy');
+          }
+        }
+      };
+
+      // Spustíme inicializaci s mírným zpožděním
+      const timer = setTimeout(initializeMap, 100);
+
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
+      };
+    }, [zakazkyData, workCategories]);
 
     return (
       <div className="mapa-zakazek">
@@ -4670,7 +4652,7 @@ const PaintPro = () => {
           </div>
         </div>
 
-        {/* Statistiky podle lokace - ve stylu dashboard buněk */}
+        {/* Statistiky podle lokace */}
         <div className="location-stats-grid">
           <StatCard
             title="PRAHA"
@@ -4723,16 +4705,122 @@ const PaintPro = () => {
             <p>Klikněte na značky pro zobrazení detailů zakázky</p>
           </div>
 
-          {zakazkyData.length > 0 ? (
-            <OpenStreetMapComponent />
-          ) : (
-            <div className="map-empty">
-              <div className="empty-icon">🗺️</div>
-              <h3>Žádné zakázky k zobrazení</h3>
-              <p>Přidejte zakázky s adresami pro zobrazení na mapě</p>
-            </div>
-          )}
+          <div style={{ 
+            width: '100%', 
+            height: '600px', 
+            borderRadius: '16px', 
+            overflow: 'hidden',
+            border: '2px solid #e5e7eb',
+            position: 'relative'
+          }}>
+            {mapError ? (
+              <div style={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f9fafb',
+                color: '#6b7280'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
+                <h3 style={{ margin: '0 0 8px 0', color: '#374151' }}>{mapError}</h3>
+                <p style={{ margin: '0' }}>Zkuste obnovit stránku</p>
+              </div>
+            ) : zakazkyData.length === 0 ? (
+              <div style={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#f9fafb',
+                color: '#6b7280'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺️</div>
+                <h3 style={{ margin: '0 0 8px 0', color: '#374151' }}>Žádné zakázky k zobrazení</h3>
+                <p style={{ margin: '0' }}>Přidejte zakázky s adresami pro zobrazení na mapě</p>
+              </div>
+            ) : (
+              <>
+                {!mapInitialized && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: '#f9fafb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                  }}>
+                    <div style={{ textAlign: 'center', color: '#6b7280' }}>
+                      <div style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        border: '4px solid #e5e7eb', 
+                        borderTop: '4px solid #3b82f6', 
+                        borderRadius: '50%', 
+                        animation: 'spin 1s linear infinite',
+                        margin: '0 auto 16px'
+                      }}></div>
+                      <p>Načítám mapu...</p>
+                    </div>
+                  </div>
+                )}
+                <div 
+                  ref={mapContainerRef} 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%',
+                    opacity: mapInitialized ? 1 : 0,
+                    transition: 'opacity 0.3s ease'
+                  }}
+                />
+              </>
+            )}
+          </div>
         </div>
+
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          .custom-div-icon {
+            background: none !important;
+            border: none !important;
+          }
+          .location-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+          }
+          .map-container {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+          }
+          .map-header {
+            margin-bottom: 24px;
+            text-align: center;
+          }
+          .map-header h2 {
+            margin: 0 0 8px 0;
+            color: #374151;
+            font-size: 24px;
+            font-weight: 700;
+          }
+          .map-header p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 16px;
+          }
+        `}</style>
       </div>
     );
   };
