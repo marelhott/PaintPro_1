@@ -186,6 +186,7 @@ async function updateAll() {
           datum: item.datum,
           castka: item.castka,
           fee: item.fee,
+          fee_off: item.castka - item.fee,
           palivo: item.palivo,
           material: item.material,
           pomocnik: item.pomocnik,
