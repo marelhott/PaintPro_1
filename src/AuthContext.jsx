@@ -84,25 +84,35 @@ export const AuthProvider = ({ children }) => {
     console.log('✅ Offline queue zpracována');
   };
 
-  // Načtení uživatelů (Supabase first, localStorage fallback)
+  // Načtení uživatelů - přímo ze Supabase
   const loadUsers = async () => {
     try {
-      if (isOnline) {
-        const { data, error } = await supabase.from('users').select('*');
-        if (!error && data) {
-          localStorage.setItem('paintpro_users_cache', JSON.stringify(data));
-          return data;
-        }
+      console.log('🔍 Načítám uživatele ze Supabase...');
+      const { data, error } = await supabase.from('users').select('*');
+      
+      if (error) {
+        console.error('❌ Supabase chyba:', error);
+        throw error;
+      }
+      
+      if (data && data.length > 0) {
+        console.log('✅ Načteno ze Supabase:', data.length, 'uživatelů');
+        console.log('👥 Uživatelé:', data.map(u => u.name));
+        // Aktualizuj také cache
+        localStorage.setItem('paintpro_users_cache', JSON.stringify(data));
+        return data;
       }
 
-      // Fallback na cache
-      const cached = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
-      if (cached.length > 0) return cached;
-
-      // Vytvoř admin pokud neexistuje
+      console.log('⚠️ Žádní uživatelé v Supabase, vytvářím admin...');
       return createDefaultAdmin();
     } catch (error) {
-      console.error('❌ Chyba při načítání uživatelů:', error);
+      console.error('❌ Chyba při načítání ze Supabase:', error);
+      // Fallback na cache pouze v případě chyby
+      const cached = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
+      if (cached.length > 0) {
+        console.log('📦 Použita cache:', cached.length, 'uživatelů');
+        return cached;
+      }
       return createDefaultAdmin();
     }
   };
@@ -512,9 +522,9 @@ export const AuthProvider = ({ children }) => {
           setCurrentUser(JSON.parse(savedUser));
         }
 
-        // Vynutit vytvoření profilu Lenka
-        console.log('🔧 Vynuceně vytvářím profil Lenka...');
-        createLenkaProfile();
+        // Načtení uživatelů ze Supabase
+        console.log('🔧 Načítám uživatele ze Supabase...');
+        await loadUsers();
 
         // Zpracuj queue při startu
         if (isOnline) {
