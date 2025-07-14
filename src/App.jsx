@@ -4511,6 +4511,9 @@ const PaintPro = () => {
             maxZoom: 18,
           }).addTo(map);
 
+          // Získání všech unikátních druhů práce ze zakázek
+          const uniqueDruhyPrace = [...new Set(zakazkyData.map(z => z.druh))].filter(druh => druh && druh.trim() !== '');
+
           // Přidání markerů pro zakázky
           zakazkyData.forEach((zakazka, index) => {
             const coords = getCoordinatesFromAddress(zakazka.adresa);
@@ -4525,6 +4528,12 @@ const PaintPro = () => {
                 if (categoryLower.includes('adam')) return '👤';
                 if (categoryLower.includes('korálek')) return '⚪';
                 if (categoryLower.includes('poplavky')) return '🎣';
+                if (categoryLower.includes('dohoz')) return '🔧';
+                if (categoryLower.includes('vincent')) return '🔨';
+                if (categoryLower.includes('albert')) return '⚒️';
+                if (categoryLower.includes('lenka')) return '🎯';
+                if (categoryLower.includes('martin')) return '⚡';
+                if (categoryLower.includes('minutost')) return '⏰';
                 return '📋';
               };
 
@@ -4592,24 +4601,40 @@ const PaintPro = () => {
             }
           });
 
-          // Přidání legendy
+          // Přidání legendy s reálnými druhy práce
           const legend = L.control({position: 'bottomright'});
           legend.onAdd = function(map) {
             const div = L.DomUtil.create('div', 'info legend');
-            const categories = workCategories;
+            
+            // Získání statistik pro každý druh práce
+            const druhyStats = uniqueDruhyPrace.map(druh => {
+              const zakazkyDruhu = zakazkyData.filter(z => z.druh === druh);
+              return {
+                name: druh,
+                color: workCategoryManager.getCategoryColor(druh),
+                count: zakazkyDruhu.length,
+                totalRevenue: zakazkyDruhu.reduce((sum, z) => sum + z.castka, 0)
+              };
+            }).sort((a, b) => b.totalRevenue - a.totalRevenue); // Seřadit podle tržeb
 
-            const legendItems = categories.map(category => 
-              `<div style="margin-bottom: 6px; display: flex; align-items: center;">
-                <span style="display: inline-block; width: 16px; height: 16px; background: ${category.color}; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></span>
-                <span style="font-weight: 500;">${category.name}</span>
+            const legendItems = druhyStats.map(druh => 
+              `<div style="margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center;">
+                  <span style="display: inline-block; width: 16px; height: 16px; background: ${druh.color}; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></span>
+                  <span style="font-weight: 500; font-size: 12px;">${druh.name}</span>
+                </div>
+                <span style="font-size: 11px; color: #666; margin-left: 8px;">${druh.count}x</span>
               </div>`
             ).join('');
 
             div.innerHTML = `
-              <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); font-family: system-ui, sans-serif; border: 1px solid #e5e7eb;">
+              <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); font-family: system-ui, sans-serif; border: 1px solid #e5e7eb; max-width: 200px;">
                 <h4 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 700; color: #374151; text-align: center;">Druhy prací</h4>
-                <div style="font-size: 12px; line-height: 1.4;">
+                <div style="font-size: 12px; line-height: 1.4; max-height: 300px; overflow-y: auto;">
                   ${legendItems}
+                </div>
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #666; text-align: center;">
+                  Celkem: ${uniqueDruhyPrace.length} druhů
                 </div>
               </div>
             `;
