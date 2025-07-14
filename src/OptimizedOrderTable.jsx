@@ -48,10 +48,10 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
 
       const currentFiles = localFiles || [];
       const updatedFiles = [...currentFiles, ...newUploadedFiles];
-
+      
       // Aktualizuj lokální stav okamžitě
       setLocalFiles(updatedFiles);
-
+      
       // Zavolej callback pro aktualizaci v rodičovské komponentě
       onFilesUpdate(updatedFiles);
 
@@ -220,7 +220,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                       {(file.size / 1024).toFixed(1)} KB
                     </div>
                   </div>
-
+                  
                   <div style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
                     <button
                       style={{
@@ -445,87 +445,11 @@ const OptimizedOrderTable = memo(({
   totalPages,
   startIndex
 }) => {
-  const [sortConfig, setSortConfig] = useState({
-    key: 'datum',
-    direction: 'desc',
-    userSet: false // flag pro rozlišení uživatelského nastavení vs defaultní
-  });
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return zakazkyData.slice(startIndex, endIndex);
   }, [zakazkyData, currentPage, itemsPerPage]);
-
-  const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction, userSet: true });
-  };
-
-// Řazení podle vybraného sloupce
-  const sortedOrders = [...filteredOrders].sort((a, b) => {
-    let aVal = a[sortConfig.key];
-    let bVal = b[sortConfig.key];
-
-    // Speciální zacházení s datem
-    if (sortConfig.key === 'datum') {
-      const parseDate = (dateStr) => {
-        if (!dateStr) return new Date(0);
-
-        // Pokud je to pouze měsíc (např. "Duben")
-        const monthNames = {
-          'Leden': 0, 'Únor': 1, 'Březen': 2, 'Duben': 3,
-          'Květen': 4, 'Červen': 5, 'Červenec': 6, 'Srpen': 7,
-          'Září': 8, 'Říjen': 9, 'Listopad': 10, 'Prosinec': 11
-        };
-
-        if (monthNames.hasOwnProperty(dateStr)) {
-          return new Date(2025, monthNames[dateStr], 1);
-        }
-
-        // Pokud je to kompletní datum
-        const parts = dateStr.split(/[.\s]+/).filter(part => part.length > 0);
-
-        if (parts.length >= 3) {
-          const day = parseInt(parts[0]);
-          const month = parseInt(parts[1]) - 1;
-          const year = parseInt(parts[2]);
-          return new Date(year, month, day);
-        }
-
-        return new Date(0);
-      };
-
-      aVal = parseDate(aVal);
-      bVal = parseDate(bVal);
-    }
-
-    // Číselné hodnoty
-    if (typeof aVal === 'number' && typeof bVal === 'number') {
-      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
-    }
-
-    // Datum objekty - vždy řadit nejnovější nahoře (desc), pokud není explicitně nastaveno jinak
-    if (aVal instanceof Date && bVal instanceof Date) {
-      if (sortConfig.key === 'datum' && !sortConfig.userSet) {
-        // Defaultní řazení pro datum: nejnovější nahoře
-        return bVal - aVal;
-      }
-      return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
-    }
-
-    // Textové hodnoty
-    const aStr = String(aVal || '').toLowerCase();
-    const bStr = String(bVal || '').toLowerCase();
-
-    if (sortConfig.direction === 'asc') {
-      return aStr.localeCompare(bStr, 'cs');
-    } else {
-      return bStr.localeCompare(aStr, 'cs');
-    }
-  });
 
   return (
     <>
