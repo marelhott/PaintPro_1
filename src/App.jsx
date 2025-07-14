@@ -707,14 +707,24 @@ const PaintPro = () => {
     const monthlyDataMap = {};
 
     filterMainOrdersOnly(zakazkyData).forEach(zakazka => {
-      // Parse český formát datumu DD. MM. YYYY
-      const dateParts = zakazka.datum.split('. ');
-      const day = parseInt(dateParts[0]);
-      const month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
-      const year = parseInt(dateParts[2]);
-      const date = new Date(year, month, day);
-
-      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      // Parse český formát datumu DD. MM. YYYY nebo jen měsíc jako "Duben"
+      let monthKey, month, year;
+      
+      if (zakazka.datum.includes('.')) {
+        // Standardní formát DD. MM. YYYY
+        const dateParts = zakazka.datum.split('. ');
+        const day = parseInt(dateParts[0]);
+        month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
+        year = parseInt(dateParts[2]);
+        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      } else {
+        // Pouze měsíc jako "Duben"
+        const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
+        month = monthNames.indexOf(zakazka.datum);
+        if (month === -1) month = 3; // Fallback na Duben
+        year = 2025; // Předpokládaný rok
+        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      }
 
       if (!monthlyDataMap[monthKey]) {
         monthlyDataMap[monthKey] = {
@@ -837,13 +847,24 @@ const PaintPro = () => {
     const monthlyStats = {};
 
     safeZakazkyDataForChart.forEach(zakazka => {
-      // Parse český formát datumu DD. MM. YYYY
-      const dateParts = zakazka.datum.split('. ');
-      const day = parseInt(dateParts[0]);
-      const month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
-      const year = parseInt(dateParts[2]);
-
-      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      // Parse český formát datumu DD. MM. YYYY nebo jen měsíc jako "Duben"
+      let monthKey, month, year;
+      
+      if (zakazka.datum.includes('.')) {
+        // Standardní formát DD. MM. YYYY
+        const dateParts = zakazka.datum.split('. ');
+        const day = parseInt(dateParts[0]);
+        month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
+        year = parseInt(dateParts[2]);
+        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      } else {
+        // Pouze měsíc jako "Duben"
+        const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
+        month = monthNames.indexOf(zakazka.datum);
+        if (month === -1) month = 3; // Fallback na Duben
+        year = 2025; // Předpokládaný rok
+        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      }
 
       if (!monthlyStats[monthKey]) {
         monthlyStats[monthKey] = {
