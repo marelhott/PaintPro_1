@@ -1,4 +1,5 @@
 
+
 const { createClient } = require('@supabase/supabase-js');
 
 // Připoj se k Supabase
@@ -7,35 +8,42 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZXFycW10anltdWtld25lamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNjQ2MjcsImV4cCI6MjA2Nzg0MDYyN30.SgWjc-GETZ_D0tJNtErxXhUaH6z_MgRJtxc94RsUXPw'
 );
 
-// Kompletní mapování všech hodnot podle fotky
+// Kompletní mapování všech hodnot podle fotky - seřazeno podle data od nejnovějších
 const completeMapping = [
-  // Leden
-  { cislo: '#14347', datum: '27.1.2025', castka: 6700, fee: 4951.3, material: 300, pomocnik: 1000, brigadnik: 0 },
-  { cislo: 'zakázka Vincent', datum: '15.3.2025', castka: 5750, fee: 4249.25, material: 300, pomocnik: 1000, brigadnik: 0 },
+  // Červenec 2025 (nejnovější)
+  { cislo: '#107239', datum: '5.7.2025', castka: 3380, fee: 2480.92, material: 0, pomocnik: 0, brigadnik: 0 },
   
-  // Únor  
-  { cislo: '#14181', datum: '23.2.2025', castka: 6400, fee: 4729.6, material: 300, pomocnik: 400, brigadnik: 0 },
-  { cislo: '#14674', datum: '25.2.2025', castka: 5800, fee: 4286.2, material: 300, pomocnik: 400, brigadnik: 0 },
+  // Červen 2025
+  { cislo: '#68088', datum: '16.6.2025', castka: 27200, fee: 19964.8, material: 700, pomocnik: 2400, brigadnik: 7000 },
+  { cislo: '#104470', datum: '9.6.2025', castka: 7200, fee: 5284.8, material: 200, pomocnik: 700, brigadnik: 2000 },
   
-  // Duben
-  { cislo: '#15457', datum: '16.4.2025', castka: 8400, fee: 6165.6, material: 500, pomocnik: 1000, brigadnik: 1000 },
-  { cislo: '#81913', datum: '19.4.2025', castka: 10500, fee: 7760.4, material: 200, pomocnik: 1000, brigadnik: 2500 },
-  { cislo: '#67703', datum: '24.4.2025', castka: 10400, fee: 7653.6, material: 500, pomocnik: 1000, brigadnik: 2000 },
-  { cislo: '#82187', datum: '22.4.2025', castka: 17800, fee: 13065.2, material: 300, pomocnik: 700, brigadnik: 0 },
-  
-  // Květen
-  { cislo: '#95067', datum: '14.5.2025', castka: 7600, fee: 5578.4, material: 300, pomocnik: 700, brigadnik: 2000 },
+  // Květen 2025
   { cislo: '#95105', datum: '15.5.2025', castka: 11400, fee: 8367.6, material: 300, pomocnik: 700, brigadnik: 2000 },
+  { cislo: '#95067', datum: '14.5.2025', castka: 7600, fee: 5578.4, material: 300, pomocnik: 700, brigadnik: 2000 },
   { cislo: '#67475', datum: '13.5.2025', castka: 8100, fee: 5945.4, material: 300, pomocnik: 700, brigadnik: 2000 },
   { cislo: '#95333', datum: '11.5.2025', castka: 24000, fee: 17616, material: 0, pomocnik: 2400, brigadnik: 0 },
-  { cislo: '#104470', datum: '9.6.2025', castka: 7200, fee: 5284.8, material: 200, pomocnik: 700, brigadnik: 2000 },
-  { cislo: '#68088', datum: '16.6.2025', castka: 27200, fee: 19964.8, material: 700, pomocnik: 2400, brigadnik: 7000 },
-  { cislo: '#107239', datum: '5.7.2025', castka: 3380, fee: 2480.92, material: 0, pomocnik: 0, brigadnik: 0 }
+  
+  // Duben 2025
+  { cislo: '#67703', datum: '24.4.2025', castka: 10400, fee: 7653.6, material: 500, pomocnik: 1000, brigadnik: 2000 },
+  { cislo: '#82187', datum: '22.4.2025', castka: 17800, fee: 13065.2, material: 300, pomocnik: 700, brigadnik: 0 },
+  { cislo: '#81913', datum: '19.4.2025', castka: 10500, fee: 7760.4, material: 200, pomocnik: 1000, brigadnik: 2500 },
+  { cislo: '#15457', datum: '16.4.2025', castka: 8400, fee: 6165.6, material: 500, pomocnik: 1000, brigadnik: 1000 },
+  
+  // Březen 2025
+  { cislo: 'zakázka Vincent', datum: '15.3.2025', castka: 5750, fee: 4249.25, material: 300, pomocnik: 1000, brigadnik: 0 },
+  
+  // Únor 2025
+  { cislo: '#14674', datum: '25.2.2025', castka: 5800, fee: 4286.2, material: 300, pomocnik: 400, brigadnik: 0 },
+  { cislo: '#14181', datum: '23.2.2025', castka: 6400, fee: 4729.6, material: 300, pomocnik: 400, brigadnik: 0 },
+  
+  // Leden 2025 (nejstarší)
+  { cislo: '#14347', datum: '27.1.2025', castka: 6700, fee: 4951.3, material: 300, pomocnik: 1000, brigadnik: 0 }
 ];
 
 async function updateAllValues() {
   try {
     console.log('🔍 Kompletní aktualizace všech hodnot podle fotky...');
+    console.log('📅 Řazení: od nejnovějších (červenec 2025) po nejstarší (leden 2025)');
     
     let updatedCount = 0;
     let notFoundCount = 0;
@@ -93,7 +101,7 @@ async function updateAllValues() {
         if (updateError) {
           console.error(`❌ Chyba při aktualizaci ${mapping.cislo}:`, updateError);
         } else {
-          console.log(`✅ ${mapping.cislo} -> Tržba: ${mapping.castka}, Fee: ${mapping.fee}, Materiál: ${mapping.material}, Pomocník: ${mapping.pomocnik}`);
+          console.log(`✅ ${mapping.cislo} (${mapping.datum}) -> Tržba: ${mapping.castka}, Fee: ${mapping.fee}, Materiál: ${mapping.material}, Pomocník: ${mapping.pomocnik}`);
           updatedCount++;
         }
       }
@@ -102,16 +110,16 @@ async function updateAllValues() {
     console.log(`\n📊 Celkem aktualizováno: ${updatedCount} zakázek`);
     console.log(`❌ Nenalezeno: ${notFoundCount} zakázek`);
     
-    // Kontrola finálního stavu
-    console.log('\n🔍 Finální kontrola...');
+    // Kontrola finálního stavu - seřazeno podle data od nejnovějších
+    console.log('\n🔍 Finální kontrola (řazeno od nejnovějších):');
     const { data: finalOrders } = await supabase
       .from('orders')
-      .select('cislo, castka, fee, material, pomocnik')
+      .select('cislo, datum, castka, fee, material, pomocnik')
       .eq('user_id', 'lenka')
-      .order('cislo');
+      .order('datum', { ascending: false }); // Od nejnovějších po nejstarší
       
     finalOrders?.forEach(order => {
-      console.log(`${order.cislo}: Tržba: ${order.castka}, Fee: ${order.fee}, Materiál: ${order.material}, Pomocník: ${order.pomocnik}`);
+      console.log(`${order.datum} | ${order.cislo}: Tržba: ${order.castka}, Fee: ${order.fee}, Materiál: ${order.material}, Pomocník: ${order.pomocnik}`);
     });
     
   } catch (error) {
@@ -121,3 +129,4 @@ async function updateAllValues() {
 
 // Spusť aktualizaci
 updateAllValues();
+
