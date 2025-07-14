@@ -461,6 +461,62 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  // Vytvoření profilu Lenka
+  const createLenkaProfile = async () => {
+    try {
+      const users = await loadUsers();
+      const lenkaExists = users.find(u => u.name === 'Lenka');
+      
+      if (!lenkaExists) {
+        console.log('🔧 Vytvářím profil Lenka...');
+        
+        const lenkaProfile = {
+          id: 'user_lenka_' + Date.now(),
+          name: 'Lenka',
+          avatar: 'LE',
+          color: '#ec4899',
+          pin_hash: hashPin('321321'),
+          is_admin: false,
+          created_at: new Date().toISOString()
+        };
+
+        // Aktualizuj cache
+        const cached = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
+        cached.push(lenkaProfile);
+        localStorage.setItem('paintpro_users_cache', JSON.stringify(cached));
+
+        // Synchronizuj se Supabase
+        if (isOnline) {
+          try {
+            const { data, error } = await supabase.from('users').insert([lenkaProfile]);
+            if (error) throw error;
+            console.log('✅ Profil Lenka vytvořen v Supabase');
+          } catch (supabaseError) {
+            console.warn('⚠️ Supabase nedostupný pro Lenka profil, přidáno do queue');
+            addToQueue({
+              type: 'create_user',
+              data: lenkaProfile
+            });
+          }
+        } else {
+          addToQueue({
+            type: 'create_user',
+            data: lenkaProfile
+          });
+        }
+
+        console.log('✅ Profil Lenka vytvořen:', lenkaProfile);
+        return lenkaProfile;
+      } else {
+        console.log('ℹ️ Profil Lenka již existuje');
+        return lenkaExists;
+      }
+    } catch (error) {
+      console.error('❌ Chyba při vytváření profilu Lenka:', error);
+      return null;
+    }
+  };
+
   // Inicializace
   useEffect(() => {
     const initialize = async () => {
@@ -470,6 +526,9 @@ export const AuthProvider = ({ children }) => {
         if (savedUser) {
           setCurrentUser(JSON.parse(savedUser));
         }
+
+        // Vytvoř profil Lenka pokud neexistuje
+        await createLenkaProfile();
 
         // Zpracuj queue při startu
         if (isOnline) {
