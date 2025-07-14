@@ -71,6 +71,9 @@ export const AuthProvider = ({ children }) => {
           case 'delete_order':
             await supabase.from('orders').delete().eq('id', operation.orderId);
             break;
+          case 'update_user_pin':
+            await supabase.from('users').update(operation.data).eq('id', operation.userId);
+            break;
         }
         console.log('✅ Synchronizována operace:', operation.type);
       } catch (error) {
@@ -411,18 +414,22 @@ export const AuthProvider = ({ children }) => {
     try {
       const users = await loadUsers();
       const hashedCurrentPin = hashPin(currentPinPlain);
+      
+      // Najdi uživatele podle současného uživatele a ověř PIN
       const user = users.find(u => u.id === currentUser.id && u.pin_hash === hashedCurrentPin);
 
       if (!user) {
+        console.log('🔍 Hledám uživatele:', currentUser.id, 'hash:', hashedCurrentPin);
+        console.log('👥 Dostupní uživatelé:', users.map(u => ({ id: u.id, hash: u.pin_hash })));
         return { success: false, error: 'Současný PIN je nesprávný' };
       }
 
       const hashedNewPin = hashPin(newPinPlain);
+      
+      // Aktualizuj cache
       const updatedUsers = users.map(u => 
         u.id === currentUser.id ? { ...u, pin_hash: hashedNewPin } : u
       );
-
-      // Aktualizuj cache
       localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
 
       // Aktualizuj současného uživatele
@@ -433,13 +440,32 @@ export const AuthProvider = ({ children }) => {
       // Synchronizuj s Supabase
       if (isOnline) {
         try {
-          await supabase
+          console.log('🔧 Aktualizuji PIN v Supabase pro uživatele:', currentUser.id);
+          const { error } = await supabase
             .from('users')
             .update({ pin_hash: hashedNewPin })
             .eq('id', currentUser.id);
+            
+          if (error) {
+            console.error('❌ Supabase chyba při aktualizaci PIN:', error);
+            throw error;
+          }
+          console.log('✅ PIN úspěšně aktualizován v Supabase');
         } catch (error) {
           console.warn('⚠️ PIN změněn lokálně, bude synchronizován později');
+          // Přidej do queue pro pozdější synchronizaci
+          addToQueue({
+            type: 'update_user_pin',
+            userId: currentUser.id,
+            data: { pin_hash: hashedNewPin }
+          });
         }
+      } else {
+        addToQueue({
+          type: 'update_user_pin',
+          userId: currentUser.id,
+          data: { pin_hash: hashedNewPin }
+        });
       }
 
       return { success: true };
