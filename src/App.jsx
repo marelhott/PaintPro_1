@@ -730,25 +730,24 @@ const PaintPro = () => {
         monthlyDataMap[monthKey] = {
           revenue: 0,
           month: month,
-          year: year
+          year: year,
+          datum: new Date(year, month, 1) // Přidáme datum objektu pro řazení
         };
       }
       monthlyDataMap[monthKey].revenue += zakazka.zisk;
     });
 
-    // Seřaď měsíce chronologicky a vezmi posledních 6
-    const sortedMonths = Object.keys(monthlyDataMap)
-      .sort()
-      .slice(-6);
+    // Seřaď měsíce chronologicky podle data (ne podle string klíče)
+    const sortedMonthsData = Object.values(monthlyDataMap)
+      .sort((a, b) => a.datum - b.datum);
 
     const monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
 
-    const mesicniLabels = sortedMonths.map(key => {
-      const data = monthlyDataMap[key];
+    const mesicniLabels = sortedMonthsData.map(data => {
       return monthNames[data.month];
     });
 
-    const mesicniValues = sortedMonths.map(key => monthlyDataMap[key].revenue);
+    const mesicniValues = sortedMonthsData.map(data => data.revenue);
 
     return {
       celkoveTrzby: celkoveTrzby.toLocaleString(),
@@ -843,7 +842,7 @@ const PaintPro = () => {
       };
     }
 
-    // Vytvoř reálné měsíční údaje ze zakázek (bez kalendářových)
+    // Vytvoř reálné měsíční údaje ze zakázek (bez kalendářových) - OPRAVENO pro datum
     const monthlyStats = {};
 
     safeZakazkyDataForChart.forEach(zakazka => {
@@ -871,7 +870,8 @@ const PaintPro = () => {
           zisk: 0,
           trzby: 0,
           month: month,
-          year: year
+          year: year,
+          datum: new Date(year, month, 1) // Přidáme datum objektu pro řazení
         };
       }
 
@@ -879,17 +879,16 @@ const PaintPro = () => {
       monthlyStats[monthKey].trzby += zakazka.castka;
     });
 
-    // Seřaď chronologicky
-    const sortedMonths = Object.keys(monthlyStats).sort();
+    // Seřaď chronologicky podle data (ne podle string klíče)
+    const sortedMonthsData = Object.values(monthlyStats).sort((a, b) => a.datum - b.datum);
     const monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
 
-    const labels = sortedMonths.map(key => {
-      const data = monthlyStats[key];
+    const labels = sortedMonthsData.map(data => {
       return `${monthNames[data.month]} ${data.year}`;
     });
 
-    const ziskData = sortedMonths.map(key => monthlyStats[key].zisk);
-    const trzbyData = sortedMonths.map(key => monthlyStats[key].trzby);
+    const ziskData = sortedMonthsData.map(data => data.zisk);
+    const trzbyData = sortedMonthsData.map(data => data.trzby);
 
     return {
       labels: labels,
