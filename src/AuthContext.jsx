@@ -184,6 +184,7 @@ export const AuthProvider = ({ children }) => {
       const cacheKey = `paintpro_orders_cache_${userId}`;
 
       if (isOnline) {
+        console.log('🔍 Načítám zakázky pro uživatele:', userId);
         const { data, error } = await supabase
           .from('orders')
           .select('*')
@@ -191,18 +192,21 @@ export const AuthProvider = ({ children }) => {
           .order('created_at', { ascending: false });
 
         if (!error && data) {
+          console.log('✅ Data načtena ze Supabase pro', userId, ':', data.length, 'zakázek');
+          console.log('👤 Kontrola user_id v datech:', data.map(d => d.user_id));
           localStorage.setItem(cacheKey, JSON.stringify(data));
-          console.log('✅ Data načtena ze Supabase:', data.length, 'zakázek');
           return data;
+        } else if (error) {
+          console.error('❌ Supabase chyba při načítání pro', userId, ':', error);
         }
       }
 
       // Fallback na cache
       const cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-      console.log('📦 Použita cache:', cached.length, 'zakázek');
+      console.log('📦 Použita cache pro', userId, ':', cached.length, 'zakázek');
       return cached;
     } catch (error) {
-      console.error('❌ Chyba při načítání dat:', error);
+      console.error('❌ Chyba při načítání dat pro', userId, ':', error);
       return JSON.parse(localStorage.getItem(`paintpro_orders_cache_${userId}`) || '[]');
     }
   };
@@ -502,7 +506,7 @@ export const AuthProvider = ({ children }) => {
     console.log('🔧 Vytvářím profil Lenka přímo...');
     
     const lenkaProfile = {
-      id: 'user_lenka_123',
+      id: 'lenka', // Unikátní ID pro Lenku
       name: 'Lenka',
       avatar: 'LE',
       color: '#ec4899',
@@ -520,9 +524,9 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Zkontroluj, jestli Lenka už neexistuje
-    const existingLenka = users.find(u => u.name === 'Lenka' || u.id === 'user_lenka_123');
+    const existingLenka = users.find(u => u.name === 'Lenka' || u.id === 'lenka');
     if (existingLenka) {
-      console.log('ℹ️ Profil Lenka již existuje');
+      console.log('ℹ️ Profil Lenka již existuje:', existingLenka);
       return existingLenka;
     }
 
@@ -534,6 +538,14 @@ export const AuthProvider = ({ children }) => {
     
     console.log('✅ Profil Lenka vytvořen a uložen:', lenkaProfile);
     console.log('👥 Všichni uživatelé:', users);
+    
+    // Přidej do queue pro synchronizaci se Supabase
+    if (isOnline) {
+      addToQueue({
+        type: 'create_user',
+        data: lenkaProfile
+      });
+    }
     
     return lenkaProfile;
   };
