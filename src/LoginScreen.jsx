@@ -11,35 +11,9 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [users, setUsers] = useState([]);
-  const { login, addUser } = useAuth();
+  const { login, addUser, loadUsers, isOnline } = useAuth();
 
-  // Načtení uživatelů při mount
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = () => {
-    const storedUsers = JSON.parse(localStorage.getItem('paintpro_users') || '[]');
-    
-    // Pokud nejsou žádní uživatelé, vytvoř administrátora
-    if (storedUsers.length === 0) {
-      const admin = {
-        id: 'admin_1',
-        name: 'Administrátor',
-        avatar: 'AD',
-        color: '#8b5cf6',
-        pin: hashPin('123456'),
-        isAdmin: true,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('paintpro_users', JSON.stringify([admin]));
-      setUsers([admin]);
-      console.log('🔐 Administrátor vytvořen s PIN: 123456');
-    } else {
-      setUsers(storedUsers);
-    }
-  };
-
+  // Hash funkce pro PIN
   const hashPin = (pin) => {
     let hash = 0;
     for (let i = 0; i < pin.length; i++) {
@@ -49,6 +23,15 @@ const LoginScreen = () => {
     }
     return hash.toString();
   };
+
+  // Načtení uživatelů při mount
+  useEffect(() => {
+    const initUsers = async () => {
+      const userList = await loadUsers();
+      setUsers(userList);
+    };
+    initUsers();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -65,16 +48,9 @@ const LoginScreen = () => {
     setError("");
 
     try {
-      // Ověř PIN přímo proti vybranému uživateli
-      const hashedPin = hashPin(pin);
-      if (selectedUser.pin === hashedPin) {
-        // Použij login funkci z AuthContext
-        const result = await login(pin, selectedUser.id);
-        if (!result.success) {
-          setError(result.error || "Neplatný PIN");
-        }
-      } else {
-        setError("Neplatný PIN");
+      const result = await login(pin, selectedUser.id);
+      if (!result.success) {
+        setError(result.error || "Neplatný PIN");
       }
     } catch (error) {
       setError("Chyba při přihlašování");
@@ -123,18 +99,17 @@ const LoginScreen = () => {
       setError("");
 
       try {
-        // Použij addUser funkci z AuthContext pro synchronizaci s Supabase
         const result = await addUser({
           name: formData.name.trim(),
           avatar: formData.name.trim().substring(0, 2).toUpperCase(),
           color: formData.color,
-          pin: hashPin(formData.pin),
-          isAdmin: false
+          pin: hashPin(formData.pin)
         });
 
         if (result.success) {
-          console.log('✅ Nový profil vytvořen a synchronizován:', result.user.name);
-          loadUsers(); // Aktualizuj seznam uživatelů
+          console.log('✅ Nový profil vytvořen:', result.user.name);
+          const userList = await loadUsers();
+          setUsers(userList);
           setShowAddUser(false);
         } else {
           setError(result.error || "Chyba při vytváření profilu");
@@ -208,7 +183,7 @@ const LoginScreen = () => {
       color: user.color
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
       
       const updatedUser = {
@@ -219,24 +194,25 @@ const LoginScreen = () => {
       };
 
       if (formData.pin) {
-        updatedUser.pin = hashPin(formData.pin);
+        updatedUser.pin_hash = hashPin(formData.pin);
       }
 
+      // Aktualizuj cache
       const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-      localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
+      localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
       setUsers(updatedUsers);
       setShowEditUser(null);
     };
 
     const handleDelete = () => {
-      if (user.isAdmin) {
+      if (user.is_admin) {
         setError("Nelze smazat administrátora");
         return;
       }
       
       if (window.confirm(`Opravdu chcete smazat profil ${user.name}?`)) {
         const updatedUsers = users.filter(u => u.id !== user.id);
-        localStorage.setItem('paintpro_users', JSON.stringify(updatedUsers));
+        localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
         setUsers(updatedUsers);
         setShowEditUser(null);
       }
@@ -285,7 +261,7 @@ const LoginScreen = () => {
               <button type="button" className="btn btn-secondary" onClick={() => setShowEditUser(null)}>
                 Zrušit
               </button>
-              {!user.isAdmin && (
+              {!user.is_admin && (
                 <button type="button" className="btn btn-danger" onClick={handleDelete}>
                   Smazat profil
                 </button>
@@ -303,7 +279,11 @@ const LoginScreen = () => {
   return (
     <div className="login-screen">
       <div className="login-container">
-        
+        {!isOnline && (
+          <div className="offline-indicator">
+            📱 Offline režim - změny budou synchronizovány při obnovení připojení
+          </div>
+        )}
 
         {!selectedUser ? (
           <div className="user-selection">
@@ -322,7 +302,7 @@ const LoginScreen = () => {
                       {user.avatar}
                     </div>
                     <div className="profile-name">{user.name}</div>
-                    {user.isAdmin && <div className="admin-badge">Admin</div>}
+                    {user.is_admin && <div className="admin-badge">Admin</div>}
                   </div>
                   <button 
                     className="edit-profile-btn"
