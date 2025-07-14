@@ -706,36 +706,53 @@ const PaintPro = () => {
     // Reálné měsíční data pouze z zakázek uživatele (bez kalendářových)
     const monthlyDataMap = {};
 
-    filterMainOrdersOnly(zakazkyData).forEach(zakazka => {
+    console.log('🔍 Dashboard - zpracovávám zakázky:', filterMainOrdersOnly(zakazkyData).length);
+
+    filterMainOrdersOnly(zakazkyData).forEach((zakazka, index) => {
+      console.log(`🔍 Dashboard zakázka ${index + 1}:`, zakazka.datum, '|', zakazka.zisk, 'Kč');
+      
       // Parse český formát datumu DD. MM. YYYY nebo jen měsíc jako "Duben"
-      let monthKey, month, year;
+      let parsedDate, month, year;
       
       if (zakazka.datum.includes('.')) {
         // Standardní formát DD. MM. YYYY
         const dateParts = zakazka.datum.split('. ');
-        const day = parseInt(dateParts[0]);
-        month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
-        year = parseInt(dateParts[2]);
-        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        if (dateParts.length >= 3) {
+          const day = parseInt(dateParts[0]);
+          month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
+          year = parseInt(dateParts[2]);
+          parsedDate = new Date(year, month, day);
+        } else {
+          // Fallback
+          parsedDate = new Date(2025, 0, 1); // Leden 2025
+          month = 0;
+          year = 2025;
+        }
       } else {
         // Pouze měsíc jako "Duben"
         const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
         month = monthNames.indexOf(zakazka.datum);
         if (month === -1) month = 3; // Fallback na Duben
         year = 2025; // Předpokládaný rok
-        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        parsedDate = new Date(year, month, 1);
       }
+
+      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
 
       if (!monthlyDataMap[monthKey]) {
         monthlyDataMap[monthKey] = {
           revenue: 0,
           month: month,
           year: year,
-          datum: new Date(year, month, 1) // Přidáme datum objektu pro řazení
+          datum: parsedDate
         };
       }
       monthlyDataMap[monthKey].revenue += zakazka.zisk;
+      
+      console.log(`✅ Dashboard měsíc ${monthKey}:`, monthlyDataMap[monthKey].revenue, 'Kč');
     });
+
+    console.log('📊 Dashboard měsíční data:', Object.keys(monthlyDataMap).length, 'měsíců');
 
     // Seřaď měsíce chronologicky podle data (ne podle string klíče)
     const sortedMonthsData = Object.values(monthlyDataMap)
@@ -748,6 +765,10 @@ const PaintPro = () => {
     });
 
     const mesicniValues = sortedMonthsData.map(data => data.revenue);
+
+    console.log('📊 Dashboard finální data:');
+    console.log('Labels:', mesicniLabels);
+    console.log('Values:', mesicniValues);
 
     return {
       celkoveTrzby: celkoveTrzby.toLocaleString(),
@@ -842,41 +863,62 @@ const PaintPro = () => {
       };
     }
 
+    console.log('🔍 getCombinedChartData - vstupní data:', safeZakazkyDataForChart.length, 'zakázek');
+
     // Vytvoř reálné měsíční údaje ze zakázek (bez kalendářových) - OPRAVENO pro datum
     const monthlyStats = {};
 
-    safeZakazkyDataForChart.forEach(zakazka => {
+    safeZakazkyDataForChart.forEach((zakazka, index) => {
+      console.log(`🔍 Zpracovávám zakázku ${index + 1}:`, zakazka.datum, '|', zakazka.zisk, 'Kč');
+      
       // Parse český formát datumu DD. MM. YYYY nebo jen měsíc jako "Duben"
-      let monthKey, month, year;
+      let parsedDate, month, year;
       
       if (zakazka.datum.includes('.')) {
         // Standardní formát DD. MM. YYYY
         const dateParts = zakazka.datum.split('. ');
-        const day = parseInt(dateParts[0]);
-        month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
-        year = parseInt(dateParts[2]);
-        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        if (dateParts.length >= 3) {
+          const day = parseInt(dateParts[0]);
+          month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based
+          year = parseInt(dateParts[2]);
+          parsedDate = new Date(year, month, day);
+        } else {
+          // Fallback
+          parsedDate = new Date(2025, 0, 1); // Leden 2025
+          month = 0;
+          year = 2025;
+        }
       } else {
         // Pouze měsíc jako "Duben"
         const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
         month = monthNames.indexOf(zakazka.datum);
         if (month === -1) month = 3; // Fallback na Duben
         year = 2025; // Předpokládaný rok
-        monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        parsedDate = new Date(year, month, 1);
       }
 
+      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+      
       if (!monthlyStats[monthKey]) {
         monthlyStats[monthKey] = {
           zisk: 0,
           trzby: 0,
           month: month,
           year: year,
-          datum: new Date(year, month, 1) // Přidáme datum objektu pro řazení
+          datum: parsedDate,
+          monthKey: monthKey
         };
       }
 
       monthlyStats[monthKey].zisk += zakazka.zisk;
       monthlyStats[monthKey].trzby += zakazka.castka;
+      
+      console.log(`✅ Přidáno do měsíce ${monthKey}:`, monthlyStats[monthKey].zisk, 'Kč zisk');
+    });
+
+    console.log('🗓️ Měsíční statistiky:', Object.keys(monthlyStats).length, 'měsíců');
+    Object.entries(monthlyStats).forEach(([key, data]) => {
+      console.log(`${key}: ${data.zisk} Kč zisk, ${data.trzby} Kč tržby`);
     });
 
     // Seřaď chronologicky podle data (ne podle string klíče)
@@ -889,6 +931,11 @@ const PaintPro = () => {
 
     const ziskData = sortedMonthsData.map(data => data.zisk);
     const trzbyData = sortedMonthsData.map(data => data.trzby);
+
+    console.log('📊 Finální graf data:');
+    console.log('Labels:', labels);
+    console.log('Zisk data:', ziskData);
+    console.log('Tržby data:', trzbyData);
 
     return {
       labels: labels,
