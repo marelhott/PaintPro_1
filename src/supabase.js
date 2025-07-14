@@ -17,8 +17,3 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Zpřístupni supabase globálně pro AuthContext
-if (typeof window !== 'undefined') {
-  window.supabase = supabase;
-}

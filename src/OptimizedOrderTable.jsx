@@ -48,10 +48,10 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
 
       const currentFiles = localFiles || [];
       const updatedFiles = [...currentFiles, ...newUploadedFiles];
-
+      
       // Aktualizuj lokální stav okamžitě
       setLocalFiles(updatedFiles);
-
+      
       // Zavolej callback pro aktualizaci v rodičovské komponentě
       onFilesUpdate(updatedFiles);
 
@@ -220,7 +220,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                       {(file.size / 1024).toFixed(1)} KB
                     </div>
                   </div>
-
+                  
                   <div style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
                     <button
                       style={{
@@ -288,69 +288,145 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
       <td>
         {zakazka.dobaRealizace ? `${zakazka.dobaRealizace} ${zakazka.dobaRealizace === 1 ? 'den' : zakazka.dobaRealizace <= 4 ? 'dny' : 'dní'}` : '1 den'}
       </td>
-      <td>{zakazka.poznamka || zakazka.poznamky || '-'}</td>
+      <td>{zakazka.poznamky || '-'}</td>
       <td>
         <FileUploadCell zakazka={zakazka} onFilesUpdate={(files) => onFilesUpdate(zakazka.id, files)} />
       </td>
       <td>
-        {/* Dva samostatná tlačítka vedle sebe */}
-          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onEdit(zakazka);
-              }}
-              style={{
-                background: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
-              title="Upravit zakázku"
-            >
-              ✏️ Upravit
-            </button>
+        <div className="action-menu-container" style={{ position: 'relative' }}>
+          <button 
+            className="action-menu-trigger"
+            onClick={() => setShowDropdown(!showDropdown)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: '8px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0, 0, 0, 0.05)'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          >
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+              alignItems: 'center'
+            }}>
+              <div style={{
+                width: '4px',
+                height: '4px',
+                backgroundColor: '#6b7280',
+                borderRadius: '50%'
+              }}></div>
+              <div style={{
+                width: '4px',
+                height: '4px',
+                backgroundColor: '#6b7280',
+                borderRadius: '50%'
+              }}></div>
+              <div style={{
+                width: '4px',
+                height: '4px',
+                backgroundColor: '#6b7280',
+                borderRadius: '50%'
+              }}></div>
+            </div>
+          </button>
 
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (window.confirm('Opravdu chcete smazat tuto zakázku?')) {
-                  onDelete(zakazka.id);
-                }
-              }}
+          {showDropdown && (
+            <div 
+              className="action-dropdown"
               style={{
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '6px 10px',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.2s ease'
+                position: 'absolute',
+                top: '100%',
+                right: '0',
+                zIndex: 1000,
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                minWidth: '120px',
+                overflow: 'hidden'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
-              title="Smazat zakázku"
+              onMouseLeave={() => setShowDropdown(false)}
             >
-              🗑️ Smazat
-            </button>
-          </div>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  onEdit(zakazka);
+                  setShowDropdown(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#374151',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                <div className="modern-icon size-small icon-edit" style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
+                  background: 'transparent',
+                  color: '#6b7280'
+                }}></div>
+                Upravit
+              </button>
+              <div style={{
+                height: '1px',
+                backgroundColor: '#e5e7eb',
+                margin: '0 8px'
+              }}></div>
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  onDelete(zakazka.id);
+                  setShowDropdown(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#dc2626',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+              >
+                <div className="modern-icon size-small icon-delete" style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '4px',
+                  background: 'transparent',
+                  color: '#dc2626'
+                }}></div>
+                Smazat
+              </button>
+            </div>
+          )}
+        </div>
       </td>
     </tr>
   );
