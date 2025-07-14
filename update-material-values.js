@@ -7,131 +7,166 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZXFycW10anltdWtld25lamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNjQ2MjcsImV4cCI6MjA2Nzg0MDYyN30.SgWjc-GETZ_D0tJNtErxXhUaH6z_MgRJtxc94RsUXPw'
 );
 
-// Kompletní mapování všech hodnot podle fotky - seřazeno podle data od nejnovějších
-const completeMapping = [
-  { datum: '5.7.2025', cislo: '#107239', castka: 3300, palivo: 300, material: 1000, pomocnik: 2000 },
-  { datum: '16.6.2025', cislo: '#88368', castka: 27200, palivo: 700, material: 2400, pomocnik: 7000 },
-  { datum: '9.6.2025', cislo: '#104470', castka: 7200, palivo: 200, material: 700, pomocnik: 2000 },
-  { datum: '11.5.2025', cislo: '#95333', castka: 24000, palivo: 300, material: 700, pomocnik: 2000 },
-  { datum: '13.5.2025', cislo: '#67475', castka: 8100, palivo: 300, material: 700, pomocnik: 2000 },
-  { datum: '15.5.2025', cislo: '#95105', castka: 11400, palivo: 300, material: 700, pomocnik: 2000 },
-  { datum: '14.5.2025', cislo: '#95067', castka: 7500, palivo: 300, material: 700, pomocnik: 2000 },
-  { datum: '22.4.2025', cislo: '#82187', castka: 17800, palivo: 300, material: 700, pomocnik: 0 },
-  { datum: '24.4.2025', cislo: '#67703', castka: 10400, palivo: 500, material: 1000, pomocnik: 2000 },
-  { datum: '24.4.2025', cislo: '#82187', castka: 17800, palivo: 300, material: 700, pomocnik: 0 },
-  { datum: '16.4.2025', cislo: '#15457', castka: 8400, palivo: 500, material: 1000, pomocnik: 1000 },
-  { datum: 'Duben', cislo: '#81913', castka: 10500, palivo: 200, material: 1000, pomocnik: 2500 },
-  { datum: '25.2.2025', cislo: '#14674', castka: 5800, palivo: 300, material: 400, pomocnik: 0 },
-  { datum: '23.2.2025', cislo: '#14181', castka: 6400, palivo: 300, material: 400, pomocnik: 0 },
-  { datum: '15.3.2025', cislo: 'zakázka Vincent', castka: 5750, palivo: 300, material: 1000, pomocnik: 0 },
-  { datum: '27.1.2025', cislo: '#14347', castka: 6700, palivo: 300, material: 1000, pomocnik: 0 }
+// Data přesně podle fotky - řazeno od nejnovějších po nejstarší
+const dataZFotky = [
+  // Červenec 2025
+  { datum: '5.7.2025', id_zakazky: '#107239', trzba: 3380, palivo: 300, material: 1000, pomocnik: 2000, doba_realizace: 3 },
+  
+  // Červen 2025  
+  { datum: '16.6.2025', id_zakazky: '#88368', trzba: 27200, palivo: 700, material: 2400, pomocnik: 7000, doba_realizace: 2 },
+  { datum: '9.6.2025', id_zakazky: '#104470', trzba: 7200, palivo: 200, material: 700, pomocnik: 2000, doba_realizace: 1 },
+  
+  // Květen 2025
+  { datum: '11.5.2025', id_zakazky: '#95333', trzba: 24000, palivo: 300, material: 700, pomocnik: 2000, doba_realizace: 2 },
+  { datum: '13.5.2025', id_zakazky: '#67475', trzba: 8100, palivo: 300, material: 700, pomocnik: 2000, doba_realizace: 1 },
+  { datum: '15.5.2025', id_zakazky: '#95105', trzba: 11400, palivo: 300, material: 700, pomocnik: 2000, doba_realizace: 1 },
+  { datum: '14.5.2025', id_zakazky: '#95067', trzba: 7500, palivo: 300, material: 700, pomocnik: 2000, doba_realizace: 1 },
+  
+  // Duben 2025
+  { datum: '22.4.2025', id_zakazky: '#82187', trzba: 17800, palivo: 300, material: 700, pomocnik: 0, doba_realizace: 2 },
+  { datum: '24.4.2025', id_zakazky: '#67703', trzba: 10400, palivo: 500, material: 1000, pomocnik: 2000, doba_realizace: 2 },
+  { datum: '16.4.2025', id_zakazky: '#15457', trzba: 8400, palivo: 500, material: 1000, pomocnik: 1000, doba_realizace: 1 },
+  { datum: '19.4.2025', id_zakazky: '#81913', trzba: 10500, palivo: 200, material: 1000, pomocnik: 2500, doba_realizace: 2 },
+  
+  // Únor 2025
+  { datum: '25.2.2025', id_zakazky: '#14674', trzba: 5800, palivo: 300, material: 400, pomocnik: 0, doba_realizace: 1 },
+  { datum: '23.2.2025', id_zakazky: '#14181', trzba: 6400, palivo: 300, material: 400, pomocnik: 0, doba_realizace: 1 },
+  
+  // Březen 2025
+  { datum: '15.3.2025', id_zakazky: 'zakázka Vincent', trzba: 5750, palivo: 300, material: 1000, pomocnik: 0, doba_realizace: 2 },
+  
+  // Leden 2025
+  { datum: '27.1.2025', id_zakazky: '#14347', trzba: 6700, palivo: 300, material: 1000, pomocnik: 0, doba_realizace: 2 }
 ];
 
-async function updateAllValues() {
+async function aktualizujDleDataZFotky() {
   try {
-    console.log('🔍 Kompletní aktualizace všech hodnot podle fotky...');
-    console.log('📅 Řazení: od nejnovějších (červenec 2025) po nejstarší (leden 2025)');
+    console.log('📊 Aktualizuji data podle fotky a tvých pokynů...');
+    console.log('📋 Celkem k aktualizaci:', dataZFotky.length, 'zakázek');
     
-    let updatedCount = 0;
-    let notFoundCount = 0;
+    let uspesne = 0;
+    let chyby = 0;
     
-    for (const mapping of completeMapping) {
-      // Najdi zakázku podle čísla nebo částky
-      let { data: existing, error: findError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', 'lenka')
-        .eq('cislo', mapping.cislo)
-        .single();
+    for (const radek of dataZFotky) {
+      try {
+        // Spočítej fee (26,1% z tržby)
+        const fee = Math.round(radek.trzba * 0.261);
+        // Spočítej fee_off (tržba - fee)
+        const fee_off = radek.trzba - fee;
+        // Spočítej čistý zisk (fee_off - všechny náklady)
+        const cisty_zisk = fee_off - radek.palivo - radek.material - radek.pomocnik;
         
-      if (findError && findError.code === 'PGRST116') {
-        // Pokud nenajdeme podle čísla, zkus podle částky
-        console.log(`⚠️  Nenalezeno číslo ${mapping.cislo}, hledám podle částky ${mapping.castka}...`);
+        console.log(`\n🔄 Zpracovávám: ${radek.id_zakazky}`);
+        console.log(`   📅 Datum: ${radek.datum}`);
+        console.log(`   💰 Tržba: ${radek.trzba} Kč`);
+        console.log(`   🏦 Fee (26,1%): ${fee} Kč`);
+        console.log(`   💵 Fee OFF: ${fee_off} Kč`);
+        console.log(`   ⛽ Palivo: ${radek.palivo} Kč`);
+        console.log(`   🔧 Materiál: ${radek.material} Kč`);
+        console.log(`   👷 Pomocník: ${radek.pomocnik} Kč`);
+        console.log(`   💚 Čistý zisk: ${cisty_zisk} Kč`);
+        console.log(`   📆 Doba realizace: ${radek.doba_realizace} dnů`);
         
-        const { data: byAmount } = await supabase
+        // Najdi existující zakázku podle ID nebo tržby
+        const { data: existujici, error: hledaniError } = await supabase
           .from('orders')
           .select('*')
           .eq('user_id', 'lenka')
-          .eq('castka', mapping.castka)
-          .single();
+          .or(`cislo.eq.${radek.id_zakazky},castka.eq.${radek.trzba}`)
+          .maybeSingle();
           
-        if (byAmount) {
-          console.log(`🔄 Nalezeno podle částky: ${byAmount.cislo} (${byAmount.castka} Kč)`);
-          existing = byAmount;
-        } else {
-          console.error(`❌ Nenalezena zakázka: ${mapping.cislo} (${mapping.castka} Kč)`);
-          notFoundCount++;
+        if (hledaniError) {
+          console.error(`❌ Chyba při hledání ${radek.id_zakazky}:`, hledaniError);
+          chyby++;
           continue;
         }
-      }
-
-      if (existing) {
-        // Spočítej fee (26,1% z tržby) a fee_off
-        const fee = Math.round(mapping.castka * 0.261);
-        const fee_off = mapping.castka - fee;
-        const zisk = fee_off - mapping.palivo - mapping.material - mapping.pomocnik;
-
-        console.log(`🔄 Aktualizuji: ${existing.cislo}`);
-        console.log(`   📊 Tržba: ${mapping.castka} Kč`);
-        console.log(`   💰 Fee (26,1%): ${fee} Kč`);
-        console.log(`   💵 Fee OFF: ${fee_off} Kč`);
-        console.log(`   ⛽ Palivo: ${mapping.palivo} Kč`);
-        console.log(`   🔧 Materiál: ${mapping.material} Kč`);
-        console.log(`   👷 Pomocník: ${mapping.pomocnik} Kč`);
-        console.log(`   💚 Čistý zisk: ${zisk} Kč`);
         
-        const { error: updateError } = await supabase
-          .from('orders')
-          .update({
-            datum: mapping.datum,
-            cislo: mapping.cislo,
-            castka: mapping.castka,
-            fee: fee,
-            fee_off: fee_off,
-            palivo: mapping.palivo,
-            material: mapping.material,
-            pomocnik: mapping.pomocnik,
-            zisk: zisk,
-            doba_realizace: 1 // výchozí hodnota
-          })
-          .eq('id', existing.id);
-          
-        if (updateError) {
-          console.error(`❌ Chyba při aktualizaci ${existing.cislo}:`, updateError);
+        if (existujici) {
+          // Aktualizuj existující záznam
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({
+              datum: radek.datum,
+              cislo: radek.id_zakazky,
+              castka: radek.trzba,
+              fee: fee,
+              fee_off: fee_off,
+              palivo: radek.palivo,
+              material: radek.material,
+              pomocnik: radek.pomocnik,
+              zisk: cisty_zisk,
+              doba_realizace: radek.doba_realizace
+            })
+            .eq('id', existujici.id);
+            
+          if (updateError) {
+            console.error(`❌ Chyba při aktualizaci ${radek.id_zakazky}:`, updateError);
+            chyby++;
+          } else {
+            console.log(`✅ ${radek.id_zakazky} úspěšně aktualizováno`);
+            uspesne++;
+          }
         } else {
-          console.log(`✅ ${existing.cislo} úspěšně aktualizováno`);
-          updatedCount++;
+          // Vytvoř nový záznam
+          const { error: insertError } = await supabase
+            .from('orders')
+            .insert([{
+              user_id: 'lenka',
+              datum: radek.datum,
+              cislo: radek.id_zakazky,
+              druh: 'malování',
+              castka: radek.trzba,
+              fee: fee,
+              fee_off: fee_off,
+              palivo: radek.palivo,
+              material: radek.material,
+              pomocnik: radek.pomocnik,
+              zisk: cisty_zisk,
+              doba_realizace: radek.doba_realizace,
+              typ: 'byt'
+            }]);
+            
+          if (insertError) {
+            console.error(`❌ Chyba při vytváření ${radek.id_zakazky}:`, insertError);
+            chyby++;
+          } else {
+            console.log(`✅ ${radek.id_zakazky} úspěšně vytvořeno`);
+            uspesne++;
+          }
         }
+        
+        // Krátká pauza
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+      } catch (error) {
+        console.error(`❌ Chyba při zpracování ${radek.id_zakazky}:`, error);
+        chyby++;
       }
-
-      // Krátká pauza mezi operacemi
-      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    console.log(`\n📊 SHRNUTÍ:`);
-    console.log(`✅ Úspěšně aktualizováno: ${updatedCount} zakázek`);
-    console.log(`❌ Nenalezeno: ${notFoundCount} zakázek`);
-    console.log(`📋 Celkem zpracováno: ${completeMapping.length} položek`);
+    console.log(`\n📊 VÝSLEDEK:`);
+    console.log(`✅ Úspěšně zpracováno: ${uspesne} zakázek`);
+    console.log(`❌ Chyby: ${chyby} zakázek`);
     
-    // Ověř výsledky
-    console.log('\n🔍 Kontrola výsledků:');
-    const { data: allOrders } = await supabase
+    // Zobraz finální stav
+    console.log('\n🔍 Kontrola finálního stavu:');
+    const { data: vsechnyZakazky } = await supabase
       .from('orders')
-      .select('cislo, datum, castka, fee, fee_off, palivo, material, pomocnik, zisk')
+      .select('datum, cislo, castka, fee, fee_off, palivo, material, pomocnik, zisk, doba_realizace')
       .eq('user_id', 'lenka')
       .order('datum', { ascending: false });
       
-    if (allOrders) {
-      console.log('\n📋 Aktuální stav zakázek (seřazeno podle data):');
-      allOrders.forEach(order => {
-        console.log(`${order.cislo}: ${order.datum} | Tržba: ${order.castka} | Fee: ${order.fee} | Fee OFF: ${order.fee_off} | Zisk: ${order.zisk}`);
+    if (vsechnyZakazky) {
+      console.log('\n📋 Aktuální stav zakázek (od nejnovějších):');
+      vsechnyZakazky.forEach(z => {
+        console.log(`${z.cislo} | ${z.datum} | Tržba: ${z.castka} | Fee: ${z.fee} | Fee OFF: ${z.fee_off} | Zisk: ${z.zisk} | Doba: ${z.doba_realizace} dnů`);
       });
     }
-
+    
   } catch (error) {
-    console.error('❌ Chyba při aktualizaci:', error);
+    console.error('❌ Celková chyba:', error);
   }
 }
 
 // Spusť aktualizaci
-updateAllValues();
+aktualizujDleDataZFotky();
