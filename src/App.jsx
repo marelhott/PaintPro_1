@@ -711,19 +711,29 @@ const PaintPro = () => {
     filterMainOrdersOnly(zakazkyData).forEach((zakazka, index) => {
       console.log(`🔍 Dashboard zakázka ${index + 1}:`, zakazka.datum, '|', zakazka.zisk, 'Kč');
       
-      // Parse český formát datumu DD. MM. YYYY
+      // Parse český formát datumu - OPRAVENO pro DD.MM.YYYY a DD. MM. YYYY
       let parsedDate, month, year;
       
       if (zakazka.datum.includes('.')) {
-        // Standardní formát DD. MM. YYYY - například "15. 3. 2025"
-        const dateParts = zakazka.datum.split('. ');
-        if (dateParts.length >= 2) {
+        // Standardní formát DD.MM.YYYY nebo DD. MM. YYYY
+        const cleanDatum = zakazka.datum.replace(/\s+/g, ''); // Odstraň mezery: "15. 3. 2025" -> "15.3.2025"
+        const dateParts = cleanDatum.split('.');
+        
+        if (dateParts.length >= 3) {
           const day = parseInt(dateParts[0]) || 1;
           month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based (0=leden, 1=únor, atd.)
-          year = dateParts.length >= 3 ? parseInt(dateParts[2]) : 2025;
+          year = parseInt(dateParts[2]) || 2025;
           parsedDate = new Date(year, month, day);
           
-          console.log(`📅 Dashboard parsed: ${zakazka.datum} -> month=${month+1}, year=${year}`);
+          console.log(`📅 Dashboard parsed: ${zakazka.datum} -> day=${day}, month=${month+1}, year=${year}`);
+        } else if (dateParts.length === 2) {
+          // Formát MM.YYYY
+          const day = 1;
+          month = parseInt(dateParts[0]) - 1;
+          year = parseInt(dateParts[1]) || 2025;
+          parsedDate = new Date(year, month, day);
+          
+          console.log(`📅 Dashboard month-year: ${zakazka.datum} -> month=${month+1}, year=${year}`);
         } else {
           // Fallback
           month = 0; // leden
@@ -879,19 +889,29 @@ const PaintPro = () => {
     safeZakazkyDataForChart.forEach((zakazka, index) => {
       console.log(`🔍 getCombinedChart - zpracovávám zakázku ${index + 1}:`, zakazka.datum, '|', zakazka.zisk, 'Kč');
       
-      // Parse český formát datumu DD. MM. YYYY nebo jen měsíc jako "Duben"
+      // Parse český formát datumu - OPRAVENO pro DD.MM.YYYY a DD. MM. YYYY
       let parsedDate, month, year;
       
       if (zakazka.datum.includes('.')) {
-        // Standardní formát DD. MM. YYYY - například "15. 3. 2025"
-        const dateParts = zakazka.datum.split('. ');
-        if (dateParts.length >= 2) {
+        // Standardní formát DD.MM.YYYY nebo DD. MM. YYYY
+        const cleanDatum = zakazka.datum.replace(/\s+/g, ''); // Odstraň mezery: "15. 3. 2025" -> "15.3.2025"
+        const dateParts = cleanDatum.split('.');
+        
+        if (dateParts.length >= 3) {
           const day = parseInt(dateParts[0]) || 1;
           month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based (0=leden, 1=únor, atd.)
-          year = dateParts.length >= 3 ? parseInt(dateParts[2]) : 2025;
+          year = parseInt(dateParts[2]) || 2025;
           parsedDate = new Date(year, month, day);
           
-          console.log(`📅 Parsed complete date: ${zakazka.datum} -> month=${month+1}, year=${year}`);
+          console.log(`📅 Parsed complete date: ${zakazka.datum} -> day=${day}, month=${month+1}, year=${year}`);
+        } else if (dateParts.length === 2) {
+          // Formát MM.YYYY
+          const day = 1;
+          month = parseInt(dateParts[0]) - 1;
+          year = parseInt(dateParts[1]) || 2025;
+          parsedDate = new Date(year, month, day);
+          
+          console.log(`📅 Parsed month-year: ${zakazka.datum} -> month=${month+1}, year=${year}`);
         } else {
           // Fallback
           month = 0; // leden
@@ -900,14 +920,14 @@ const PaintPro = () => {
           console.log(`⚠️ Fallback parsing for: ${zakazka.datum}`);
         }
       } else {
-        // Pouze měsíc jako "Duben" - toto by nemělo nastat podle současných dat, ale zachováme pro jistotu
+        // Pouze měsíc jako "Duben"
         const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
         month = monthNames.indexOf(zakazka.datum);
         if (month === -1) {
           console.warn(`❌ Neznámý měsíc: ${zakazka.datum}, použiju leden`);
           month = 0; // leden jako fallback
         }
-        year = 2025; // Předpokládaný rok
+        year = 2025;
         parsedDate = new Date(year, month, 1);
         console.log(`📅 Parsed month only: ${zakazka.datum} -> month=${month+1}, year=${year}`);
       }
