@@ -1,5 +1,5 @@
 
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 // Připoj se k Supabase
 const supabase = createClient(
