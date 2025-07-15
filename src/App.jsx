@@ -186,6 +186,7 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2';
 import OptimizedOrderTable from './OptimizedOrderTable';
+import { StatCard, Sidebar, FileUploadCell } from './components';
 
 ChartJS.register(
   CategoryScale,
@@ -1064,123 +1065,9 @@ const PaintPro = () => {
     }
   };
 
-  const StatCard = ({ title, value, subtitle, iconClass, color, index, showCurrency = true, blueSubtitle = false, smallValueText = false }) => (
-    <div
-      className={`stat-card ${hoveredCard === index ? 'hovered' : ''}`}
-      onMouseEnter={() => setHoveredCard(index)}
-      onMouseLeave={() => setHoveredCard(null)}
-    >
-      {/* Geometrické zdobení - tři průhledná kola */}
-      <div className="geometric-decoration">
-        <div className="circle circle-1"></div>
-        <div className="circle circle-2"></div>
-        <div className="circle circle-3"></div>
-      </div>
+  
 
-      <div className="stat-header">
-        <div className="stat-title">{title}</div>
-      </div>
-      <div className="stat-content">
-        <div className="stat-value-row">
-          <div className={`stat-icon ${iconClass}`}></div>
-          <div className="stat-value-with-subtitle">
-            {smallValueText ? (
-              <div className="stat-value">
-                {value} <span className="small-text">{subtitle}</span>
-              </div>
-            ) : (
-              <>
-                <div className="stat-value">{value}{showCurrency ? ' Kč' : ''}</div>
-                {subtitle && (
-                  <div className={`stat-subtitle ${blueSubtitle ? 'blue' : ''}`}>{subtitle}</div>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const Sidebar = () => {
-    const { currentUser, logout } = useAuth();
-
-    return (
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <div className="logo">
-            <div className="modern-icon size-medium icon-dashboard"></div>
-            <div className="logo-text">
-              <div className="logo-title">PaintPro</div>
-              <div className="logo-subtitle">Správa zakázek</div>
-            </div>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          <div
-            className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            <div className="modern-icon icon-dashboard"></div>
-            Dashboard
-          </div>
-          <div
-            className={`nav-item ${activeTab === 'zakazky' ? 'active' : ''}`}
-            onClick={() => setActiveTab('zakazky')}
-          >
-            <div className="modern-icon icon-orders"></div>
-            Zakázky
-          </div>
-          <div
-            className={`nav-item ${activeTab === 'reporty' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reporty')}
-          >
-            <div className="modern-icon icon-reports"></div>
-            Reporty
-          </div>
-          <div
-            className={`nav-item ${activeTab === 'kalendar' ? 'active' : ''}`}
-            onClick={() => setActiveTab('kalendar')}
-          >
-            <div className="modern-icon icon-calendar"></div>
-            Kalendář
-          </div>
-          <div
-            className={`nav-item ${activeTab === 'mapa' ? 'active' : ''}`}
-            onClick={() => setActiveTab('mapa')}
-          >
-            <div className="modern-icon icon-map"></div>
-            Mapa zakázek
-          </div>
-          <div
-            className={`nav-item ${activeTab === 'kalkulacka' ? 'active' : ''}`}
-            onClick={() => setActiveTab('kalkulacka')}
-          >
-            <div className="modern-icon icon-calculator"></div>
-            Kalkulačka
-          </div>
-        </nav>
-
-        {currentUser && (
-          <div className="user-info-bottom">
-            <div 
-              className="user-avatar"
-              style={{ backgroundColor: currentUser.color }}
-            >
-              {currentUser.avatar}
-            </div>
-            <div className="user-details">
-              <div className="user-name">{currentUser.name}</div>
-              <button className="logout-btn" onClick={logout}>
-                Odhlásit se
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+  
 
   const Dashboard = () => (
     <div className="dashboard">
@@ -1200,6 +1087,8 @@ const PaintPro = () => {
           color="blue"
           index={0}
           showCurrency={false}
+          hoveredCard={hoveredCard}
+          setHoveredCard={setHoveredCard}
         />
         <StatCard
           title="CELKOVÝ ZISK"
@@ -1214,6 +1103,8 @@ const PaintPro = () => {
           index={1}
           showCurrency={false}
           blueSubtitle={true}
+          hoveredCard={hoveredCard}
+          setHoveredCard={setHoveredCard}
         />
         <StatCard
           title="POČET ZAKÁZEK"
@@ -1224,6 +1115,8 @@ const PaintPro = () => {
           index={2}
           showCurrency={false}
           smallValueText={true}
+          hoveredCard={hoveredCard}
+          setHoveredCard={setHoveredCard}
         />
         <StatCard
           title="PRŮMĚRNÝ ZISK"
@@ -1234,6 +1127,8 @@ const PaintPro = () => {
           index={3}
           showCurrency={false}
           blueSubtitle={true}
+          hoveredCard={hoveredCard}
+          setHoveredCard={setHoveredCard}
         />
       </div>
 
@@ -4854,7 +4749,7 @@ const PaintPro = () => {
 
   return (
     <div className="app-container">
-      <Sidebar />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <main className="main-content">
         {renderContent()}
       </main>
