@@ -258,7 +258,7 @@ const PaintPro = () => {
       console.error('❌ Chyba při mazání zakázky:', error);
     }
   };
-  const getMonthlyPerformance = useMemo(() => {
+  const getMonthlyPerformance = () => {
     const monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
     const monthlyData = {};
 
@@ -299,10 +299,10 @@ const PaintPro = () => {
           ordersPercent: maxOrders > 0 ? (data.orders / maxOrders) * 100 : 0
         };
       });
-  }, [zakazkyData]);
+  };
 
   // Funkce pro roční výkonnost - optimalizováno s useMemo
-  const getYearlyData = useMemo(() => {
+  const getYearlyData = () => {
     const currentYear = 2025;
     const yearData = zakazkyData
       .filter(zakazka => {
@@ -325,7 +325,7 @@ const PaintPro = () => {
       revenuePercent: Math.min((yearData.revenue / revenueTarget) * 100, 100),
       ordersPercent: Math.min((yearData.orders / ordersTarget) * 100, 100)
     };
-  }, [zakazkyData]);
+  };
   const [selectedPeriod, setSelectedPeriod] = useState('all');
 
   // Použití custom hooks pro statistiky a graf data
