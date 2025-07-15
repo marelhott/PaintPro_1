@@ -258,7 +258,7 @@ const PaintPro = () => {
       console.error('❌ Chyba při mazání zakázky:', error);
     }
   };
-  const getMonthlyPerformance = () => {
+  const getMonthlyPerformance = useMemo(() => {
     const monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
     const monthlyData = {};
 
@@ -299,10 +299,10 @@ const PaintPro = () => {
           ordersPercent: maxOrders > 0 ? (data.orders / maxOrders) * 100 : 0
         };
       });
-  };
+  }, [zakazkyData]);
 
-  // Funkce pro roční výkonnost
-  const getYearlyData = () => {
+  // Funkce pro roční výkonnost - optimalizováno s useMemo
+  const getYearlyData = useMemo(() => {
     const currentYear = 2025;
     const yearData = zakazkyData
       .filter(zakazka => {
@@ -325,15 +325,15 @@ const PaintPro = () => {
       revenuePercent: Math.min((yearData.revenue / revenueTarget) * 100, 100),
       ordersPercent: Math.min((yearData.orders / ordersTarget) * 100, 100)
     };
-  };
+  }, [zakazkyData]);
   const [selectedPeriod, setSelectedPeriod] = useState('all');
 
   // Použití custom hooks pro statistiky a graf data
   const { dashboardData } = useZakazkyStatistics(zakazkyData, workCategories);
   const { getCombinedChartData } = useChartData(zakazkyData);
 
-  // Funkce pro přidání zakázky
-  const addZakazka = async (newZakazka) => {
+  // Funkce pro přidání zakázky - optimalizováno s useCallback
+  const addZakazka = useCallback(async (newZakazka) => {
     try {
       await handleAddZakazka(newZakazka);
       setShowAddModal(false); // Zavři modal pouze po úspěšném přidání
@@ -342,23 +342,23 @@ const PaintPro = () => {
       console.error('❌ Chyba při přidávání - modal zůstává otevřený:', error);
       // Modal zůstane otevřený při chybě
     }
-  };
+  }, [handleAddZakazka]);
 
-  // Funkce pro editaci
-  const editZakazka = (zakazka) => {
+  // Funkce pro editaci - optimalizováno s useCallback
+  const editZakazka = useCallback((zakazka) => {
     setEditingZakazka(zakazka);
     setShowEditModal(true);
-  };
+  }, []);
 
-  // Funkce pro smazání zakázky
-  const deleteZakazka = (id) => {
+  // Funkce pro smazání zakázky - optimalizováno s useCallback
+  const deleteZakazka = useCallback((id) => {
     if (window.confirm('Opravdu chcete smazat tuto zakázku?')) {
       handleDeleteZakazka(id);
     }
-  };
+  }, [handleDeleteZakazka]);
 
-  // Funkce pro aktualizaci souborů zakázky
-  const handleFilesUpdate = async (zakazkaId, newFiles) => {
+  // Funkce pro aktualizaci souborů zakázky - optimalizováno s useCallback
+  const handleFilesUpdate = useCallback(async (zakazkaId, newFiles) => {
     try {
       console.log(`🔄 Aktualizuji soubory pro zakázku ${zakazkaId}, počet souborů: ${newFiles.length}`);
       
@@ -393,7 +393,7 @@ const PaintPro = () => {
     } catch (error) {
       console.error('❌ Chyba při aktualizaci souborů:', error);
     }
-  };
+  }, [zakazkyData, currentUser?.id, editUserOrder]);
 
 
 

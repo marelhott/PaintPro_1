@@ -1,7 +1,7 @@
 
 import React from 'react';
 
-const StatCard = ({ title, value, subtitle, iconClass, color, index, showCurrency = true, blueSubtitle = false, smallValueText = false, hoveredCard, setHoveredCard }) => (
+const StatCard = React.memo(({ title, value, subtitle, iconClass, color, index, showCurrency = true, blueSubtitle = false, smallValueText = false, hoveredCard, setHoveredCard }) => (
   <div
     className={`stat-card ${hoveredCard === index ? 'hovered' : ''}`}
     onMouseEnter={() => setHoveredCard(index)}
@@ -37,6 +37,8 @@ const StatCard = ({ title, value, subtitle, iconClass, color, index, showCurrenc
       </div>
     </div>
   </div>
-);
+));
+
+StatCard.displayName = 'StatCard';
 
 export default StatCard;
