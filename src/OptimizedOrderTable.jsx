@@ -48,10 +48,10 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
 
       const currentFiles = localFiles || [];
       const updatedFiles = [...currentFiles, ...newUploadedFiles];
-      
+
       // Aktualizuj lokální stav okamžitě
       setLocalFiles(updatedFiles);
-      
+
       // Zavolej callback pro aktualizaci v rodičovské komponentě
       onFilesUpdate(updatedFiles);
 
@@ -220,7 +220,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                       {(file.size / 1024).toFixed(1)} KB
                     </div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
                     <button
                       style={{
