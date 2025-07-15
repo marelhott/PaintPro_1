@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './App.css';
 import './ModernIcons.css';
 import html2pdf from 'html2pdf.js';
@@ -25,7 +25,7 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2';
 import OptimizedOrderTable from './OptimizedOrderTable';
-import { StatCard, Sidebar, FileUploadCell, Dashboard, ReportsSection, MapSection } from './components';
+import { StatCard, Sidebar, FileUploadCell, ReportsSection, MapSection } from './components';
 import { useZakazkyStatistics, useChartData } from './hooks';
 import { exportCompletePDF } from './utils';
 

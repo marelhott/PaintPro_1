@@ -5,6 +5,6 @@ export { default as Sidebar } from './Sidebar';
 export { default as FileUploadCell } from './FileUploadCell';
 export { default as AddZakazkaModal } from './AddZakazkaModal';
 export { default as EditZakazkaModal } from './EditZakazkaModal';
-export { default as Dashboard } from './Dashboard';
+// Dashboard je definován přímo v App.jsx
 export { default as ReportsSection } from './ReportsSection';
 export { default as MapSection } from './MapSection';
