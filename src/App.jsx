@@ -6,8 +6,7 @@ import CalendarComponent from './CalendarComponent';
 import CalculatorComponent from './CalculatorComponent';
 import { AuthProvider, useAuth } from './AuthContext';
 import LoginScreen from './LoginScreen';
-import GitLockManager from './GitLockManager.js';
-const gitLockManager = GitLockManager;
+import gitLockManager from './GitLockManager.js';
 
 
 import {
@@ -1679,7 +1678,7 @@ const PaintPro = () => {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const csv = e.target.result;
         const lines = csv.split('\n');
@@ -1707,17 +1706,23 @@ const PaintPro = () => {
           }
         }
 
-        // Přidáme importované zakázky
-        importedOrders.forEach(order => {
-          handleAddZakazka(order);
-        });
+        // Přidáme importované zakázky s await
+        for (const order of importedOrders) {
+          await handleAddZakazka(order);
+        }
 
         alert(`✅ Úspěšně importováno ${importedOrders.length} zakázek z CSV`);
       } catch (error) {
-        console.error('Chyba při importu CSV:', error);
+        console.error('❌ Chyba při importu CSV:', error);
         alert('❌ Chyba při importu CSV souboru: ' + error.message);
       }
     };
+    
+    reader.onerror = (error) => {
+      console.error('❌ Chyba při čtení CSV souboru:', error);
+      alert('❌ Chyba při čtení CSV souboru');
+    };
+    
     reader.readAsText(file);
     event.target.value = ''; // Reset input
   };
