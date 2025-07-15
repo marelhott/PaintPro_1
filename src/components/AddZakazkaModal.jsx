@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import workCategoryManager from '../utils/WorkCategoryManager';
 import { validateZakazka } from '../utils/formValidation';
@@ -29,7 +28,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
   const handleFormChange = (field, value) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
-    
+
     // Validuj pouze změněné pole
     const validation = validateZakazka(newFormData);
     setValidationErrors(validation.errors);
@@ -38,13 +37,26 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Kompletní validace před odesláním
+    // Validace formuláře
     const validation = validateZakazka(formData);
+
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
-      alert('❌ Formulář obsahuje chyby. Prosím opravte označená pole.');
+      console.log('❌ Validační chyby:', validation.errors);
+
+      // Najdi první chybu a skroluj k ní
+      const firstErrorField = Object.keys(validation.errors)[0];
+      const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.focus();
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
       return;
     }
+
+    // Vyčisti chyby pokud je vše v pořádku
+    setValidationErrors({});
 
     // Přidat kategorii, pokud není prázdná a neexistuje
     if (formData.druh && formData.druh.trim()) {
@@ -181,26 +193,26 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
     const patterns = {
       // Telefonní čísla (české formáty)
       phone: /(\+420\s?)?[0-9]{3}\s?[0-9]{3}\s?[0-9]{3}/g,
-      
+
       // Částky - vylepšené rozpoznávání
       amount: /(\d{1,3}(?:[,.\s]\d{3})*(?:[,.]\d{2})?)\s*(?:kč|czk|eur|€|korun?|crowns?)/gi,
       amountSimple: /\b(\d{3,})\b/g, // Jednoduchá částka bez měny
-      
+
       // Datum - více formátů
       date: /(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/g,
       dateWithText: /(datum|date)[\s:]*(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/gi,
-      
+
       // Číslo faktury/zakázky
       invoice: /(faktura|invoice|číslo|number|zakázka|order)[\s:]*([a-z0-9\-\/]+)/gi,
       invoiceSimple: /[a-z]{2,4}[\-_]?\d{3,}/gi,
-      
+
       // PSČ a město (české PSČ)
       postal: /(\d{3}\s?\d{2})\s+([a-záčďéěíňóřšťúůýž\s]+)/gi,
       address: /(ulice|street|adresa|address)[\s:]*([^,\n]+)/gi,
-      
+
       // Email
       email: /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi,
-      
+
       // Jména - vylepšené rozpoznávání
       personName: /\b[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]{2,}\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-záčďéěíňóřšťúůýž]{2,}\b/g,
       clientField: /(klient|client|jméno|name|zákazník|customer)[\s:]*([a-záčďéěíňóřšťúůýž\s]+)/gi
@@ -208,7 +220,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
     // 1. EXTRAKCE KLIENTA/JMÉNA - nejvyšší priorita
     console.log('🔍 Hledám jméno klienta...');
-    
+
     // Nejdřív hledej explicitní označení klienta
     const clientFieldMatch = originalText.match(patterns.clientField);
     if (clientFieldMatch) {
@@ -229,14 +241,14 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
           'Faktura', 'Invoice', 'Částka', 'Amount', 'Datum', 'Date',
           'Malování', 'Montáž', 'Korálek', 'Adam', 'Czech', 'Republic'
         ];
-        
+
         const validNames = nameMatches.filter(name => {
           const nameParts = name.split(' ');
           return !blacklistedNames.some(blacklisted => 
             nameParts.some(part => part.toLowerCase().includes(blacklisted.toLowerCase()))
           );
         });
-        
+
         if (validNames.length > 0) {
           extractedData.klient = validNames[0];
           console.log('✅ Nalezen klient (pattern):', validNames[0]);
@@ -246,7 +258,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
     // 2. EXTRAKCE ČÁSTKY
     console.log('🔍 Hledám částku...');
-    
+
     // Nejdřív hledej částky s měnou
     const amountMatches = originalText.match(patterns.amount);
     if (amountMatches && amountMatches.length > 0) {
@@ -255,7 +267,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
         const numStr = match.match(/\d{1,3}(?:[,.\s]\d{3})*(?:[,.]\d{2})?/)[0];
         return parseFloat(numStr.replace(/[,.\s]/g, '').slice(0, -2) + '.' + numStr.slice(-2));
       });
-      
+
       const maxAmount = Math.max(...amounts);
       if (maxAmount > 100) { // Rozumná minimální částka
         extractedData.castka = Math.round(maxAmount);
@@ -277,7 +289,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
     // 3. EXTRAKCE DATUMU
     console.log('🔍 Hledám datum...');
-    
+
     const dateWithTextMatch = originalText.match(patterns.dateWithText);
     if (dateWithTextMatch) {
       const match = dateWithTextMatch[0].match(/(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})/);
@@ -299,7 +311,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
     // 4. EXTRAKCE ČÍSLA ZAKÁZKY
     console.log('🔍 Hledám číslo zakázky...');
-    
+
     const invoiceMatch = originalText.match(patterns.invoice);
     if (invoiceMatch) {
       const invoiceNumber = invoiceMatch[0].split(/[\s:]+/).pop().trim();
@@ -319,7 +331,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
     // 5. EXTRAKCE ADRESY
     console.log('🔍 Hledám adresu...');
-    
+
     // Hledej explicitní pole adresy
     const addressFieldMatch = originalText.match(patterns.address);
     if (addressFieldMatch) {
@@ -341,7 +353,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
     // 6. AUTOMATICKÁ KLASIFIKACE DRUHU PRÁCE
     console.log('🔍 Klasifikuji druh práce...');
-    
+
     const workTypeKeywords = {
       'MVČ': ['malování', 'malíř', 'nátěr', 'barva', 'stěna', 'paint', 'painting', 'wall'],
       'Adam': ['montáž', 'instalace', 'sestavení', 'oprava', 'installation', 'assembly', 'repair'],
@@ -373,6 +385,20 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
     console.log('🎯 Finální extrahovaná data:', extractedData);
     return extractedData;
+  };
+
+  // Funkce pro získání stylu pole s ohledem na validační chyby
+  const getFieldStyle = (fieldName) => ({
+    borderColor: validationErrors[fieldName] ? '#ef4444' : '#e5e7eb',
+  });
+
+  // Funkce pro zobrazení validační chyby
+  const renderFieldError = (fieldName) => {
+    return validationErrors[fieldName] && (
+      <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+        {validationErrors[fieldName]}
+      </div>
+    );
   };
 
   // DŮLEŽITÉ: Zobrazit modal vždy když je showAddModal true
@@ -410,7 +436,7 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
             onChange={handleOcrUpload}
             style={{ display: 'none' }}
           />
-          
+
           {!isOcrProcessing ? (
             <div>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>📄</div>
@@ -470,77 +496,57 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
             <div className="form-group">
               <label>Datum *</label>
               <input
+                name="datum"
                 type="date"
                 value={formData.datum}
                 onChange={e => handleFormChange('datum', e.target.value)}
-                style={{
-                  borderColor: validationErrors.datum ? '#ef4444' : '#e5e7eb'
-                }}
+                style={getFieldStyle('datum')}
               />
-              {validationErrors.datum && (
-                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                  {validationErrors.datum}
-                </div>
-              )}
+              {renderFieldError('datum')}
             </div>
             <div className="form-group">
               <label>Druh práce *</label>
               <input
+                name="druh"
                 type="text"
                 value={formData.druh}
                 onChange={e => handleFormChange('druh', e.target.value)}
                 placeholder="Vložit druh práce"
                 list="work-categories-list"
-                style={{
-                  borderColor: validationErrors.druh ? '#ef4444' : '#e5e7eb'
-                }}
+                style={getFieldStyle('druh')}
               />
-              {validationErrors.druh && (
-                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                  {validationErrors.druh}
-                </div>
-              )}
               <datalist id="work-categories-list">
                 {workCategories.map(category => (
                   <option key={category.name} value={category.name} />
                 ))}
               </datalist>
+              {renderFieldError('druh')}
             </div>
           </div>
           <div className="form-row">
             <div className="form-group">
               <label>Klient *</label>
               <input
+                name="klient"
                 type="text"
                 value={formData.klient}
                 onChange={e => handleFormChange('klient', e.target.value)}
                 placeholder="Jméno klienta"
-                style={{
-                  borderColor: validationErrors.klient ? '#ef4444' : '#e5e7eb'
-                }}
+                style={getFieldStyle('klient')}
               />
-              {validationErrors.klient && (
-                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                  {validationErrors.klient}
-                </div>
-              )}
+              {renderFieldError('klient')}
             </div>
             <div className="form-group">
               <label>Číslo zakázky *</label>
               <input
+                name="cislo"
                 type="text"
                 value={formData.cislo}
                 onChange={e => handleFormChange('cislo', e.target.value)}
                 placeholder="Číslo zakázky"
-                style={{
-                  borderColor: validationErrors.cislo ? '#ef4444' : '#e5e7eb'
-                }}
+                style={getFieldStyle('cislo')}
               />
-              {validationErrors.cislo && (
-                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                  {validationErrors.cislo}
-                </div>
-              )}
+              {renderFieldError('cislo')}
             </div>
           </div>
           <div className="form-group">
@@ -556,19 +562,14 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
             <div className="form-group">
               <label>Částka (Kč) *</label>
               <input
+                name="castka"
                 type="number"
                 value={formData.castka}
                 onChange={e => handleFormChange('castka', e.target.value)}
                 placeholder="0"
-                style={{
-                  borderColor: validationErrors.castka ? '#ef4444' : '#e5e7eb'
-                }}
+                style={getFieldStyle('castka')}
               />
-              {validationErrors.castka && (
-                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
-                  {validationErrors.castka}
-                </div>
-              )}
+              {renderFieldError('castka')}
             </div>
             <div className="form-group">
               <label>Fee (26.1% z částky)</label>

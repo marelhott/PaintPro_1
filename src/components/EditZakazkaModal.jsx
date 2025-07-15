@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import workCategoryManager from '../utils/WorkCategoryManager';
 import { validateZakazka } from '../utils/formValidation';
@@ -21,7 +20,7 @@ const EditZakazkaModal = ({ showEditModal, setShowEditModal, editingZakazka, han
   const handleFormChange = (field, value) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
-    
+
     const validation = validateZakazka(newFormData);
     setValidationErrors(validation.errors);
   };
@@ -29,13 +28,26 @@ const EditZakazkaModal = ({ showEditModal, setShowEditModal, editingZakazka, han
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Kompletní validace
+    // Validace formuláře
     const validation = validateZakazka(formData);
+
     if (!validation.isValid) {
       setValidationErrors(validation.errors);
-      alert('❌ Formulář obsahuje chyby. Prosím opravte označená pole.');
+      console.log('❌ Validační chyby:', validation.errors);
+
+      // Najdi první chybu a skroluj k ní
+      const firstErrorField = Object.keys(validation.errors)[0];
+      const errorElement = document.querySelector(`[name="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.focus();
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
       return;
     }
+
+    // Vyčisti chyby pokud je vše v pořádku
+    setValidationErrors({});
 
     // Přidat kategorii, pokud neexistuje (jednoduše při submitu)
     if (formData.druh && formData.druh.trim()) {
