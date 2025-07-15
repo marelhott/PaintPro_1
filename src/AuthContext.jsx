@@ -1,11 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Inicializace Supabase klienta - pouze z environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Načtení Supabase konfigurace z environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://dgcjxznkhqybotgrkgmw.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY2p4em5raHF5Ym90Z3JrZ213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY1OTc2MjEsImV4cCI6MjA1MjE3MzYyMX0.ZJFr5QyVR8FKtIYdMfkJepHN4RYwXzL1h0-8P3PMHS4';
 
-// Kontrola, zda jsou klíče nastaveny
+console.log('🔧 Načítám Supabase konfiguraci...');
+console.log('📍 URL existuje:', !!supabaseUrl);
+console.log('🔑 Key existuje:', !!supabaseAnonKey);
+
+// Kontrola konfigurace
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ CHYBA: Chybí Supabase konfigurace!');
   console.error('Nastavte v Replit Secrets:');
@@ -101,12 +105,12 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔍 Načítám uživatele ze Supabase...');
       const { data, error } = await supabase.from('users').select('*');
-      
+
       if (error) {
         console.error('❌ Supabase chyba:', error);
         throw error;
       }
-      
+
       if (data && data.length > 0) {
         console.log('✅ Načteno ze Supabase:', data.length, 'uživatelů');
         console.log('👥 Uživatelé:', data.map(u => u.name));
@@ -427,7 +431,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const users = await loadUsers();
       const hashedCurrentPin = hashPin(currentPinPlain);
-      
+
       // Najdi uživatele podle současného uživatele a ověř PIN
       const user = users.find(u => u.id === currentUser.id && u.pin_hash === hashedCurrentPin);
 
@@ -438,7 +442,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const hashedNewPin = hashPin(newPinPlain);
-      
+
       // Aktualizuj cache
       const updatedUsers = users.map(u => 
         u.id === currentUser.id ? { ...u, pin_hash: hashedNewPin } : u
@@ -458,7 +462,7 @@ export const AuthProvider = ({ children }) => {
             .from('users')
             .update({ pin_hash: hashedNewPin })
             .eq('id', currentUser.id);
-            
+
           if (error) {
             console.error('❌ Supabase chyba při aktualizaci PIN:', error);
             throw error;
@@ -513,7 +517,7 @@ export const AuthProvider = ({ children }) => {
   // Vytvoření profilu Lenka - přímý zápis do localStorage
   const createLenkaProfile = () => {
     console.log('🔧 Vytvářím profil Lenka přímo...');
-    
+
     const lenkaProfile = {
       id: 'lenka', // Unikátní ID pro Lenku
       name: 'Lenka',
@@ -541,13 +545,13 @@ export const AuthProvider = ({ children }) => {
 
     // Přidej Lenka do seznamu
     users.push(lenkaProfile);
-    
+
     // Ulož zpět do localStorage
     localStorage.setItem('paintpro_users_cache', JSON.stringify(users));
-    
+
     console.log('✅ Profil Lenka vytvořen a uložen:', lenkaProfile);
     console.log('👥 Všichni uživatelé:', users);
-    
+
     // Přidej do queue pro synchronizaci se Supabase
     if (isOnline) {
       addToQueue({
@@ -555,7 +559,7 @@ export const AuthProvider = ({ children }) => {
         data: lenkaProfile
       });
     }
-    
+
     return lenkaProfile;
   };
 
