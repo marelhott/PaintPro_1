@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { StatCard } from './index';
 
@@ -64,7 +63,7 @@ const MapSection = ({ zakazkyData, workCategories }) => {
     };
 
     const addressLower = adresa.toLowerCase();
-    
+
     for (const [key, coords] of Object.entries(addressMapping)) {
       if (addressLower.includes(key) || key.includes(addressLower.split(' ')[0])) {
         return coords;
@@ -93,7 +92,7 @@ const MapSection = ({ zakazkyData, workCategories }) => {
     const initializeMap = async () => {
       try {
         const L = await import('leaflet');
-        
+
         if (!isMounted) return;
 
         if (mapInstanceRef.current) {
@@ -206,7 +205,7 @@ const MapSection = ({ zakazkyData, workCategories }) => {
         const legend = L.control({position: 'bottomright'});
         legend.onAdd = function(map) {
           const div = L.DomUtil.create('div', 'info legend');
-          
+
           const druhyStats = uniqueDruhyPrace.map(druh => {
             const zakazkyDruhu = zakazkyData.filter(z => z.druh === druh);
             return {
@@ -269,6 +268,21 @@ const MapSection = ({ zakazkyData, workCategories }) => {
 
   return (
     <div className="mapa-zakazek">
+      <style jsx>{`
+          .location-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+          }
+
+          @media (max-width: 768px) {
+            .location-stats-grid {
+              grid-template-columns: 1fr;
+              gap: 16px;
+            }
+          }
+        `}</style>
       <div className="page-header">
         <div>
           <h1>Mapa zakázek</h1>
