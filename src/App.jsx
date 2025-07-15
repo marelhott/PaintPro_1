@@ -669,7 +669,7 @@ const PaintPro = () => {
           </div>
           <div className="chart-container-large">
             {zakazkyData.length > 0 ? (
-              <Chart type='bar' data={getCombinedChartData()} options={combinedChartOptions} />
+              <Chart type='bar' data={getCombinedChartData} options={combinedChartOptions} />
             ) : (
               <div style={{
                 display: 'flex',
