@@ -9,167 +9,6 @@ import LoginScreen from './LoginScreen';
 import GitLockManager from './GitLockManager.js';
 const gitLockManager = GitLockManager;
 
-// Funkce pro kompletní PDF export všech stránek
-const exportCompletePDF = async (activeTab, setActiveTab, userData) => {
-  try {
-    // Zobrazit loading indikátor
-    const loadingDiv = document.createElement('div');
-    loadingDiv.innerHTML = `
-      <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px;">
-        📄 Generuji PDF... Prosím čekejte
-      </div>
-    `;
-    document.body.appendChild(loadingDiv);
-
-    const originalTab = activeTab;
-    const tabs = ['dashboard', 'zakazky', 'reporty', 'kalendar', 'mapa'];
-    const tabNames = {
-      'dashboard': 'Dashboard - Přehled',
-      'zakazky': 'Zakázky - Správa', 
-      'reporty': 'Reporty - Analýzy',
-      'kalendar': 'Kalendář - Plánování',
-      'mapa': 'Mapa zakázek'
-    };
-
-    // Horizontální PDF (landscape)
-    const pdf = new (await import('jspdf')).jsPDF('l', 'mm', 'a4');
-    let isFirstPage = true;
-
-    for (const tab of tabs) {
-      try {
-        console.log(`🔄 Zpracovávám sekci: ${tabNames[tab]}`);
-
-        // Přepni na tab
-        setActiveTab(tab);
-
-        // Počkej na render - delší doba pro grafy a mapy
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        // Najdi specifický obsah podle tabu
-        let element;
-        if (tab === 'dashboard') {
-          element = document.querySelector('.dashboard');
-        } else if (tab === 'zakazky') {
-          element = document.querySelector('.zakazky');
-        } else if (tab === 'reporty') {
-          element = document.querySelector('.reporty');
-        } else if (tab === 'kalendar') {
-          element = document.querySelector('.kalendar');
-        } else if (tab === 'mapa') {
-          element = document.querySelector('.mapa-zakazek');
-        }
-
-        // Fallback na main-content pokud specifický element neexistuje
-        if (!element) {
-          element = document.querySelector('.main-content');
-        }
-
-        // Další fallbacky
-        if (!element) {
-          element = document.querySelector('[class*="container"]');
-        }
-        if (!element) {
-          element = document.querySelector('.app > div:last-child');
-        }
-        if (!element) {
-          element = document.body;
-        }
-
-        if (element) {
-          console.log(`📸 Zachytávám screenshot pro ${tab} z elementu:`, element.className);
-
-          // Počkej na dokončení všech animací a renderování
-          await new Promise(resolve => requestAnimationFrame(() => {
-            requestAnimationFrame(resolve);
-          }));
-
-          // Pro reporty a mapu počkej ještě déle na grafy/mapu
-          if (tab === 'reporty' || tab === 'mapa') {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          }
-
-          // Vyšší kvalita screenshotu s lepším nastavením
-          const canvas = await (await import('html2canvas')).default(element, {
-            scale: 1.5,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-            width: element.scrollWidth,
-            height: element.scrollHeight,
-            scrollX: 0,
-            scrollY: 0,
-            logging: true,
-            removeContainer: false,
-            foreignObjectRendering: true,
-            timeout: 10000
-          });
-
-          // Převeď na image
-          const imgData = canvas.toDataURL('image/jpeg', 0.85);
-
-          if (!isFirstPage) {
-            pdf.addPage();
-          }
-          isFirstPage = false;
-
-          // Přidej nadpis stránky
-          pdf.setFontSize(18);
-          pdf.setTextColor(60, 60, 60);
-          pdf.text(tabNames[tab], 20, 20);
-
-          // Vypočítej rozměry pro horizontální A4
-          const pageWidth = pdf.internal.pageSize.getWidth(); // ~297mm
-          const pageHeight = pdf.internal.pageSize.getHeight(); // ~210mm
-          const imgAspectRatio = canvas.width / canvas.height;
-
-          let imgWidth = pageWidth - 40; // margin 20mm z každé strany
-          let imgHeight = imgWidth / imgAspectRatio;
-
-          // Pokud je obrázek příliš vysoký, přizpůsob
-          const maxHeight = pageHeight - 50; // margin + nadpis
-          if (imgHeight > maxHeight) {
-            imgHeight = maxHeight;
-            imgWidth = imgHeight * imgAspectRatio;
-          }
-
-          // Vycentruj obrázek
-          const x = (pageWidth - imgWidth) / 2;
-          const y = 30;
-
-          // Přidej obrázek
-          pdf.addImage(imgData, 'JPEG', x, y, imgWidth, imgHeight);
-
-          console.log(`✅ PDF stránka ${tab} přidána (${Math.round(imgWidth)}x${Math.round(imgHeight)}mm)`);
-        } else {
-          console.error(`❌ Nenalezen element pro tab ${tab}`);
-        }
-      } catch (error) {
-        console.error(`❌ Chyba při zpracování ${tab}:`, error);
-      }
-    }
-
-    // Vrať původní tab
-    setActiveTab(originalTab);
-
-    // Stáhni PDF
-    const fileName = `PaintPro_Kompletni_Report_${new Date().toLocaleDateString('cs-CZ').replace(/\./g, '_')}.pdf`;
-    pdf.save(fileName);
-
-    // Odstraň loading
-    document.body.removeChild(loadingDiv);
-
-    console.log('✅ PDF export dokončen (horizontální formát)');
-
-  } catch (error) {
-    console.error('❌ Chyba při PDF exportu:', error);
-    alert('Chyba při generování PDF. Zkuste to prosím znovu.');
-
-    // Odstraň loading pokud existuje
-    const loadingDiv = document.querySelector('[style*="position: fixed"][style*="z-index: 10000"]');
-    if (loadingDiv) loadingDiv.remove();
-  }
-};
-
 
 import {
   Chart as ChartJS,
@@ -186,7 +25,9 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2';
 import OptimizedOrderTable from './OptimizedOrderTable';
-import { StatCard, Sidebar, FileUploadCell } from './components';
+import { StatCard, Sidebar, FileUploadCell, Dashboard, ReportsSection, MapSection } from './components';
+import { useZakazkyStatistics, useChartData } from './hooks';
+import { exportCompletePDF } from './utils';
 
 ChartJS.register(
   CategoryScale,
@@ -487,165 +328,9 @@ const PaintPro = () => {
   };
   const [selectedPeriod, setSelectedPeriod] = useState('all');
 
-  // Dynamicky počítané dashboard data - POUZE z zakazkyData
-  const dashboardData = React.useMemo(() => {
-    console.log('=== DASHBOARD DATA DEBUG ===');
-    console.log('zakazkyData:', zakazkyData);
-    console.log('zakazkyData type:', typeof zakazkyData);
-    console.log('zakazkyData is array:', Array.isArray(zakazkyData));
-
-    // OPRAVA: Bezpečná kontrola - zajistí že zakazkyData je vždy array
-    const safeZakazkyData = Array.isArray(zakazkyData) ? zakazkyData : [];
-
-    // NOVÉ: Filtrování pouze hlavních zakázek (bez kalendářových)
-    const mainOrdersOnly = filterMainOrdersOnly(safeZakazkyData);
-    console.log('Filtrované hlavní zakázky (bez kalendářových):', mainOrdersOnly.length, 'z', safeZakazkyData.length);
-
-    const celkoveTrzby = mainOrdersOnly.reduce((sum, z) => sum + z.castka, 0);
-    const celkovyZisk = mainOrdersOnly.reduce((sum, z) => sum + z.zisk, 0);
-    const pocetZakazek = mainOrdersOnly.length;
-    const prumernyZisk = pocetZakazek > 0 ? Math.round(celkovyZisk / pocetZakazek) : 0;
-
-    console.log('Celkové tržby:', celkoveTrzby);
-    console.log('Celkový zisk:', celkovyZisk);
-    console.log('Počet zakázek:', pocetZakazek);
-
-    // Dynamické rozložení podle druhu práce
-    const categoryStats = {};
-    const availableCategories = workCategoryManager.getCategoryNames();
-
-    // Inicializace všech kategorií na 0
-    availableCategories.forEach(category => {
-      categoryStats[category] = 0;
-    });
-
-    // Agregace dat ze zakázek podle kategorie - OPRAVENO pro bezpečnost
-    const safeZakazkyDataForCategories = filterMainOrdersOnly(zakazkyData);
-    safeZakazkyDataForCategories.forEach(zakazka => {
-      if (categoryStats.hasOwnProperty(zakazka.druh)) {
-        categoryStats[zakazka.druh] += zakazka.zisk;
-      } else {
-        // Pokud kategorie neexistuje, vytvoř ji v stats jako 0 a přidej zisk
-        categoryStats[zakazka.druh] = zakazka.zisk;
-      }
-    });
-
-    console.log('=== DYNAMICKÉ ROZLOŽENÍ PODLE DRUHU ===');
-    Object.entries(categoryStats).forEach(([category, zisk]) => {
-      console.log(`${category} zisk:`, zisk);
-    });
-
-    const totalZisk = Object.values(categoryStats).reduce((sum, zisk) => sum + zisk, 0);
-    console.log('Součet:', totalZisk);
-
-    // Procenta pro ověření
-    if (totalZisk > 0) {
-      Object.entries(categoryStats).forEach(([category, zisk]) => {
-        console.log(`${category} %:`, Math.round((zisk / totalZisk) * 100));
-      });
-    }
-
-    // Reálné měsíční data pouze z zakázek uživatele (bez kalendářových)
-    const monthlyDataMap = {};
-
-    console.log('🔍 Dashboard - zpracovávám zakázky:', filterMainOrdersOnly(zakazkyData).length);
-
-    filterMainOrdersOnly(zakazkyData).forEach((zakazka, index) => {
-      console.log(`🔍 Dashboard zakázka ${index + 1}:`, zakazka.datum, '|', zakazka.zisk, 'Kč');
-      
-      // Parse český formát datumu - OPRAVENO pro DD.MM.YYYY a DD. MM. YYYY
-      let parsedDate, month, year;
-      
-      if (zakazka.datum.includes('.')) {
-        // Standardní formát DD.MM.YYYY nebo DD. MM. YYYY
-        const cleanDatum = zakazka.datum.replace(/\s+/g, ''); // Odstraň mezery: "15. 3. 2025" -> "15.3.2025"
-        const dateParts = cleanDatum.split('.');
-        
-        if (dateParts.length >= 3) {
-          const day = parseInt(dateParts[0]) || 1;
-          month = parseInt(dateParts[1]) - 1; // JavaScript měsíce jsou 0-based (0=leden, 1=únor, atd.)
-          year = parseInt(dateParts[2]) || 2025;
-          parsedDate = new Date(year, month, day);
-          
-          console.log(`📅 Dashboard parsed: ${zakazka.datum} -> day=${day}, month=${month+1}, year=${year}`);
-        } else if (dateParts.length === 2) {
-          // Formát MM.YYYY
-          const day = 1;
-          month = parseInt(dateParts[0]) - 1;
-          year = parseInt(dateParts[1]) || 2025;
-          parsedDate = new Date(year, month, day);
-          
-          console.log(`📅 Dashboard month-year: ${zakazka.datum} -> month=${month+1}, year=${year}`);
-        } else {
-          // Fallback
-          month = 0; // leden
-          year = 2025;
-          parsedDate = new Date(year, month, 1);
-          console.log(`⚠️ Dashboard fallback for: ${zakazka.datum}`);
-        }
-      } else {
-        // Pouze měsíc jako "Duben" - fallback
-        const monthNames = ['Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen', 'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'];
-        month = monthNames.indexOf(zakazka.datum);
-        if (month === -1) {
-          console.warn(`❌ Dashboard neznámý měsíc: ${zakazka.datum}, použiju leden`);
-          month = 0; // leden jako fallback
-        }
-        year = 2025;
-        parsedDate = new Date(year, month, 1);
-        console.log(`📅 Dashboard month only: ${zakazka.datum} -> month=${month+1}, year=${year}`);
-      }
-
-      const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-
-      if (!monthlyDataMap[monthKey]) {
-        monthlyDataMap[monthKey] = {
-          revenue: 0,
-          month: month,
-          year: year,
-          datum: parsedDate
-        };
-        console.log(`🆕 Dashboard vytvořen měsíc: ${monthKey} (${month + 1}. měsíc ${year})`);
-      }
-      monthlyDataMap[monthKey].revenue += zakazka.zisk;
-      
-      console.log(`✅ Dashboard přidáno do měsíce ${monthKey}:`, monthlyDataMap[monthKey].revenue, 'Kč');
-    });
-
-    console.log('📊 Dashboard měsíční data:', Object.keys(monthlyDataMap).length, 'měsíců');
-
-    // Seřaď měsíce chronologicky podle data (ne podle string klíče)
-    const sortedMonthsData = Object.values(monthlyDataMap)
-      .sort((a, b) => a.datum - b.datum);
-
-    const monthNames = ['Led', 'Úno', 'Bře', 'Dub', 'Kvě', 'Čer', 'Čvc', 'Srp', 'Zář', 'Říj', 'Lis', 'Pro'];
-
-    const mesicniLabels = sortedMonthsData.map(data => {
-      return monthNames[data.month];
-    });
-
-    const mesicniValues = sortedMonthsData.map(data => data.revenue);
-
-    console.log('📊 Dashboard finální data:');
-    console.log('Labels:', mesicniLabels);
-    console.log('Values:', mesicniValues);
-
-    return {
-      celkoveTrzby: celkoveTrzby.toLocaleString(),
-      celkovyZisk: celkovyZisk.toLocaleString(),
-      pocetZakazek: pocetZakazek.toString(),
-      prumernyZisk: prumernyZisk.toLocaleString(),
-      mesicniData: {
-        labels: mesicniLabels,
-        values: mesicniValues
-      },
-      rozlozeniData: {
-        labels: Object.keys(categoryStats),
-        values: Object.values(categoryStats),
-        colors: workCategories.map(cat => cat.color)
-      }
-    };
-  }, [zakazkyData, workCategories]);
+  // Použití custom hooks pro statistiky a graf data
+  const { dashboardData } = useZakazkyStatistics(zakazkyData, workCategories);
+  const { getCombinedChartData } = useChartData(zakazkyData);
 
   // Funkce pro přidání zakázky
   const addZakazka = async (newZakazka) => {
@@ -4731,19 +4416,45 @@ const PaintPro = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return (
+          <Dashboard
+            dashboardData={dashboardData}
+            getCombinedChartData={getCombinedChartData}
+            combinedChartOptions={combinedChartOptions}
+            doughnutChartData={doughnutChartData}
+            doughnutChartOptions={doughnutChartOptions}
+            getMonthlyPerformance={getMonthlyPerformance}
+            getYearlyData={getYearlyData}
+            zakazkyData={zakazkyData}
+            hoveredCard={hoveredCard}
+            setHoveredCard={setHoveredCard}
+          />
+        );
       case 'zakazky':
         return <Zakazky />;
       case 'reporty':
-        return <Reporty />;
+        return <ReportsSection zakazkyData={zakazkyData} activeTab={activeTab} setActiveTab={setActiveTab} />;
       case 'kalendar':
         return <Kalendar />;
       case 'mapa':
-        return <MapaZakazek />;
+        return <MapSection zakazkyData={zakazkyData} workCategories={workCategories} />;
       case 'kalkulacka':
         return <Kalkulacka />;
       default:
-        return <Dashboard />;
+        return (
+          <Dashboard
+            dashboardData={dashboardData}
+            getCombinedChartData={getCombinedChartData}
+            combinedChartOptions={combinedChartOptions}
+            doughnutChartData={doughnutChartData}
+            doughnutChartOptions={doughnutChartOptions}
+            getMonthlyPerformance={getMonthlyPerformance}
+            getYearlyData={getYearlyData}
+            zakazkyData={zakazkyData}
+            hoveredCard={hoveredCard}
+            setHoveredCard={setHoveredCard}
+          />
+        );
     }
   };
 
