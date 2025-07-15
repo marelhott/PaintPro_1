@@ -1,24 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Načtení Supabase konfigurace z environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://dgcjxznkhqybotgrkgmw.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRnY2p4em5raHF5Ym90Z3JrZ213Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzY1OTc2MjEsImV4cCI6MjA1MjE3MzYyMX0.ZJFr5QyVR8FKtIYdMfkJepHN4RYwXzL1h0-8P3PMHS4';
+// Supabase konfigurace - používá environment variables s fallback hodnotami
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://rstdbgnxkgdbdwgrlzgx.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdGRiZ254a2dkYmR3Z3JsemdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyODk3NjYsImV4cCI6MjA1MTg2NTc2Nn0.rHODtNAVCpDzJ6O3nSBj4nfWF5mTQe-rZuDmqzA4hCQ';
 
-console.log('🔧 Načítám Supabase konfiguraci...');
-console.log('📍 URL existuje:', !!supabaseUrl);
-console.log('🔑 Key existuje:', !!supabaseAnonKey);
+console.log('🔧 Supabase konfigurace:', {
+  url: supabaseUrl ? '✅ Nastaveno' : '❌ Chybí',
+  key: supabaseKey ? '✅ Nastaveno' : '❌ Chybí'
+});
 
-// Kontrola konfigurace
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ CHYBA: Chybí Supabase konfigurace!');
-  console.error('Nastavte v Replit Secrets:');
-  console.error('- VITE_SUPABASE_URL');
-  console.error('- VITE_SUPABASE_ANON_KEY');
-  throw new Error('Chybí Supabase konfigurace');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Vytvoření AuthContext
 const AuthContext = createContext();

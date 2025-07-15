@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -30,7 +29,7 @@ async function updateData() {
     const fee = Math.round(item.castka * 0.261);
     const fee_off = item.castka - fee;
     const zisk = fee_off - item.palivo - item.material - item.pomocnik;
-    
+
     await supabase
       .from('orders')
       .update({
@@ -44,7 +43,7 @@ async function updateData() {
       })
       .eq('user_id', 'lenka')
       .eq('cislo', item.cislo);
-      
+
     console.log(`✅ ${item.cislo} aktualizováno`);
   }
 }
