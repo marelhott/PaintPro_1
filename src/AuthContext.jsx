@@ -1,9 +1,18 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Inicializace Supabase klienta
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://lseqrqmtjymukewnejdd.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZXFycW10anltdWtld25lamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNjQ2MjcsImV4cCI6MjA2Nzg0MDYyN30.SgWjc-GETZ_D0tJNtErxXhUaH6z_MgRJtxc94RsUXPw';
+// Inicializace Supabase klienta - pouze z environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Kontrola, zda jsou klíče nastaveny
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ CHYBA: Chybí Supabase konfigurace!');
+  console.error('Nastavte v Replit Secrets:');
+  console.error('- VITE_SUPABASE_URL');
+  console.error('- VITE_SUPABASE_ANON_KEY');
+  throw new Error('Chybí Supabase konfigurace');
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -271,7 +280,7 @@ export const AuthProvider = ({ children }) => {
         palivo: orderData.palivo || 0,
         adresa: orderData.adresa || '',
         typ: orderData.typ || 'byt',
-        doba_realizace: orderData.doba_realizace || 1,
+        delkaRealizace: orderData.delkaRealizace || 1,
         poznamka: orderData.poznamka || '',
         soubory: orderData.soubory || [],
         zisk: (orderData.castka || 0) - (orderData.fee || 0) - (orderData.material || 0) - (orderData.pomocnik || 0) - (orderData.palivo || 0),
