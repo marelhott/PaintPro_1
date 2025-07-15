@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import workCategoryManager from '../utils/WorkCategoryManager';
+import { validateZakazka } from '../utils/formValidation';
 
 const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCategories, setWorkCategories }) => {
   const [formData, setFormData] = useState({
@@ -21,10 +22,29 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
 
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
+  const [validationErrors, setValidationErrors] = useState({});
   const fileInputRef = useRef(null);
+
+  // Real-time validace při změně formuláře
+  const handleFormChange = (field, value) => {
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    
+    // Validuj pouze změněné pole
+    const validation = validateZakazka(newFormData);
+    setValidationErrors(validation.errors);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Kompletní validace před odesláním
+    const validation = validateZakazka(formData);
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      alert('❌ Formulář obsahuje chyby. Prosím opravte označená pole.');
+      return;
+    }
 
     // Přidat kategorii, pokud není prázdná a neexistuje
     if (formData.druh && formData.druh.trim()) {
@@ -448,22 +468,38 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-row">
             <div className="form-group">
-              <label>Datum</label>
+              <label>Datum *</label>
               <input
                 type="date"
                 value={formData.datum}
-                onChange={e => setFormData({...formData, datum: e.target.value})}
+                onChange={e => handleFormChange('datum', e.target.value)}
+                style={{
+                  borderColor: validationErrors.datum ? '#ef4444' : '#e5e7eb'
+                }}
               />
+              {validationErrors.datum && (
+                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                  {validationErrors.datum}
+                </div>
+              )}
             </div>
             <div className="form-group">
-              <label>Druh práce</label>
+              <label>Druh práce *</label>
               <input
                 type="text"
                 value={formData.druh}
-                onChange={e => setFormData({...formData, druh: e.target.value})}
+                onChange={e => handleFormChange('druh', e.target.value)}
                 placeholder="Vložit druh práce"
                 list="work-categories-list"
+                style={{
+                  borderColor: validationErrors.druh ? '#ef4444' : '#e5e7eb'
+                }}
               />
+              {validationErrors.druh && (
+                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                  {validationErrors.druh}
+                </div>
+              )}
               <datalist id="work-categories-list">
                 {workCategories.map(category => (
                   <option key={category.name} value={category.name} />
@@ -473,22 +509,38 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Klient</label>
+              <label>Klient *</label>
               <input
                 type="text"
                 value={formData.klient}
-                onChange={e => setFormData({...formData, klient: e.target.value})}
+                onChange={e => handleFormChange('klient', e.target.value)}
                 placeholder="Jméno klienta"
+                style={{
+                  borderColor: validationErrors.klient ? '#ef4444' : '#e5e7eb'
+                }}
               />
+              {validationErrors.klient && (
+                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                  {validationErrors.klient}
+                </div>
+              )}
             </div>
             <div className="form-group">
-              <label>Číslo zakázky</label>
+              <label>Číslo zakázky *</label>
               <input
                 type="text"
                 value={formData.cislo}
-                onChange={e => setFormData({...formData, cislo: e.target.value})}
+                onChange={e => handleFormChange('cislo', e.target.value)}
                 placeholder="Číslo zakázky"
+                style={{
+                  borderColor: validationErrors.cislo ? '#ef4444' : '#e5e7eb'
+                }}
               />
+              {validationErrors.cislo && (
+                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                  {validationErrors.cislo}
+                </div>
+              )}
             </div>
           </div>
           <div className="form-group">
@@ -502,13 +554,21 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
           </div>
           <div className="form-row">
             <div className="form-group">
-              <label>Částka (Kč)</label>
+              <label>Částka (Kč) *</label>
               <input
                 type="number"
                 value={formData.castka}
-                onChange={e => setFormData({...formData, castka: e.target.value})}
+                onChange={e => handleFormChange('castka', e.target.value)}
                 placeholder="0"
+                style={{
+                  borderColor: validationErrors.castka ? '#ef4444' : '#e5e7eb'
+                }}
               />
+              {validationErrors.castka && (
+                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px' }}>
+                  {validationErrors.castka}
+                </div>
+              )}
             </div>
             <div className="form-group">
               <label>Fee (26.1% z částky)</label>

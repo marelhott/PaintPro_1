@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import FileManager from '../utils/FileManager';
+import fileManager from '../utils/FileManager';
 
 const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -17,13 +17,13 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
     try {
       const uploadPromises = selectedFiles.map(async (file, index) => {
         // Validace souboru
-        const validation = FileManager.validateFile(file);
+        const validation = fileManager.validateFile(file);
         if (!validation.valid) {
           throw new Error(`${file.name}: ${validation.error}`);
         }
 
         // Upload do localStorage
-        const result = await FileManager.uploadFile(file, zakazka.id.toString());
+        const result = await fileManager.uploadFile(file, zakazka.id.toString());
         if (!result.success) {
           throw new Error(`${file.name}: ${result.error}`);
         }
@@ -63,12 +63,12 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
 
   const handleDownload = (fileObj) => {
     console.log('📥 Stahování souboru:', fileObj.name);
-    FileManager.downloadFile(fileObj.url, fileObj.name);
+    fileManager.downloadFile(fileObj.url, fileObj.name);
   };
 
   const handleDelete = (fileId) => {
     if (window.confirm('Opravdu chcete smazat tento soubor?')) {
-      const result = FileManager.deleteFile(fileId);
+      const result = fileManager.deleteFile(fileId);
       if (result.success) {
         const updatedFiles = zakazka.soubory.filter(f => f.id !== fileId);
         onFilesUpdate(zakazka.id, updatedFiles);
@@ -197,7 +197,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                   Nahrané soubory ({filesCount})
                 </h4>
                 <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  {FileManager.formatFileSize(totalSize)}
+                  {fileManager.formatFileSize(totalSize)}
                 </div>
               </div>
 
@@ -229,10 +229,10 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                         color: '#6b7280',
                         marginTop: '2px'
                       }}>
-                        {FileManager.formatFileSize(file.size)}
+                        {fileManager.formatFileSize(file.size)}
                         {file.compressed && ' (komprimováno)'}
                         {file.originalSize && file.originalSize > file.size && 
-                          ` • úspora ${FileManager.formatFileSize(file.originalSize - file.size)}`
+                          ` • úspora ${fileManager.formatFileSize(file.originalSize - file.size)}`
                         }
                       </div>
                     </div>
@@ -309,7 +309,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                   marginTop: '8px',
                   textAlign: 'center'
                 }}>
-                  Max. velikost: {FileManager.maxFileSize / (1024*1024)}MB | 
+                  Max. velikost: {fileManager.maxFileSize / (1024*1024)}MB | 
                   Podporované formáty: obrázky, PDF, dokumenty, videa, audio, archivy
                 </div>
               </div>

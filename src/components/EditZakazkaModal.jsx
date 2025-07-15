@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import workCategoryManager from '../utils/WorkCategoryManager';
+import { validateZakazka } from '../utils/formValidation';
 
 const EditZakazkaModal = ({ showEditModal, setShowEditModal, editingZakazka, handleEditZakazka, workCategories, setWorkCategories }) => {
   const [formData, setFormData] = useState(editingZakazka || {});
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     if (editingZakazka) {
@@ -15,8 +17,25 @@ const EditZakazkaModal = ({ showEditModal, setShowEditModal, editingZakazka, han
     }
   }, [editingZakazka]);
 
+  // Real-time validace
+  const handleFormChange = (field, value) => {
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    
+    const validation = validateZakazka(newFormData);
+    setValidationErrors(validation.errors);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // Kompletní validace
+    const validation = validateZakazka(formData);
+    if (!validation.isValid) {
+      setValidationErrors(validation.errors);
+      alert('❌ Formulář obsahuje chyby. Prosím opravte označená pole.');
+      return;
+    }
 
     // Přidat kategorii, pokud neexistuje (jednoduše při submitu)
     if (formData.druh && formData.druh.trim()) {
