@@ -1,16 +1,26 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase konfigurace - používá environment variables s fallback hodnotami
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://rstdbgnxkgdbdwgrlzgx.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdGRiZ254a2dkYmR3Z3JsemdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzYyODk3NjYsImV4cCI6MjA1MTg2NTc2Nn0.rHODtNAVCpDzJ6O3nSBj4nfWF5mTQe-rZuDmqzA4hCQ';
+// Supabase konfigurace - POUZE environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-console.log('🔧 Supabase konfigurace:', {
-  url: supabaseUrl ? '✅ Nastaveno' : '❌ Chybí',
-  key: supabaseKey ? '✅ Nastaveno' : '❌ Chybí'
-});
+console.log('🔧 Supabase konfigurace:');
+console.log('- URL:', supabaseUrl ? '✅ Nastaveno' : '❌ CHYBÍ');
+console.log('- Key:', supabaseKey ? '✅ Nastaveno' : '❌ CHYBÍ');
+console.log('- URL hodnota:', supabaseUrl);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+// KONTROLA: Musí být nastaveny environment variables
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ KRITICKÁ CHYBA: Chybí Supabase konfigurace!');
+  console.error('📋 KROKY K OPRAVĚ:');
+  console.error('1. Otevřete Replit Secrets (Tools > Secrets)');
+  console.error('2. Přidejte: VITE_SUPABASE_URL');
+  console.error('3. Přidejte: VITE_SUPABASE_ANON_KEY');
+  console.error('4. Restartujte aplikaci');
+}
+
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Vytvoření AuthContext
 const AuthContext = createContext();
