@@ -286,7 +286,7 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
         </span>
       </td>
       <td>
-        {zakazka.dobaRealizace ? `${zakazka.dobaRealizace} ${zakazka.dobaRealizace === 1 ? 'den' : zakazka.dobaRealizace <= 4 ? 'dny' : 'dní'}` : '1 den'}
+        {zakazka.delkaRealizace ? `${zakazka.delkaRealizace} ${zakazka.delkaRealizace === 1 ? 'den' : zakazka.delkaRealizace <= 4 ? 'dny' : 'dní'}` : '1 den'}
       </td>
       <td>{zakazka.poznamky || '-'}</td>
       <td>

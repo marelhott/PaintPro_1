@@ -6,7 +6,8 @@ import CalendarComponent from './CalendarComponent';
 import CalculatorComponent from './CalculatorComponent';
 import { AuthProvider, useAuth } from './AuthContext';
 import LoginScreen from './LoginScreen';
-import gitLockManager from './GitLockManager.js';
+import GitLockManager from './GitLockManager.js';
+const gitLockManager = GitLockManager;
 
 // Funkce pro kompletní PDF export všech stránek
 const exportCompletePDF = async (activeTab, setActiveTab, userData) => {
@@ -286,78 +287,96 @@ class SimpleWorkCategoryManager {
 // Globální instance manageru
 const workCategoryManager = new SimpleWorkCategoryManager();
 
-// File management funkce - lokální implementace
-const validateFile = async (file) => {
-  // Maximální velikost 10MB
-  const maxSize = 10 * 1024 * 1024;
-  
-  if (file.size > maxSize) {
-    return { valid: false, error: 'Soubor je příliš velký (maximum 10MB)' };
-  }
-  
-  // Povolené typy souborů
-  const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-    'application/pdf', 'text/plain', 'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  ];
-  
-  if (!allowedTypes.includes(file.type)) {
-    return { valid: false, error: 'Nepodporovaný typ souboru' };
-  }
-  
-  return { valid: true };
-};
-
-const uploadFileToSupabase = async (file, zakazkaId) => {
-  try {
-    // Simulace uploadu - ukládání do localStorage jako base64
-    const reader = new FileReader();
+// CENTRÁLNÍ FILE MANAGEMENT SYSTÉM
+class FileManager {
+  static async validateFile(file) {
+    // Maximální velikost 10MB
+    const maxSize = 10 * 1024 * 1024;
     
-    return new Promise((resolve, reject) => {
-      reader.onload = function(e) {
-        const fileData = {
-          id: Date.now() + Math.random(),
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          url: e.target.result, // base64 data URL
-          uploadedAt: new Date().toISOString(),
-          zakazkaId: zakazkaId
+    if (file.size > maxSize) {
+      return { valid: false, error: 'Soubor je příliš velký (maximum 10MB)' };
+    }
+    
+    // Povolené typy souborů
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+      'application/pdf', 'text/plain', 'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      return { valid: false, error: 'Nepodporovaný typ souboru' };
+    }
+    
+    return { valid: true };
+  }
+
+  static async uploadFile(file, zakazkaId) {
+    try {
+      // Validace
+      const validation = await FileManager.validateFile(file);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
+      }
+
+      // Upload do localStorage jako base64
+      const reader = new FileReader();
+      
+      return new Promise((resolve, reject) => {
+        reader.onload = function(e) {
+          const fileData = {
+            id: Date.now() + Math.random(),
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            url: e.target.result, // base64 data URL
+            uploadedAt: new Date().toISOString(),
+            zakazkaId: zakazkaId
+          };
+          
+          // Uložit do localStorage
+          const existingFiles = JSON.parse(localStorage.getItem('paintpro_files') || '[]');
+          existingFiles.push(fileData);
+          localStorage.setItem('paintpro_files', JSON.stringify(existingFiles));
+          
+          resolve({ success: true, fileObject: fileData });
         };
         
-        // Uložit do localStorage
-        const existingFiles = JSON.parse(localStorage.getItem('paintpro_files') || '[]');
-        existingFiles.push(fileData);
-        localStorage.setItem('paintpro_files', JSON.stringify(existingFiles));
+        reader.onerror = function() {
+          reject({ success: false, error: 'Chyba při čtení souboru' });
+        };
         
-        resolve({ success: true, fileObject: fileData });
-      };
-      
-      reader.onerror = function() {
-        reject({ success: false, error: 'Chyba při čtení souboru' });
-      };
-      
-      reader.readAsDataURL(file);
-    });
-  } catch (error) {
-    return { success: false, error: error.message };
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
-};
 
-const downloadFile = (url, filename) => {
-  try {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    console.error('Chyba při stahování souboru:', error);
-    alert('Chyba při stahování souboru');
+  static downloadFile(url, filename) {
+    try {
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Chyba při stahování souboru:', error);
+      alert('Chyba při stahování souboru');
+    }
   }
-};
+
+  static getFilesForOrder(zakazkaId) {
+    const allFiles = JSON.parse(localStorage.getItem('paintpro_files') || '[]');
+    return allFiles.filter(file => file.zakazkaId === zakazkaId);
+  }
+}
+
+// Zpětná kompatibilita
+const validateFile = FileManager.validateFile;
+const uploadFileToSupabase = FileManager.uploadFile;
+const downloadFile = FileManager.downloadFile;
 
 // Helper funkce pro filtrování kalendářových vs. hlavních zakázek
 const filterMainOrdersOnly = (zakazkyData) => {
@@ -409,15 +428,18 @@ const PaintPro = () => {
       }
     };
 
+    // Handler pro unhandledrejection
+    const handleUnhandledRejection = (event) => {
+      handleGitError(event.reason);
+    };
+
     // Globální error listener
     window.addEventListener('error', handleGitError);
-    window.addEventListener('unhandledrejection', (event) => {
-      handleGitError(event.reason);
-    });
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
     return () => {
       window.removeEventListener('error', handleGitError);
-      window.removeEventListener('unhandledrejection', handleGitError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
     };
   }, []);
 
@@ -2459,7 +2481,7 @@ const PaintPro = () => {
         alert(`✅ Úspěšně importováno ${importedOrders.length} zakázek z CSV`);
       } catch (error) {
         console.error('Chyba při importu CSV:', error);
-        alert('❌ Chyba při importu CSV souboru');
+        alert('❌ Chyba při importu CSV souboru: ' + error.message);
       }
     };
     reader.readAsText(file);
@@ -2508,8 +2530,8 @@ const PaintPro = () => {
         zakazka.palivo || 0,
         zakazka.adresa || '',
         zakazka.typ || '',
-        zakazka.dobaRealizace || zakazka.delkaRealizace || 1,
-        zakazka.poznamky || zakazka.poznamka || '',
+        zakazka.delkaRealizace || 1,
+        zakazka.poznamky || '',
         zakazka.zisk || 0
       ]);
 
