@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { testSupabaseConnection, testSupabaseTables } from '../utils/supabaseTest';
 
@@ -14,7 +13,7 @@ const SupabaseTest = () => {
 
     // Test základního připojení
     const connectionTest = await testSupabaseConnection();
-    
+
     // Test tabulek
     const tablesTest = await testSupabaseTables();
 
@@ -22,7 +21,7 @@ const SupabaseTest = () => {
       connection: connectionTest,
       tables: tablesTest
     });
-    
+
     setIsLoading(false);
   };
 
@@ -40,7 +39,7 @@ const SupabaseTest = () => {
       maxWidth: '400px'
     }}>
       <h3>🔧 Supabase Diagnostika</h3>
-      
+
       <button 
         onClick={runTests}
         disabled={isLoading}
@@ -59,7 +58,7 @@ const SupabaseTest = () => {
       {testResults && (
         <div style={{ marginTop: '15px' }}>
           <h4>📊 Výsledky:</h4>
-          
+
           <div style={{ marginBottom: '10px' }}>
             <strong>Připojení:</strong>
             <div style={{ 

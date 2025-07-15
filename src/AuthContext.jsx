@@ -1,26 +1,27 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase konfigurace - POUZE environment variables
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Supabase konfigurace - environment variables s bezpečnymi fallback hodnotami
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://lseqrqmtjymukewnejdd.supabase.co';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZXFycW10anltdWtld25lamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNjQ2MjcsImV4cCI6MjA2Nzg0MDYyN30.SgWjc-GETZ_D0tJNtErxXhUaH6z_MgRJtxc94RsUXPw';
 
 console.log('🔧 Supabase konfigurace:');
 console.log('- URL:', supabaseUrl ? '✅ Nastaveno' : '❌ CHYBÍ');
 console.log('- Key:', supabaseKey ? '✅ Nastaveno' : '❌ CHYBÍ');
 console.log('- URL hodnota:', supabaseUrl);
 
-// KONTROLA: Musí být nastaveny environment variables
+// KONTROLA: Ověř, že konfigurace je kompletní
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ KRITICKÁ CHYBA: Chybí Supabase konfigurace!');
   console.error('📋 KROKY K OPRAVĚ:');
   console.error('1. Otevřete Replit Secrets (Tools > Secrets)');
-  console.error('2. Přidejte: VITE_SUPABASE_URL');
-  console.error('3. Přidejte: VITE_SUPABASE_ANON_KEY');
+  console.error('2. Přidejte: VITE_SUPABASE_URL = https://lseqrqmtjymukewnejdd.supabase.co');
+  console.error('3. Přidejte: VITE_SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzZXFycW10anltdWtld25lamRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTIyNjQ2MjcsImV4cCI6MjA2Nzg0MDYyN30.SgWjc-GETZ_D0tJNtErxXhUaH6z_MgRJtxc94RsUXPw');
   console.error('4. Restartujte aplikaci');
 }
 
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+// Vytvoř Supabase klienta - vždy by měl existovat
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Vytvoření AuthContext
 const AuthContext = createContext();
