@@ -1,3 +1,2 @@
-
-// Centrální export všech hooks
+// Centrální export všech custom hooks
 export { useZakazkyData } from './useZakazkyData';
