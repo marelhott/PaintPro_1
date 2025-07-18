@@ -432,6 +432,11 @@ export const AuthProvider = ({ children }) => {
   // Změna PINu
   const changePin = async (currentPinPlain, newPinPlain) => {
     try {
+      console.log('🔧 ZMĚNA PIN - START');
+      console.log('📝 Současný uživatel:', currentUser?.id, currentUser?.name);
+      console.log('📝 Zadaný současný PIN:', currentPinPlain);
+      console.log('📝 Zadaný nový PIN:', newPinPlain);
+
       const users = await loadUsers();
       const hashedCurrentPin = hashPin(currentPinPlain);
 
@@ -443,10 +448,15 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Uživatel nenalezen' };
       }
 
-      // Ověř současný PIN - porovnej hash zadaného PINu s uloženým hashem
+      // Debug info
       console.log('🔍 Ověřuji PIN pro uživatele:', currentUser.id);
-      console.log('📝 Uložený hash:', user.pin_hash);
+      console.log('📝 Uložený hash v databázi:', user.pin_hash);
       console.log('📝 Hash zadaného PINu:', hashedCurrentPin);
+      console.log('📝 Jsou si rovny?', user.pin_hash === hashedCurrentPin);
+
+      // Test hash funkce
+      console.log('🧪 TEST: Hash z 123456:', hashPin('123456'));
+      console.log('🧪 TEST: Hash z 321321:', hashPin('321321'));
       
       if (user.pin_hash !== hashedCurrentPin) {
         console.log('❌ PIN nesouhlasí');
@@ -456,6 +466,7 @@ export const AuthProvider = ({ children }) => {
       console.log('✅ PIN ověřen správně');
 
       const hashedNewPin = hashPin(newPinPlain);
+      console.log('📝 Hash nového PINu:', hashedNewPin);
 
       // Aktualizuj cache
       const updatedUsers = users.map(u => 
@@ -484,7 +495,6 @@ export const AuthProvider = ({ children }) => {
           console.log('✅ PIN úspěšně aktualizován v Supabase');
         } catch (error) {
           console.warn('⚠️ PIN změněn lokálně, bude synchronizován později');
-          // Přidej do queue pro pozdější synchronizaci
           addToQueue({
             type: 'update_user_pin',
             userId: currentUser.id,
@@ -499,6 +509,7 @@ export const AuthProvider = ({ children }) => {
         });
       }
 
+      console.log('🔧 ZMĚNA PIN - ÚSPĚCH');
       return { success: true };
     } catch (error) {
       console.error('❌ Chyba při změně PINu:', error);

@@ -2,6 +2,17 @@
 import React, { useState } from 'react';
 import { useAuth } from '../AuthContext';
 
+// Test hash funkce (stejná jako v AuthContext)
+const testHashPin = (pin) => {
+  let hash = 0;
+  for (let i = 0; i < pin.length; i++) {
+    const char = pin.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString();
+};
+
 const ProfileSettings = ({ isOpen, onClose }) => {
   const { changePin, currentUser } = useAuth();
   const [formData, setFormData] = useState({
@@ -21,6 +32,14 @@ const ProfileSettings = ({ isOpen, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    console.log('🔧 ProfileSettings - handleSubmit START');
+    console.log('📝 Současný uživatel:', currentUser?.id, currentUser?.name);
+    console.log('📝 Aktuální PIN hash v currentUser:', currentUser?.pin_hash);
+    console.log('📝 Zadaný současný PIN:', formData.currentPin);
+    console.log('📝 Hash zadaného současného PINu:', testHashPin(formData.currentPin));
+    console.log('📝 Zadaný nový PIN:', formData.newPin);
+    console.log('📝 Hash zadaného nového PINu:', testHashPin(formData.newPin));
     
     if (formData.currentPin.length < 4) {
       setMessage({ text: 'Současný PIN musí mít alespoň 4 číslice', type: 'error' });
@@ -46,7 +65,13 @@ const ProfileSettings = ({ isOpen, onClose }) => {
     setMessage({ text: '', type: '' });
 
     try {
+      console.log('🔧 ProfileSettings - Zahajuji změnu PINu');
+      console.log('📝 Aktuální PIN:', formData.currentPin);
+      console.log('📝 Nový PIN:', formData.newPin);
+      
       const result = await changePin(formData.currentPin, formData.newPin);
+      
+      console.log('📝 Výsledek změny PINu:', result);
       
       if (result.success) {
         setMessage({ text: '✅ PIN byl úspěšně změněn! Při příštím přihlášení použijte nový PIN.', type: 'success' });
@@ -64,6 +89,7 @@ const ProfileSettings = ({ isOpen, onClose }) => {
           }
         }, 1000);
       } else {
+        console.error('❌ Chyba při změně PINu:', result.error);
         setMessage({ text: result.error || 'Chyba při změně PINu', type: 'error' });
       }
     } catch (error) {
