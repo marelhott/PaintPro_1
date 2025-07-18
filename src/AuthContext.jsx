@@ -143,7 +143,7 @@ export const AuthProvider = ({ children }) => {
       name: 'Administrátor',
       avatar: 'AD',
       color: '#8b5cf6',
-      pin_hash: hashPin('123456'),
+      pin_hash: hashPin('135715'),
       is_admin: true,
       created_at: new Date().toISOString()
     };
@@ -594,6 +594,50 @@ export const AuthProvider = ({ children }) => {
     return lenkaProfile;
   };
 
+  // Oprava PIN administrátora
+  const fixAdminPin = async () => {
+    try {
+      console.log('🔧 Opravuji PIN administrátora na 135715...');
+      const newPinHash = hashPin('135715');
+      
+      // Aktualizuj v Supabase
+      if (isOnline) {
+        const { error } = await supabase
+          .from('users')
+          .update({ pin_hash: newPinHash })
+          .eq('id', 'admin_1');
+        
+        if (error) {
+          console.error('❌ Chyba při aktualizaci PIN v Supabase:', error);
+        } else {
+          console.log('✅ PIN administrátora úspěšně aktualizován v Supabase');
+        }
+      }
+      
+      // Aktualizuj v cache
+      const users = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
+      const updatedUsers = users.map(user => 
+        user.id === 'admin_1' ? { ...user, pin_hash: newPinHash } : user
+      );
+      localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
+      
+      // Pokud je admin přihlášený, aktualizuj i currentUser
+      const currentUserData = localStorage.getItem('paintpro_current_user');
+      if (currentUserData) {
+        const user = JSON.parse(currentUserData);
+        if (user.id === 'admin_1') {
+          const updatedUser = { ...user, pin_hash: newPinHash };
+          setCurrentUser(updatedUser);
+          localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUser));
+        }
+      }
+      
+      console.log('✅ PIN administrátora opraven na 135715');
+    } catch (error) {
+      console.error('❌ Chyba při opravě PIN:', error);
+    }
+  };
+
   // Inicializace
   useEffect(() => {
     const initialize = async () => {
@@ -607,6 +651,9 @@ export const AuthProvider = ({ children }) => {
         // Načtení uživatelů ze Supabase
         console.log('🔧 Načítám uživatele ze Supabase...');
         await loadUsers();
+
+        // Oprav PIN administrátora
+        await fixAdminPin();
 
         // Zpracuj queue při startu
         if (isOnline) {
