@@ -1,4 +1,3 @@
-
 // GitLockManager.js - Automatické řešení problémů s .git/index.lock
 
 class GitLockManager {
@@ -11,7 +10,7 @@ class GitLockManager {
   // Automatické čištění lock souborů při startu
   async checkAndCleanLockFiles() {
     if (this.isLockChecking) return;
-    
+
     this.isLockChecking = true;
     console.log('🔍 Kontroluji git lock soubory...');
 
@@ -73,7 +72,7 @@ class GitLockManager {
   async executeShellCommand(command) {
     // V reálném Replit prostředí by toto bylo nahrazeno skutečným shell příkazem
     console.log(`🔧 Spouštím: ${command}`);
-    
+
     // Pro browser simulaci - v produkci by toto volalo skutečný shell
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -105,9 +104,9 @@ class GitLockManager {
         🔓 Git odemknut! Vyčištěno ${count} lock souborů
       </div>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Auto-remove po 3 sekundách
     setTimeout(() => {
       if (notification.parentNode) {
