@@ -281,6 +281,28 @@ body::after {
   text-overflow: ellipsis;
 }
 
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.settings-btn:hover {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
 .logout-btn {
   background: none;
   border: none;
@@ -2748,8 +2770,69 @@ padding-bottom: 16px;
 
 .message.error {
   background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68,68, 0.3);
+  border: 1px solid rgba(239, 68, 68, 0.3);
   color: #ef4444;
+}
+
+/* Profile Settings Styles */
+.profile-settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.profile-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.profile-details h3 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.admin-badge-small {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.change-pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.change-pin-form h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
 }
 
 .account-info {

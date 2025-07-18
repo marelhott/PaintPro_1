@@ -435,12 +435,18 @@ export const AuthProvider = ({ children }) => {
       const users = await loadUsers();
       const hashedCurrentPin = hashPin(currentPinPlain);
 
-      // Najdi uživatele podle současného uživatele a ověř PIN
-      const user = users.find(u => u.id === currentUser.id && u.pin_hash === hashedCurrentPin);
+      // Najdi současného uživatele
+      const user = users.find(u => u.id === currentUser.id);
 
       if (!user) {
-        console.log('🔍 Hledám uživatele:', currentUser.id, 'hash:', hashedCurrentPin);
-        console.log('👥 Dostupní uživatelé:', users.map(u => ({ id: u.id, hash: u.pin_hash })));
+        console.log('❌ Uživatel nenalezen:', currentUser.id);
+        return { success: false, error: 'Uživatel nenalezen' };
+      }
+
+      // Ověř současný PIN
+      if (user.pin_hash !== hashedCurrentPin) {
+        console.log('🔍 PIN nesouhlasí pro uživatele:', currentUser.id);
+        console.log('📝 Očekávaný hash:', user.pin_hash, 'Zadaný hash:', hashedCurrentPin);
         return { success: false, error: 'Současný PIN je nesprávný' };
       }
 

@@ -1,9 +1,9 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../AuthContext';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { currentUser, logout } = useAuth();
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   return (
     <div className="sidebar">
