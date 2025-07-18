@@ -6,9 +6,6 @@ import CalendarComponent from './CalendarComponent';
 import CalculatorComponent from './CalculatorComponent';
 import { AuthProvider, useAuth } from './AuthContext';
 import LoginScreen from './LoginScreen';
-import gitLockManager from './GitLockManager.js';
-
-
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -75,33 +72,7 @@ const PaintPro = () => {
   // OPRAVA: Inicializace zakazkyData jako prázdné pole
   const [zakazkyData, setZakazkyData] = useState([]);
 
-  // Git lock manager inicializace
-  useEffect(() => {
-    // Automatická kontrola git lock souborů při načtení aplikace
-    gitLockManager.checkAndCleanLockFiles();
-
-    // Global error handler pro git chyby
-    const handleGitError = (error) => {
-      if (gitLockManager.detectLockProblem(error.message || error.toString())) {
-        console.warn('🔍 Detekován git lock problém:', error);
-        gitLockManager.showUnlockButton();
-      }
-    };
-
-    // Handler pro unhandledrejection
-    const handleUnhandledRejection = (event) => {
-      handleGitError(event.reason);
-    };
-
-    // Globální error listener
-    window.addEventListener('error', handleGitError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    return () => {
-      window.removeEventListener('error', handleGitError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, []);
+  
 
   // Načtení dat při přihlášení uživatele
   useEffect(() => {
