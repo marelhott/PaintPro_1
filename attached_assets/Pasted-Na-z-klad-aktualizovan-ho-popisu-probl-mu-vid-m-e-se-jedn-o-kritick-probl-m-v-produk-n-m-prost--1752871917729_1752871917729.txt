@@ -1,0 +1,239 @@
+Na základě aktualizovaného popisu problému vidím, že se jedná o kritický problém v produkčním prostředí s duplicitními daty a nekonzistentní synchronizací. Zde je přesná specifikace řešení:
+
+🎯 PŘESNÁ SPECIFIKACE ŘEŠENÍ
+1. KOMPLETNÍ PŘEPSÁNÍ AuthContext.jsx
+Asistent musí implementovat novou architekturu s těmito klíčovými komponentami:
+
+// NOVÁ ARCHITEKTURA - 5 hlavních vrstev
+// 1. CONNECTION LAYER - detekce online/offline
+const [isOnline, setIsOnline] = useState(navigator.onLine);
+const [lastOnlineTime, setLastOnlineTime] = useState(null);
+// 2. QUEUE LAYER - atomický queue management
+const [syncQueue, setSyncQueue] = useState([]);
+const [isSyncing, setIsSyncing] = useState(false);
+const [syncStatus, setSyncStatus] = useState('idle');
+// 3. CACHE LAYER - inteligentní cache management
+const [localCache, setLocalCache] = useState({});
+const [cacheVersion, setCacheVersion] = useState(0);
+// 4. SYNC LAYER - spolehlivá synchronizace
+const [syncErrors, setSyncErrors] = useState([]);
+const [lastSyncTime, setLastSyncTime] = useState(null);
+// 5. DATA LAYER - jediný zdroj pravdy
+const [dataState, setDataState] = useState('loading');
+2. KRITICKÉ FUNKCE K IMPLEMENTACI
+A) Inteligentní addUserOrder
+const addUserOrder = async (userId, orderData) => {
+  // KROK 1: Vygeneruj unikátní dočasné ID
+  const tempId = `temp_${Date.now()}_${userId}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // KROK 2: Vytvoř normalizovanou zakázku
+  const normalizedOrder = {
+    ...orderData,
+    id: tempId,
+    user_id: userId,
+    created_at: new Date().toISOString(),
+    _isTemp: true,
+    _queueId: tempId
+  };
+  
+  // KROK 3: Okamžitě aktualizuj UI (optimistic update)
+  updateLocalCache(userId, normalizedOrder, 'add');
+  
+  // KROK 4: Zkus online uložení
+  if (isOnline) {
+    try {
+      const result = await saveToSupabaseAtomic(normalizedOrder);
+      if (result.success) {
+        // Nahraď dočasné ID skutečným
+        replaceTempIdInCache(userId, tempId, result.data);
+        return result.data;
+      }
+    } catch (error) {
+      console.warn('Online uložení selhalo:', error);
+      setIsOnline(false);
+    }
+  }
+  
+  // KROK 5: Přidej do queue pro pozdější synchronizaci
+  addToSyncQueue('CREATE', normalizedOrder);
+  
+  return normalizedOrder;
+};
+B) Atomický processQueue
+const processQueue = async () => {
+  if (isSyncing || !isOnline) return;
+  
+  setIsSyncing(true);
+  setSyncStatus('syncing');
+  
+  const queue = [...syncQueue]; // Kopie pro atomické zpracování
+  const processedItems = [];
+  const failedItems = [];
+  
+  // Zpracuj každou položku atomicky
+  for (const item of queue) {
+    try {
+      const result = await processQueueItemAtomic(item);
+      if (result.success) {
+        processedItems.push(item);
+        // Aktualizuj cache s reálnými daty
+        updateCacheWithRealData(item, result.data);
+      } else {
+        failedItems.push({ item, error: result.error });
+      }
+    } catch (error) {
+      failedItems.push({ item, error });
+      
+      // Pokud je síťový problém, přeruš synchronizaci
+      if (isNetworkError(error)) {
+        setIsOnline(false);
+        break;
+      }
+    }
+  }
+  
+  // Atomicky odstraň úspěšné položky z queue
+  setSyncQueue(prev => prev.filter(item => 
+    !processedItems.find(processed => processed._queueId === item._queueId)
+  ));
+  
+  // Zaloguj chyby
+  if (failedItems.length > 0) {
+    setSyncErrors(prev => [...prev, ...failedItems]);
+  }
+  
+  setIsSyncing(false);
+  setSyncStatus('idle');
+  setLastSyncTime(new Date().toISOString());
+};
+C) Inteligentní getUserData
+const getUserData = async (userId) => {
+  // KROK 1: Načti cache
+  const cacheData = getLocalCache(userId);
+  
+  if (!isOnline) {
+    // Offline - vrať pouze cache
+    return cacheData;
+  }
+  
+  try {
+    // KROK 2: Načti data ze Supabase
+    const { data: supabaseData, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    // KROK 3: Inteligentní merge
+    const mergedData = intelligentMerge(supabaseData, cacheData, userId);
+    
+    // KROK 4: Aktualizuj cache
+    setLocalCache(prev => ({
+      ...prev,
+      [userId]: mergedData
+    }));
+    
+    return mergedData;
+    
+  } catch (error) {
+    console.warn('Supabase nedostupná:', error);
+    setIsOnline(false);
+    return cacheData;
+  }
+};
+3. KRITICKÉ POMOCNÉ FUNKCE
+A) Inteligentní merge mechanismus
+const intelligentMerge = (supabaseData, cacheData, userId) => {
+  // Priorita: Supabase > dočasné záznamy z cache
+  const merged = [...supabaseData];
+  
+  // Přidej pouze dočasné záznamy, které nejsou v Supabase
+  const tempRecords = cacheData.filter(item => 
+    item._isTemp && !merged.find(supabaseItem => 
+      supabaseItem.klient === item.klient && 
+      supabaseItem.castka === item.castka &&
+      Math.abs(new Date(supabaseItem.created_at) - new Date(item.created_at)) < 5000
+    )
+  );
+  
+  return [...merged, ...tempRecords];
+};
+B) Atomické Supabase operace
+const saveToSupabaseAtomic = async (orderData) => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{
+        ...orderData,
+        id: undefined, // Nechej Supabase vygenerovat ID
+        _isTemp: undefined,
+        _queueId: undefined
+      }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error };
+  }
+};
+C) Spolehlivé ID replacement
+const replaceTempIdInCache = (userId, tempId, realData) => {
+  setLocalCache(prev => ({
+    ...prev,
+    [userId]: prev[userId].map(item =>
+      item.id === tempId ? { ...realData, _isTemp: false } : item
+    )
+  }));
+  
+  // Odstraň z queue
+  setSyncQueue(prev => prev.filter(item => item._queueId !== tempId));
+};
+4. SÍŤOVÁ ODOLNOST
+const isNetworkError = (error) => {
+  return error.message.includes('fetch') || 
+         error.message.includes('network') ||
+         error.code === 'NETWORK_ERROR';
+};
+const handleNetworkError = () => {
+  setIsOnline(false);
+  // Restart queue processing za 30 sekund
+  setTimeout(() => {
+    if (navigator.onLine) {
+      setIsOnline(true);
+    }
+  }, 30000);
+};
+5. VALIDACE A TESTOVÁNÍ
+// Validace před uložením
+const validateOrder = (orderData) => {
+  const required = ['klient', 'castka', 'datum'];
+  return required.every(field => orderData[field] !== undefined);
+};
+// Debug funkce pro produkci
+const debugDataState = () => {
+  console.log('=== DATA STATE DEBUG ===');
+  console.log('Online:', isOnline);
+  console.log('Queue length:', syncQueue.length);
+  console.log('Cache keys:', Object.keys(localCache));
+  console.log('Last sync:', lastSyncTime);
+};
+📋 IMPLEMENTAČNÍ CHECKLIST
+Asistent musí implementovat:
+✅ Kompletně přepsat AuthContext.jsx - nová architektura s 5 vrstvami
+✅ Implementovat inteligentní merge - správné kombinování dat
+✅ Atomický queue processing - buď úspěch, nebo rollback
+✅ Spolehlivé ID replacement - dočasné → skutečné ID
+✅ Síťová odolnost - graceful handling chyb
+✅ Validace dat - ochrana před špatnými daty
+✅ Debug nástroje - pro testování v produkci
+Kritické aspekty:
+Žádné duplicity - každá zakázka existuje pouze jednou
+Atomické operace - buď úspěch, nebo rollback
+Jednoznačné ID - dočasná ID se spolehlivě nahrazují
+Konzistentní stav - cache vždy odpovídá Supabase
+Tento návod poskytuje přesnou specifikaci pro eliminaci duplicit a zajištění spolehlivé synchronizace v produkčním prostředí.
