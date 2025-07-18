@@ -434,29 +434,25 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔧 ZMĚNA PIN - START');
       console.log('📝 Současný uživatel:', currentUser?.id, currentUser?.name);
-      console.log('📝 Zadaný současný PIN:', currentPinPlain);
-      console.log('📝 Zadaný nový PIN:', newPinPlain);
+
+      if (!currentUser) {
+        return { success: false, error: 'Žádný přihlášený uživatel' };
+      }
 
       const users = await loadUsers();
       const hashedCurrentPin = hashPin(currentPinPlain);
 
-      // Najdi současného uživatele
+      // Najdi současného uživatele v načtených datech
       const user = users.find(u => u.id === currentUser.id);
 
       if (!user) {
-        console.log('❌ Uživatel nenalezen:', currentUser.id);
+        console.log('❌ Uživatel nenalezen v databázi:', currentUser.id);
         return { success: false, error: 'Uživatel nenalezen' };
       }
 
-      // Debug info
       console.log('🔍 Ověřuji PIN pro uživatele:', currentUser.id);
-      console.log('📝 Uložený hash v databázi:', user.pin_hash);
+      console.log('📝 Uložený hash:', user.pin_hash);
       console.log('📝 Hash zadaného PINu:', hashedCurrentPin);
-      console.log('📝 Jsou si rovny?', user.pin_hash === hashedCurrentPin);
-
-      // Test hash funkce
-      console.log('🧪 TEST: Hash z 123456:', hashPin('123456'));
-      console.log('🧪 TEST: Hash z 321321:', hashPin('321321'));
       
       if (user.pin_hash !== hashedCurrentPin) {
         console.log('❌ PIN nesouhlasí');
@@ -468,20 +464,22 @@ export const AuthProvider = ({ children }) => {
       const hashedNewPin = hashPin(newPinPlain);
       console.log('📝 Hash nového PINu:', hashedNewPin);
 
-      // Aktualizuj cache
+      // Vytvoř aktualizovaného uživatele
+      const updatedUserData = { ...user, pin_hash: hashedNewPin };
+
+      // Aktualizuj cache uživatelů
       const updatedUsers = users.map(u => 
-        u.id === currentUser.id ? { ...u, pin_hash: hashedNewPin } : u
+        u.id === currentUser.id ? updatedUserData : u
       );
       localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
 
-      // Aktualizuj současného uživatele
-      const updatedUser = { ...currentUser, pin_hash: hashedNewPin };
-      setCurrentUser(updatedUser);
-      localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUser));
+      // Aktualizuj současného uživatele ve stavu i localStorage
+      setCurrentUser(updatedUserData);
+      localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUserData));
 
       // Synchronizuj s Supabase
-      if (isOnline) {
-        try {
+      try {
+        if (isOnline) {
           console.log('🔧 Aktualizuji PIN v Supabase pro uživatele:', currentUser.id);
           const { error } = await supabase
             .from('users')
@@ -489,19 +487,15 @@ export const AuthProvider = ({ children }) => {
             .eq('id', currentUser.id);
 
           if (error) {
-            console.error('❌ Supabase chyba při aktualizaci PIN:', error);
+            console.error('❌ Supabase chyba:', error);
             throw error;
           }
           console.log('✅ PIN úspěšně aktualizován v Supabase');
-        } catch (error) {
-          console.warn('⚠️ PIN změněn lokálně, bude synchronizován později');
-          addToQueue({
-            type: 'update_user_pin',
-            userId: currentUser.id,
-            data: { pin_hash: hashedNewPin }
-          });
+        } else {
+          throw new Error('Offline režim');
         }
-      } else {
+      } catch (error) {
+        console.warn('⚠️ PIN změněn lokálně, přidávám do queue pro synchronizaci');
         addToQueue({
           type: 'update_user_pin',
           userId: currentUser.id,

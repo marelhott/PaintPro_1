@@ -363,9 +363,7 @@ const LoginScreen = () => {
               </button>
             </form>
 
-            <div className="login-hint">
-              <span>💡 Administrátor má PIN: 123456</span>
-            </div>
+            
           </div>
         )}
 
