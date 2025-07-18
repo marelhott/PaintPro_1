@@ -49,13 +49,20 @@ const ProfileSettings = ({ isOpen, onClose }) => {
       const result = await changePin(formData.currentPin, formData.newPin);
       
       if (result.success) {
-        setMessage({ text: '✅ PIN byl úspěšně změněn!', type: 'success' });
+        setMessage({ text: '✅ PIN byl úspěšně změněn! Při příštím přihlášení použijte nový PIN.', type: 'success' });
         setFormData({ currentPin: '', newPin: '', confirmPin: '' });
         
-        // Automaticky zavři po 2 sekundách
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        // Automaticky zavři po 3 sekundách s odpočítáváním
+        let countdown = 3;
+        const timer = setInterval(() => {
+          countdown--;
+          if (countdown > 0) {
+            setMessage({ text: `✅ PIN byl úspěšně změněn! Zavírám za ${countdown} sekund...`, type: 'success' });
+          } else {
+            clearInterval(timer);
+            onClose();
+          }
+        }, 1000);
       } else {
         setMessage({ text: result.error || 'Chyba při změně PINu', type: 'error' });
       }
@@ -147,7 +154,7 @@ const ProfileSettings = ({ isOpen, onClose }) => {
                 className="btn btn-primary" 
                 disabled={isLoading || !formData.currentPin || !formData.newPin || !formData.confirmPin}
               >
-                {isLoading ? 'Změním...' : 'Změnit PIN'}
+                {isLoading ? '🔄 Změním PIN...' : '🔐 Změnit PIN'}
               </button>
             </div>
           </form>

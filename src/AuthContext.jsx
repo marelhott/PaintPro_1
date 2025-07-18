@@ -443,12 +443,17 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Uživatel nenalezen' };
       }
 
-      // Ověř současný PIN
+      // Ověř současný PIN - porovnej hash zadaného PINu s uloženým hashem
+      console.log('🔍 Ověřuji PIN pro uživatele:', currentUser.id);
+      console.log('📝 Uložený hash:', user.pin_hash);
+      console.log('📝 Hash zadaného PINu:', hashedCurrentPin);
+      
       if (user.pin_hash !== hashedCurrentPin) {
-        console.log('🔍 PIN nesouhlasí pro uživatele:', currentUser.id);
-        console.log('📝 Očekávaný hash:', user.pin_hash, 'Zadaný hash:', hashedCurrentPin);
+        console.log('❌ PIN nesouhlasí');
         return { success: false, error: 'Současný PIN je nesprávný' };
       }
+      
+      console.log('✅ PIN ověřen správně');
 
       const hashedNewPin = hashPin(newPinPlain);
 
