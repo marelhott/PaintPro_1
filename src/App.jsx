@@ -108,9 +108,12 @@ const PaintPro = () => {
     const loadUserData = async () => {
       if (currentUser?.id) {
         try {
+          console.log('🔄 Načítám data pro uživatele:', currentUser.id);
           const data = await getUserData(currentUser.id);
+          
           // OPRAVA: Bezpečná kontrola dat z AuthContext
           let safeData = Array.isArray(data) ? data : [];
+          console.log('📋 Načteno ze AuthContext:', safeData.length, 'zakázek');
           
           // PŘESUN: Přesun hodnot z fee do pomocník a přepočítání zisku
           const updatedData = safeData.map(zakazka => {
@@ -135,18 +138,27 @@ const PaintPro = () => {
           });
           
           setZakazkyData(updatedData);
-          console.log('✅ Data načtena pro uživatele:', currentUser.id, 'počet zakázek:', updatedData.length);
+          console.log('✅ Data zpracována a nastavena, celkem zakázek:', updatedData.length);
         } catch (error) {
           console.error('❌ Chyba při načítání dat:', error);
           setZakazkyData([]); // Fallback na prázdné pole
         }
       } else {
+        console.log('👤 Žádný přihlášený uživatel');
         setZakazkyData([]); // Žádný uživatel = prázdná data
       }
     };
 
     loadUserData();
   }, [currentUser?.id, getUserData]);
+
+  // Další effect pro debug - sledování změn v zakazkyData
+  useEffect(() => {
+    console.log('📊 zakazkyData state změněn, nová délka:', zakazkyData.length);
+    if (zakazkyData.length > 0) {
+      console.log('📊 První zakázka:', zakazkyData[0]);
+    }
+  }, [zakazkyData]);
 
   // Reset stránky při změně filtrů
   useEffect(() => {
