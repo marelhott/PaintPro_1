@@ -66,12 +66,18 @@ const ProfileSettings = ({ isOpen, onClose }) => {
 
     try {
       console.log('🔧 ProfileSettings - Zahajuji změnu PINu');
-      console.log('📝 Aktuální PIN:', formData.currentPin);
-      console.log('📝 Nový PIN:', formData.newPin);
+      console.log('📝 Aktuální uživatel před změnou:', currentUser?.id, currentUser?.name);
+      console.log('📝 Aktuální PIN hash před změnou:', currentUser?.pin_hash);
+      console.log('📝 Zadaný současný PIN:', formData.currentPin);
+      console.log('📝 Hash zadaného současného PINu:', testHashPin(formData.currentPin));
+      console.log('📝 Zadaný nový PIN:', formData.newPin);
+      console.log('📝 Hash zadaného nového PINu:', testHashPin(formData.newPin));
       
       const result = await changePin(formData.currentPin, formData.newPin);
       
       console.log('📝 Výsledek změny PINu:', result);
+      console.log('📝 Aktuální uživatel PO změně:', currentUser?.id, currentUser?.name);
+      console.log('📝 Aktuální PIN hash PO změně:', currentUser?.pin_hash);
       
       if (result.success) {
         setMessage({ text: '✅ PIN byl úspěšně změněn! Při příštím přihlášení použijte nový PIN.', type: 'success' });

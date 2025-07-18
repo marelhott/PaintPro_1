@@ -164,8 +164,22 @@ export const AuthProvider = ({ children }) => {
   // Přihlášení pomocí PIN
   const login = async (pin, userId = null) => {
     try {
+      console.log('🔧 LOGIN - START');
+      console.log('📝 Pokus o přihlášení s PINem:', pin);
+      console.log('📝 User ID (pokud zadán):', userId);
+      
       const users = await loadUsers();
       const hashedPin = hashPin(pin);
+      console.log('📝 Hash zadaného PINu:', hashedPin);
+
+      if (userId) {
+        const targetUser = users.find(u => u.id === userId);
+        if (targetUser) {
+          console.log('📝 Cílový uživatel nalezen:', targetUser.name);
+          console.log('📝 Uložený hash cílového uživatele:', targetUser.pin_hash);
+          console.log('📝 Porovnání:', hashedPin, '===', targetUser.pin_hash, '?', hashedPin === targetUser.pin_hash);
+        }
+      }
 
       let user;
       if (userId) {
@@ -178,9 +192,11 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser(user);
         localStorage.setItem('paintpro_current_user', JSON.stringify(user));
         console.log('✅ Úspěšné přihlášení:', user.name);
+        console.log('📝 Přihlášený uživatel PIN hash:', user.pin_hash);
         return { success: true };
       }
 
+      console.log('❌ Přihlášení selhalo - PIN nenalezen');
       return { success: false, error: 'Neplatný PIN' };
     } catch (error) {
       console.error('❌ Chyba při přihlašování:', error);
@@ -433,28 +449,20 @@ export const AuthProvider = ({ children }) => {
   const changePin = async (currentPinPlain, newPinPlain) => {
     try {
       console.log('🔧 ZMĚNA PIN - START');
-      console.log('📝 Současný uživatel:', currentUser?.id, currentUser?.name);
+      console.log('📝 Současný uživatel ID:', currentUser?.id);
+      console.log('📝 Současný uživatel name:', currentUser?.name);
+      console.log('📝 Současný uživatel pin_hash:', currentUser?.pin_hash);
 
       if (!currentUser) {
         return { success: false, error: 'Žádný přihlášený uživatel' };
       }
 
-      const users = await loadUsers();
+      // Ověř současný PIN proti aktuálnímu stavu uživatele
       const hashedCurrentPin = hashPin(currentPinPlain);
-
-      // Najdi současného uživatele v načtených datech
-      const user = users.find(u => u.id === currentUser.id);
-
-      if (!user) {
-        console.log('❌ Uživatel nenalezen v databázi:', currentUser.id);
-        return { success: false, error: 'Uživatel nenalezen' };
-      }
-
-      console.log('🔍 Ověřuji PIN pro uživatele:', currentUser.id);
-      console.log('📝 Uložený hash:', user.pin_hash);
-      console.log('📝 Hash zadaného PINu:', hashedCurrentPin);
+      console.log('📝 Hash zadaného současného PINu:', hashedCurrentPin);
+      console.log('📝 Uložený hash uživatele:', currentUser.pin_hash);
       
-      if (user.pin_hash !== hashedCurrentPin) {
+      if (currentUser.pin_hash !== hashedCurrentPin) {
         console.log('❌ PIN nesouhlasí');
         return { success: false, error: 'Současný PIN je nesprávný' };
       }
@@ -465,22 +473,26 @@ export const AuthProvider = ({ children }) => {
       console.log('📝 Hash nového PINu:', hashedNewPin);
 
       // Vytvoř aktualizovaného uživatele
-      const updatedUserData = { ...user, pin_hash: hashedNewPin };
+      const updatedUserData = { ...currentUser, pin_hash: hashedNewPin };
+      console.log('📝 Aktualizovaný uživatel:', updatedUserData);
+
+      // Aktualizuj současného uživatele VE STAVU IHNED
+      setCurrentUser(updatedUserData);
+      localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUserData));
+      console.log('✅ CurrentUser aktualizován v React stavu a localStorage');
 
       // Aktualizuj cache uživatelů
+      const users = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
       const updatedUsers = users.map(u => 
         u.id === currentUser.id ? updatedUserData : u
       );
       localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
+      console.log('✅ Cache uživatelů aktualizována');
 
-      // Aktualizuj současného uživatele ve stavu i localStorage
-      setCurrentUser(updatedUserData);
-      localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUserData));
-
-      // Synchronizuj s Supabase
+      // Synchronizuj s Supabase (ale nevadí, když selže)
       try {
         if (isOnline) {
-          console.log('🔧 Aktualizuji PIN v Supabase pro uživatele:', currentUser.id);
+          console.log('🔧 Synchronizuji s Supabase...');
           const { error } = await supabase
             .from('users')
             .update({ pin_hash: hashedNewPin })
@@ -490,12 +502,12 @@ export const AuthProvider = ({ children }) => {
             console.error('❌ Supabase chyba:', error);
             throw error;
           }
-          console.log('✅ PIN úspěšně aktualizován v Supabase');
+          console.log('✅ PIN úspěšně synchronizován s Supabase');
         } else {
           throw new Error('Offline režim');
         }
       } catch (error) {
-        console.warn('⚠️ PIN změněn lokálně, přidávám do queue pro synchronizaci');
+        console.warn('⚠️ PIN změněn lokálně, přidáno do queue pro pozdější synchronizaci');
         addToQueue({
           type: 'update_user_pin',
           userId: currentUser.id,
@@ -503,7 +515,7 @@ export const AuthProvider = ({ children }) => {
         });
       }
 
-      console.log('🔧 ZMĚNA PIN - ÚSPĚCH');
+      console.log('🔧 ZMĚNA PIN - ÚSPĚCH, nový hash:', hashedNewPin);
       return { success: true };
     } catch (error) {
       console.error('❌ Chyba při změně PINu:', error);
