@@ -3,14 +3,17 @@ import { useMemo, useCallback } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
 export const useChartData = (zakazkyData) => {
-  // Stabilní data pro výpočet
+  // Stabilní data pro výpočet s hash kontrolou
   const stableZakazkyData = useMemo(() => {
-    return Array.isArray(zakazkyData) ? zakazkyData : [];
+    const filtered = Array.isArray(zakazkyData) ? zakazkyData : [];
+    // Vytvoříme hash z dat pro detekci skutečných změn
+    const dataHash = filtered.map(z => `${z.id}-${z.datum}-${z.castka}-${z.zisk}`).join('|');
+    return { data: filtered, hash: dataHash };
   }, [zakazkyData]);
 
-  // Kombinovaný graf data
+  // OPRAVENO: Kombinovaný graf data - plně memoizováno s hash kontrolou
   const getCombinedChartData = useMemo(() => {
-    const safeZakazkyDataForChart = filterMainOrdersOnly(stableZakazkyData);
+    const safeZakazkyDataForChart = filterMainOrdersOnly(stableZakazkyData.data);
     
     if (safeZakazkyDataForChart.length === 0) {
       return {
@@ -140,13 +143,9 @@ export const useChartData = (zakazkyData) => {
         }
       ],
     };
-  }, [stableZakazkyData]);
-
-  // Stabilní callback pro chart data
-  const getStableChartData = useCallback(() => getCombinedChartData, [getCombinedChartData]);
+  }, [stableZakazkyData.hash]); // Závislost pouze na hash, ne na celých datech
 
   return { 
-    getCombinedChartData: getStableChartData(),
-    getStableChartData 
+    getCombinedChartData,
   };
 };

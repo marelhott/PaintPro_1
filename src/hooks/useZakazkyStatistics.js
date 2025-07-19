@@ -1,24 +1,21 @@
 
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
 export const useZakazkyStatistics = (zakazkyData, workCategories) => {
-  // Stabilní reference pro data
-  const stableZakazkyData = useMemo(() => {
-    return Array.isArray(zakazkyData) ? zakazkyData : [];
-  }, [zakazkyData]);
+  // Stabilní hash pro data
+  const stableDataHash = useMemo(() => {
+    const filtered = Array.isArray(zakazkyData) ? zakazkyData : [];
+    const dataHash = filtered.map(z => `${z.id}-${z.datum}-${z.castka}-${z.zisk}-${z.druh}`).join('|');
+    const categoriesHash = (workCategories || []).map(c => `${c.name}-${c.color}`).join('|');
+    return `${dataHash}::${categoriesHash}`;
+  }, [zakazkyData, workCategories]);
 
-  const stableWorkCategories = useMemo(() => {
-    return Array.isArray(workCategories) ? workCategories : [];
-  }, [workCategories]);
-
-  // Cache pro předchozí výsledky
-  const previousResult = useRef(null);
-
-  // Dynamicky počítané dashboard data
+  // OPRAVENO: Dashboard data - plně memoizováno s hash kontrolou
   const dashboardData = useMemo(() => {
-    const safeZakazkyData = stableZakazkyData;
+    const safeZakazkyData = Array.isArray(zakazkyData) ? zakazkyData : [];
     const mainOrdersOnly = filterMainOrdersOnly(safeZakazkyData);
+    const safeWorkCategories = Array.isArray(workCategories) ? workCategories : [];
 
     const celkoveTrzby = mainOrdersOnly.reduce((sum, z) => sum + z.castka, 0);
     const celkovyZisk = mainOrdersOnly.reduce((sum, z) => sum + z.zisk, 0);
@@ -27,13 +24,13 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
 
     // Kategorie statistiky
     const categoryStats = {};
-    const availableCategories = stableWorkCategories?.map(cat => cat.name) || [];
+    const availableCategories = safeWorkCategories.map(cat => cat.name) || [];
 
     availableCategories.forEach(category => {
       categoryStats[category] = 0;
     });
 
-    filterMainOrdersOnly(zakazkyData).forEach(zakazka => {
+    mainOrdersOnly.forEach(zakazka => {
       if (categoryStats.hasOwnProperty(zakazka.druh)) {
         categoryStats[zakazka.druh] += zakazka.zisk;
       } else {
@@ -43,7 +40,7 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
 
     // Měsíční data
     const monthlyDataMap = {};
-    filterMainOrdersOnly(zakazkyData).forEach(zakazka => {
+    mainOrdersOnly.forEach(zakazka => {
       let parsedDate, month, year;
       
       if (zakazka.datum.includes('.')) {
@@ -93,6 +90,14 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
     const mesicniLabels = sortedMonthsData.map(data => monthNames[data.month]);
     const mesicniValues = sortedMonthsData.map(data => data.revenue);
 
+    // Rozložení dat podle kategorií
+    const rozlozeniLabels = Object.keys(categoryStats).filter(key => categoryStats[key] > 0);
+    const rozlozeniValues = rozlozeniLabels.map(key => categoryStats[key]);
+    const rozlozeniColors = rozlozeniLabels.map(label => {
+      const category = safeWorkCategories.find(cat => cat.name === label);
+      return category ? category.color : '#6B7280';
+    });
+
     return {
       celkoveTrzby: celkoveTrzby.toLocaleString(),
       celkovyZisk: celkovyZisk.toLocaleString(),
@@ -103,21 +108,12 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
         values: mesicniValues
       },
       rozlozeniData: {
-        labels: Object.keys(categoryStats),
-        values: Object.values(categoryStats),
-        colors: stableWorkCategories?.map(cat => cat.color) || []
+        labels: rozlozeniLabels,
+        values: rozlozeniValues,
+        colors: rozlozeniColors
       }
     };
-
-    // Kontrola zda se data skutečně změnila
-    const currentDataString = JSON.stringify(result);
-    if (previousResult.current && previousResult.current === currentDataString) {
-      return JSON.parse(previousResult.current);
-    }
-    
-    previousResult.current = currentDataString;
-    return result;
-  }, [stableZakazkyData, stableWorkCategories]);
+  }, [stableDataHash]); // Závislost pouze na hash
 
   return { dashboardData };
 };
