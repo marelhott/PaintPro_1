@@ -821,9 +821,6 @@ export const AuthProvider = ({ children }) => {
     initialize();
   }, []);
 
-    initialize();
-  }, []);
-
   // Samostatný effect pro zpracování queue při změně online stavu
   useEffect(() => {
     if (isOnline) {
