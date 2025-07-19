@@ -11,15 +11,24 @@ export const useChartData = (zakazkyData) => {
     return { data: filtered, hash: dataHash };
   }, [zakazkyData]);
 
+  // Stabilní fallback data
+  const emptyChartData = useMemo(() => ({
+    labels: ['Žádná data'],
+    datasets: [{
+      label: 'Žádná data',
+      data: [0],
+      backgroundColor: 'rgba(156, 163, 175, 0.3)',
+      borderColor: 'rgba(156, 163, 175, 0.5)',
+      borderWidth: 1,
+    }]
+  }), []);
+
   // OPRAVENO: Kombinovaný graf data - plně memoizováno s hash kontrolou
   const getCombinedChartData = useMemo(() => {
     const safeZakazkyDataForChart = filterMainOrdersOnly(stableZakazkyData.data);
     
     if (safeZakazkyDataForChart.length === 0) {
-      return {
-        labels: [],
-        datasets: []
-      };
+      return emptyChartData;
     }
 
     const monthlyStats = {};

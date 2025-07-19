@@ -90,13 +90,19 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
     const mesicniLabels = sortedMonthsData.map(data => monthNames[data.month]);
     const mesicniValues = sortedMonthsData.map(data => data.revenue);
 
-    // Rozložení dat podle kategorií
+    // Rozložení dat podle kategorií - stabilní zpracování
     const rozlozeniLabels = Object.keys(categoryStats).filter(key => categoryStats[key] > 0);
     const rozlozeniValues = rozlozeniLabels.map(key => categoryStats[key]);
     const rozlozeniColors = rozlozeniLabels.map(label => {
       const category = safeWorkCategories.find(cat => cat.name === label);
       return category ? category.color : '#6B7280';
     });
+
+    // Fallback pro prázdná data
+    const hasData = rozlozeniLabels.length > 0;
+    const finalLabels = hasData ? rozlozeniLabels : ['Žádná data'];
+    const finalValues = hasData ? rozlozeniValues : [1];
+    const finalColors = hasData ? rozlozeniColors : ['#E5E7EB'];
 
     return {
       celkoveTrzby: celkoveTrzby.toLocaleString(),
@@ -108,9 +114,9 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
         values: mesicniValues
       },
       rozlozeniData: {
-        labels: rozlozeniLabels,
-        values: rozlozeniValues,
-        colors: rozlozeniColors
+        labels: finalLabels,
+        values: finalValues,
+        colors: finalColors
       }
     };
   }, [stableDataHash]); // Závislost pouze na hash
