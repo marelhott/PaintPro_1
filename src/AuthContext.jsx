@@ -234,88 +234,126 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  // 🔄 UTILITY FUNCTIONS
+
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const retryOperation = async (operation, maxRetries = 3) => {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        if (i === maxRetries - 1) throw error;
+        
+        // Exponential backoff
+        const delay = 1000 * Math.pow(2, i);
+        console.log(`🔄 Retry ${i + 1}/${maxRetries} za ${delay}ms`);
+        await sleep(delay);
+      }
+    }
+  };
+
+  const resolveConflict = (localItem, remoteItem) => {
+    // Timestamp-based conflict resolution
+    const localTime = new Date(localItem.created_at || localItem.datum);
+    const remoteTime = new Date(remoteItem.created_at || remoteItem.datum);
+    
+    console.log('🔀 Řeším konflikt:', {
+      local: localTime.toISOString(),
+      remote: remoteTime.toISOString()
+    });
+    
+    return remoteTime > localTime ? remoteItem : localItem;
+  };
+
   // 🔄 ATOMIC SYNC OPERATIONS
 
   const saveToSupabaseAtomic = async (orderData) => {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .insert([{
-          user_id: orderData.user_id,
-          datum: orderData.datum,
-          druh: orderData.druh,
-          klient: orderData.klient,
-          cislo: orderData.cislo,
-          castka: orderData.castka,
-          fee: orderData.fee || 0,
-          palivo: orderData.palivo || 0,
-          material: orderData.material || 0,
-          pomocnik: orderData.pomocnik || 0,
-          zisk: orderData.zisk,
-          adresa: orderData.adresa || '',
-          typ: orderData.typ || 'nezadano',
-          delkaRealizace: orderData.delkaRealizace || 1,
-          poznamky: orderData.poznamky || '',
-          soubory: orderData.soubory || []
-        }])
-        .select()
-        .single();
+      return await retryOperation(async () => {
+        const { data, error } = await supabase
+          .from('orders')
+          .insert([{
+            user_id: orderData.user_id,
+            datum: orderData.datum,
+            druh: orderData.druh,
+            klient: orderData.klient,
+            cislo: orderData.cislo,
+            castka: orderData.castka,
+            fee: orderData.fee || 0,
+            palivo: orderData.palivo || 0,
+            material: orderData.material || 0,
+            pomocnik: orderData.pomocnik || 0,
+            zisk: orderData.zisk,
+            adresa: orderData.adresa || '',
+            typ: orderData.typ || 'nezadano',
+            delkaRealizace: orderData.delkaRealizace || 1,
+            poznamky: orderData.poznamky || '',
+            soubory: orderData.soubory || []
+          }])
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return { success: true, data };
+        return { success: true, data };
+      });
     } catch (error) {
-      console.error('❌ Supabase save failed:', error);
+      console.error('❌ Supabase save failed after retries:', error);
       return { success: false, error };
     }
   };
 
   const updateInSupabaseAtomic = async (orderId, orderData) => {
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .update({
-          datum: orderData.datum,
-          druh: orderData.druh,
-          klient: orderData.klient,
-          cislo: orderData.cislo,
-          castka: orderData.castka,
-          fee: orderData.fee || 0,
-          palivo: orderData.palivo || 0,
-          material: orderData.material || 0,
-          pomocnik: orderData.pomocnik || 0,
-          zisk: orderData.zisk,
-          adresa: orderData.adresa || '',
-          typ: orderData.typ || 'nezadano',
-          delkaRealizace: orderData.delkaRealizace || 1,
-          poznamky: orderData.poznamky || '',
-          soubory: orderData.soubory || []
-        })
-        .eq('id', orderId)
-        .select()
-        .single();
+      return await retryOperation(async () => {
+        const { data, error } = await supabase
+          .from('orders')
+          .update({
+            datum: orderData.datum,
+            druh: orderData.druh,
+            klient: orderData.klient,
+            cislo: orderData.cislo,
+            castka: orderData.castka,
+            fee: orderData.fee || 0,
+            palivo: orderData.palivo || 0,
+            material: orderData.material || 0,
+            pomocnik: orderData.pomocnik || 0,
+            zisk: orderData.zisk,
+            adresa: orderData.adresa || '',
+            typ: orderData.typ || 'nezadano',
+            delkaRealizace: orderData.delkaRealizace || 1,
+            poznamky: orderData.poznamky || '',
+            soubory: orderData.soubory || []
+          })
+          .eq('id', orderId)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return { success: true, data };
+        return { success: true, data };
+      });
     } catch (error) {
-      console.error('❌ Supabase update failed:', error);
+      console.error('❌ Supabase update failed after retries:', error);
       return { success: false, error };
     }
   };
 
   const deleteFromSupabaseAtomic = async (orderId) => {
     try {
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderId);
+      return await retryOperation(async () => {
+        const { error } = await supabase
+          .from('orders')
+          .delete()
+          .eq('id', orderId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return { success: true };
+        return { success: true };
+      });
     } catch (error) {
-      console.error('❌ Supabase delete failed:', error);
+      console.error('❌ Supabase delete failed after retries:', error);
       return { success: false, error };
     }
   };
@@ -446,10 +484,28 @@ export const AuthProvider = ({ children }) => {
           console.log('💾 Cache data:', cachedData.length, 'záznamů');
 
           // INTELIGENTNÍ MERGE - Priorita: Supabase > dočasné záznamy z cache
+          const supabaseIds = new Set((supabaseData || []).map(item => item.id));
           const merged = [...(supabaseData || [])];
 
           // Přidej dočasné záznamy z cache (pouze ty s _isTemp)
-          const tempRecords = cachedData.filter(item => item._isTemp);
+          const tempRecords = cachedData.filter(item => 
+            item._isTemp && !supabaseIds.has(item.id)
+          );
+          
+          // Řeš konflikty pro záznamy, které existují v obou zdrojích
+          const conflictedRecords = cachedData.filter(item => 
+            !item._isTemp && supabaseIds.has(item.id)
+          );
+          
+          conflictedRecords.forEach(cacheItem => {
+            const supabaseItem = merged.find(item => item.id === cacheItem.id);
+            if (supabaseItem) {
+              const resolved = resolveConflict(cacheItem, supabaseItem);
+              const index = merged.findIndex(item => item.id === cacheItem.id);
+              merged[index] = resolved;
+            }
+          });
+
           merged.push(...tempRecords);
 
           // Aktualizuj cache s merged daty
@@ -755,12 +811,51 @@ export const AuthProvider = ({ children }) => {
     editUserOrder,
     deleteUserOrder,
 
-    // Debug funkce
+    // Debug a monitoring funkce
     processQueue,
     clearSyncErrors: () => setSyncErrors([]),
     clearQueue: () => {
       setSyncQueue([]);
       localStorage.removeItem('paintpro_sync_queue');
+      console.log('🧹 Queue vyčištěn');
+    },
+    
+    // Diagnostické funkce
+    getDebugInfo: () => ({
+      isOnline,
+      isSyncing,
+      syncStatus,
+      queueLength: syncQueue.length,
+      cacheVersion,
+      lastSyncTime,
+      lastOnlineTime,
+      dataState,
+      syncErrorsCount: syncErrors.length,
+      cacheKeys: Object.keys(localCache)
+    }),
+    
+    // Force sync - pro manuální trigger
+    forceSync: () => {
+      if (isOnline) {
+        console.log('🚀 Nucený sync spuštěn');
+        processQueue();
+      } else {
+        console.warn('⚠️ Nemůžu syncovat - offline režim');
+      }
+    },
+    
+    // Cache management
+    clearCache: () => {
+      setLocalCache({});
+      localStorage.removeItem('paintpro_cache');
+      setCacheVersion(prev => prev + 1);
+      console.log('🧹 Cache vyčištěn');
+    },
+    
+    // Získání cache dat pro debug
+    getCacheData: (userId) => {
+      const userKey = `user_${userId}`;
+      return localCache[userKey] || [];
     }
   };
 
