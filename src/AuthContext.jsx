@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     for (const operation of queue) {
       try {
         console.log('🔄 Zpracovávám:', operation.type, operation.tempId || operation.orderId || 'N/A');
-        
+
         let result = null;
         switch (operation.type) {
           case 'create_user':
@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }) => {
             break;
           case 'create_order':
             result = await supabase.from('orders').insert([operation.data]).select().single();
-            
+
             // Pokud má tempId, aktualizuj cache s reálným ID
             if (operation.tempId && result.data) {
               const cacheKey = `paintpro_orders_cache_${operation.data.user_id}`;
@@ -113,11 +113,11 @@ export const AuthProvider = ({ children }) => {
             result = await supabase.from('users').update(operation.data).eq('id', operation.userId).select();
             break;
         }
-        
+
         if (result?.error) {
           throw result.error;
         }
-        
+
         console.log('✅ Synchronizována operace:', operation.type);
         processedOperations.push(operation);
       } catch (error) {
@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }) => {
     // Zachovej pouze neúspěšné operace v queue
     localStorage.setItem('sync_queue', JSON.stringify(failedOperations));
     console.log(`✅ Queue zpracována: ${processedOperations.length} úspěšných, ${failedOperations.length} neúspěšných`);
-    
+
     // Znovu načti data pokud byly úspěšné operace
     if (processedOperations.length > 0 && currentUser?.id) {
       console.log('🔄 Obnovuji data po synchronizaci...');
@@ -202,7 +202,7 @@ export const AuthProvider = ({ children }) => {
       console.log('🔧 LOGIN - START');
       console.log('📝 Pokus o přihlášení s PINem:', pin);
       console.log('📝 User ID (pokud zadán):', userId);
-      
+
       const users = await loadUsers();
       const hashedPin = hashPin(pin);
       console.log('📝 Hash zadaného PINu:', hashedPin);
@@ -261,15 +261,15 @@ export const AuthProvider = ({ children }) => {
 
         if (!error && data) {
           console.log('✅ Supabase data načtena pro', userId, ':', data.length, 'zakázek');
-          
+
           // KRITICKY DŮLEŽITÉ: Přísná validace dat
           const validData = data.filter(order => {
             const hasValidKlient = order.klient && order.klient.trim() !== '' && order.klient !== 'null';
             const hasValidCastka = order.castka && order.castka > 0;
             const hasValidUserId = order.user_id === userId;
-            
+
             const isValid = hasValidKlient && hasValidCastka && hasValidUserId;
-            
+
             if (!isValid) {
               console.warn('⚠️ Nevalidní zakázka ODSTRANĚNA:', {
                 id: order.id,
@@ -283,16 +283,16 @@ export const AuthProvider = ({ children }) => {
                 }
               });
             }
-            
+
             return isValid;
           });
 
           console.log('✅ Validních zakázek po filtraci:', validData.length);
-          
+
           // DEDUPLIKACE - odstraň duplicity podle ID
           const uniqueData = [];
           const seenIds = new Set();
-          
+
           validData.forEach(order => {
             if (!seenIds.has(order.id)) {
               seenIds.add(order.id);
@@ -301,9 +301,9 @@ export const AuthProvider = ({ children }) => {
               console.warn('🔄 Duplicitní ID odstraněno:', order.id);
             }
           });
-          
+
           console.log('✅ Unikátních zakázek po deduplikaci:', uniqueData.length);
-          
+
           // Ulož pouze čistá, validní data
           localStorage.setItem(cacheKey, JSON.stringify(uniqueData));
           return uniqueData;
@@ -316,7 +316,7 @@ export const AuthProvider = ({ children }) => {
       // Fallback na cache - ale i cache validuj
       console.log('📦 Offline/Fallback - načítám z cache...');
       const cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-      
+
       // Validuj i cache data
       const validCached = cached.filter(order => 
         order.klient && 
@@ -324,12 +324,12 @@ export const AuthProvider = ({ children }) => {
         order.castka > 0 &&
         order.user_id === userId
       );
-      
+
       if (validCached.length !== cached.length) {
         console.warn('📦 Nevalidní data odstraněna z cache:', cached.length - validCached.length, 'záznamů');
         localStorage.setItem(cacheKey, JSON.stringify(validCached));
       }
-      
+
       console.log('📦 Validní cache data:', validCached.length, 'zakázek');
       return validCached;
     } catch (error) {
@@ -392,7 +392,7 @@ export const AuthProvider = ({ children }) => {
   const addUserOrder = async (userId, orderData) => {
     try {
       console.log('🔄 addUserOrder START - userId:', userId, 'orderData:', orderData);
-      
+
       const newOrder = {
         user_id: userId,
         datum: orderData.datum,
@@ -438,7 +438,7 @@ export const AuthProvider = ({ children }) => {
           const cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
           cached.unshift(data);
           localStorage.setItem(cacheKey, JSON.stringify(cached));
-          
+
           console.log('✅ Cache aktualizována, celkem zakázek:', cached.length);
           return cached;
 
@@ -451,7 +451,7 @@ export const AuthProvider = ({ children }) => {
           console.error('- Error code:', supabaseError?.code);
           console.error('- Odesílaná data:', newOrder);
           console.error('❌ Supabase selhala, ukládám do queue:', supabaseError);
-          
+
           // Fallback - dočasné ID pro cache
           const tempId = 'temp_' + Date.now() + '_' + Math.random();
           const orderWithTempId = { ...newOrder, id: tempId };
@@ -474,7 +474,7 @@ export const AuthProvider = ({ children }) => {
         }
       } else {
         console.log('📱 Offline režim - ukládám do cache a queue');
-        
+
         // Offline - dočasné ID
         const tempId = 'offline_' + Date.now() + '_' + Math.random();
         const orderWithTempId = { ...newOrder, id: tempId };
@@ -607,12 +607,12 @@ export const AuthProvider = ({ children }) => {
       const hashedCurrentPin = hashPin(currentPinPlain);
       console.log('📝 Hash zadaného současného PINu:', hashedCurrentPin);
       console.log('📝 Uložený hash uživatele:', currentUser.pin_hash);
-      
+
       if (currentUser.pin_hash !== hashedCurrentPin) {
         console.log('❌ PIN nesouhlasí');
         return { success: false, error: 'Současný PIN je nesprávný' };
       }
-      
+
       console.log('✅ PIN ověřen správně');
 
       const hashedNewPin = hashPin(newPinPlain);
@@ -745,28 +745,28 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔧 Opravuji PIN administrátora na 135715...');
       const newPinHash = hashPin('135715');
-      
+
       // Aktualizuj v Supabase
       if (isOnline) {
         const { error } = await supabase
           .from('users')
           .update({ pin_hash: newPinHash })
           .eq('id', 'admin_1');
-        
+
         if (error) {
           console.error('❌ Chyba při aktualizaci PIN v Supabase:', error);
         } else {
           console.log('✅ PIN administrátora úspěšně aktualizován v Supabase');
         }
       }
-      
+
       // Aktualizuj v cache
       const users = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
       const updatedUsers = users.map(user => 
         user.id === 'admin_1' ? { ...user, pin_hash: newPinHash } : user
       );
       localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
-      
+
       // Pokud je admin přihlášený, aktualizuj i currentUser
       const currentUserData = localStorage.getItem('paintpro_current_user');
       if (currentUserData) {
@@ -777,7 +777,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('paintpro_current_user', JSON.stringify(updatedUser));
         }
       }
-      
+
       console.log('✅ PIN administrátora opraven na 135715');
     } catch (error) {
       console.error('❌ Chyba při opravě PIN:', error);
@@ -789,7 +789,7 @@ export const AuthProvider = ({ children }) => {
     const initialize = async () => {
       try {
         console.log('🚀 Inicializace AuthContext...');
-        
+
         // Načtení uživatelů ze Supabase
         console.log('🔧 Načítám uživatele ze Supabase...');
         await loadUsers();
@@ -816,6 +816,11 @@ export const AuthProvider = ({ children }) => {
         setIsLoading(false);
         console.log('✅ AuthContext inicializován');
       }
+    };
+
+    initialize();
+```
+    
     };
 
     initialize();
