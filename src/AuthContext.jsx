@@ -398,18 +398,19 @@ export const AuthProvider = ({ children }) => {
         datum: orderData.datum,
         druh: orderData.druh,
         klient: orderData.klient || '',
-        cislo: orderData.cislo,
-        castka: orderData.castka || 0,
-        fee: orderData.fee || 0,
-        material: orderData.material || 0,
-        pomocnik: orderData.pomocnik || 0,
-        palivo: orderData.palivo || 0,
+        cislo: orderData.cislo || '',
+        castka: parseInt(orderData.castka) || 0,
+        fee: parseInt(orderData.fee) || 0,
+        material: parseInt(orderData.material) || 0,
+        pomocnik: parseInt(orderData.pomocnik) || 0,
+        palivo: parseInt(orderData.palivo) || 0,
         adresa: orderData.adresa || '',
         typ: orderData.typ || 'byt',
-        delkaRealizace: orderData.delkaRealizace || 1,
-        poznamky: orderData.poznamky || '',
-        soubory: orderData.soubory || [],
-        zisk: (orderData.castka || 0) - (orderData.fee || 0) - (orderData.material || 0) - (orderData.pomocnik || 0) - (orderData.palivo || 0),
+        doba_realizace: parseInt(orderData.delkaRealizace) || 1,
+        poznamka: orderData.poznamky || '',
+        soubory: JSON.stringify(orderData.soubory || []),
+        zisk: (parseInt(orderData.castka) || 0) - (parseInt(orderData.fee) || 0) - (parseInt(orderData.material) || 0) - (parseInt(orderData.pomocnik) || 0) - (parseInt(orderData.palivo) || 0),
+        fee_off: parseInt(orderData.castka) || 0,
         created_at: new Date().toISOString()
       };
 
@@ -442,6 +443,13 @@ export const AuthProvider = ({ children }) => {
           return cached;
 
         } catch (supabaseError) {
+          console.error('❌ DETAILNÍ SUPABASE CHYBA:');
+          console.error('- Error object:', supabaseError);
+          console.error('- Error message:', supabaseError?.message);
+          console.error('- Error details:', supabaseError?.details);
+          console.error('- Error hint:', supabaseError?.hint);
+          console.error('- Error code:', supabaseError?.code);
+          console.error('- Odesílaná data:', newOrder);
           console.error('❌ Supabase selhala, ukládám do queue:', supabaseError);
           
           // Fallback - dočasné ID pro cache
