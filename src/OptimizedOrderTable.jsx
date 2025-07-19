@@ -273,12 +273,12 @@ const OrderRow = memo(({ zakazka, index, startIndex, onEdit, onDelete, onFilesUp
       <td>{zakazka.klient}</td>
       <td>{zakazka.cislo}</td>
       <td className="amount-bold-black">{zakazka.castka.toLocaleString()}</td>
-      <td>{Math.round(zakazka.castka * 0.261).toLocaleString()}</td>
-      <td>{(zakazka.castka - Math.round(zakazka.castka * 0.261)).toLocaleString()}</td>
+      <td>{(zakazka.fee || 0).toLocaleString()}</td>
+      <td>{(zakazka.fee_off || zakazka.castka).toLocaleString()}</td>
       <td>{zakazka.palivo.toLocaleString()}</td>
       <td>{zakazka.material.toLocaleString()}</td>
       <td>{zakazka.pomocnik.toLocaleString()}</td>
-      <td className="profit-bold-green">{(zakazka.castka - Math.round(zakazka.castka * 0.261) - zakazka.palivo - zakazka.material - zakazka.pomocnik).toLocaleString()}</td>
+      <td className="profit-bold-green">{(zakazka.zisk || (zakazka.castka - (zakazka.fee || 0) - zakazka.palivo - zakazka.material - zakazka.pomocnik)).toLocaleString()}</td>
       <td className="address-cell">{zakazka.adresa || '-'}</td>
       <td>
         <span className={'typ-badge typ-' + (zakazka.typ || 'nezadano')}>

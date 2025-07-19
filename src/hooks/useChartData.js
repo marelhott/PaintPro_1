@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
@@ -6,7 +5,7 @@ export const useChartData = (zakazkyData) => {
   // Kombinovaný graf data
   const getCombinedChartData = useMemo(() => {
     const safeZakazkyDataForChart = filterMainOrdersOnly(zakazkyData);
-    
+
     if (safeZakazkyDataForChart.length === 0) {
       return {
         labels: [],
@@ -18,11 +17,11 @@ export const useChartData = (zakazkyData) => {
 
     safeZakazkyDataForChart.forEach(zakazka => {
       let parsedDate, month, year;
-      
+
       if (zakazka.datum.includes('.')) {
         const cleanDatum = zakazka.datum.replace(/\s+/g, '');
         const dateParts = cleanDatum.split('.');
-        
+
         if (dateParts.length >= 3) {
           const day = parseInt(dateParts[0]) || 1;
           month = parseInt(dateParts[1]) - 1;
@@ -47,7 +46,7 @@ export const useChartData = (zakazkyData) => {
       }
 
       const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-      
+
       if (!monthlyStats[monthKey]) {
         monthlyStats[monthKey] = {
           zisk: 0,
@@ -59,8 +58,14 @@ export const useChartData = (zakazkyData) => {
         };
       }
 
-      monthlyStats[monthKey].zisk += zakazka.zisk;
-      monthlyStats[monthKey].trzby += zakazka.castka;
+      const trzba = zakazka.castka || 0;
+      const fee = zakazka.fee || 0; // Použij skutečné fee z databáze
+      const feeOff = zakazka.fee_off || trzba; // Použij fee_off z databáze
+      const zisk = zakazka.zisk || (feeOff - (zakazka.palivo || 0) - (zakazka.material || 0) - (zakazka.pomocnik || 0)); // Použij předpočítaný zisk
+
+
+      monthlyStats[monthKey].zisk += zisk;
+      monthlyStats[monthKey].trzby += trzba;
     });
 
     const sortedMonthsData = Object.values(monthlyStats).sort((a, b) => a.datum - b.datum);

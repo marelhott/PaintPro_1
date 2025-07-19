@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
@@ -33,11 +32,11 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
     const monthlyDataMap = {};
     filterMainOrdersOnly(zakazkyData).forEach(zakazka => {
       let parsedDate, month, year;
-      
+
       if (zakazka.datum.includes('.')) {
         const cleanDatum = zakazka.datum.replace(/\s+/g, '');
         const dateParts = cleanDatum.split('.');
-        
+
         if (dateParts.length >= 3) {
           const day = parseInt(dateParts[0]) || 1;
           month = parseInt(dateParts[1]) - 1;
