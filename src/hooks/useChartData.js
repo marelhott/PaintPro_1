@@ -1,11 +1,16 @@
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
 export const useChartData = (zakazkyData) => {
+  // Stabilní data pro výpočet
+  const stableZakazkyData = useMemo(() => {
+    return Array.isArray(zakazkyData) ? zakazkyData : [];
+  }, [zakazkyData]);
+
   // Kombinovaný graf data
   const getCombinedChartData = useMemo(() => {
-    const safeZakazkyDataForChart = filterMainOrdersOnly(zakazkyData);
+    const safeZakazkyDataForChart = filterMainOrdersOnly(stableZakazkyData);
     
     if (safeZakazkyDataForChart.length === 0) {
       return {
@@ -135,7 +140,13 @@ export const useChartData = (zakazkyData) => {
         }
       ],
     };
-  }, [zakazkyData]);
+  }, [stableZakazkyData]);
 
-  return { getCombinedChartData };
+  // Stabilní callback pro chart data
+  const getStableChartData = useCallback(() => getCombinedChartData, [getCombinedChartData]);
+
+  return { 
+    getCombinedChartData: getStableChartData(),
+    getStableChartData 
+  };
 };

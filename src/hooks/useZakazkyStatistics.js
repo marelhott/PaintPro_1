@@ -1,11 +1,23 @@
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
 export const useZakazkyStatistics = (zakazkyData, workCategories) => {
+  // Stabilní reference pro data
+  const stableZakazkyData = useMemo(() => {
+    return Array.isArray(zakazkyData) ? zakazkyData : [];
+  }, [zakazkyData]);
+
+  const stableWorkCategories = useMemo(() => {
+    return Array.isArray(workCategories) ? workCategories : [];
+  }, [workCategories]);
+
+  // Cache pro předchozí výsledky
+  const previousResult = useRef(null);
+
   // Dynamicky počítané dashboard data
   const dashboardData = useMemo(() => {
-    const safeZakazkyData = Array.isArray(zakazkyData) ? zakazkyData : [];
+    const safeZakazkyData = stableZakazkyData;
     const mainOrdersOnly = filterMainOrdersOnly(safeZakazkyData);
 
     const celkoveTrzby = mainOrdersOnly.reduce((sum, z) => sum + z.castka, 0);
@@ -15,7 +27,7 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
 
     // Kategorie statistiky
     const categoryStats = {};
-    const availableCategories = workCategories?.map(cat => cat.name) || [];
+    const availableCategories = stableWorkCategories?.map(cat => cat.name) || [];
 
     availableCategories.forEach(category => {
       categoryStats[category] = 0;
@@ -93,10 +105,19 @@ export const useZakazkyStatistics = (zakazkyData, workCategories) => {
       rozlozeniData: {
         labels: Object.keys(categoryStats),
         values: Object.values(categoryStats),
-        colors: workCategories?.map(cat => cat.color) || []
+        colors: stableWorkCategories?.map(cat => cat.color) || []
       }
     };
-  }, [zakazkyData, workCategories]);
+
+    // Kontrola zda se data skutečně změnila
+    const currentDataString = JSON.stringify(result);
+    if (previousResult.current && previousResult.current === currentDataString) {
+      return JSON.parse(previousResult.current);
+    }
+    
+    previousResult.current = currentDataString;
+    return result;
+  }, [stableZakazkyData, stableWorkCategories]);
 
   return { dashboardData };
 };
