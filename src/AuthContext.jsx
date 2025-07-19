@@ -358,6 +358,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const createUserInSupabaseAtomic = async (userData) => {
+    try {
+      return await retryOperation(async () => {
+        const { data, error } = await supabase
+          .from('users')
+          .insert([{
+            name: userData.name,
+            pin_hash: userData.pin_hash,
+            created_at: userData.created_at
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        return { success: true, data };
+      });
+    } catch (error) {
+      console.error('❌ Supabase user create failed after retries:', error);
+      return { success: false, error };
+    }
+  };
+
   // 🔄 ATOMIC QUEUE PROCESSING
 
   const processQueue = async () => {
@@ -398,6 +421,16 @@ export const AuthProvider = ({ children }) => {
             result = await deleteFromSupabaseAtomic(item.data.id);
             if (result.success) {
               updateLocalCache(item.data.user_id, { id: item.data.id }, 'delete');
+            }
+            break;
+
+          case 'CREATE_USER':
+            result = await createUserInSupabaseAtomic(item.data);
+            if (result.success) {
+              // Aktualizuj cache uživatelů
+              const users = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
+              const updatedUsers = users.map(u => u.id === item.data.id ? result.data : u);
+              localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
             }
             break;
 
@@ -708,40 +741,50 @@ export const AuthProvider = ({ children }) => {
 
   const addUser = async (userData) => {
     try {
+      console.log('👤 Vytvářím nového uživatele:', userData.name);
+
+      // Validace
+      if (!userData.name || !userData.pin_hash) {
+        return { success: false, error: 'Jméno a PIN jsou povinné' };
+      }
+
       const userWithId = {
         ...userData,
         id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        _isTemp: true
       };
 
-      if (isOnline) {
-        try {
-          const { data, error } = await supabase
-            .from('users')
-            .insert([userWithId])
-            .select()
-            .single();
-
-          if (error) throw error;
-
-          // Aktualizuj cache
-          const users = await loadUsers();
-          return { success: true, user: data };
-        } catch (error) {
-          console.warn('Online vytvoření selhalo:', error);
-          setIsOnline(false);
-        }
-      }
-
-      // Offline vytvoření
+      // Okamžitě aktualizuj cache
       const cachedUsers = JSON.parse(localStorage.getItem('paintpro_users_cache') || '[]');
       const updatedUsers = [...cachedUsers, userWithId];
       localStorage.setItem('paintpro_users_cache', JSON.stringify(updatedUsers));
 
-      // Přidej do queue
+      if (isOnline) {
+        try {
+          const result = await createUserInSupabaseAtomic(userWithId);
+          if (result.success) {
+            // Nahraď temp záznam skutečným
+            const finalUsers = updatedUsers.map(u => 
+              u.id === userWithId.id ? { ...result.data, _isTemp: false } : u
+            );
+            localStorage.setItem('paintpro_users_cache', JSON.stringify(finalUsers));
+            
+            console.log('✅ Uživatel vytvořen online s ID:', result.data.id);
+            return { success: true, user: result.data };
+          }
+        } catch (error) {
+          console.warn('Online vytvoření uživatele selhalo:', error);
+          setIsOnline(false);
+        }
+      }
+
+      // Přidej do queue pro pozdější synchronizaci
       addToSyncQueue('CREATE_USER', userWithId);
 
+      console.log('📱 Uživatel vytvořen offline s temp ID:', userWithId.id);
       return { success: true, user: userWithId };
+
     } catch (error) {
       console.error('❌ Chyba při vytváření uživatele:', error);
       return { success: false, error: error.message };
