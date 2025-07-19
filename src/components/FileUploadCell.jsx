@@ -19,14 +19,35 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
           } else {
             try {
               const parsed = JSON.parse(zakazka.soubory);
-              setParsedFiles(Array.isArray(parsed) ? parsed : []);
+              // KRITICKÉ: Zkontroluj že parsed je pole s validními soubory
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                // Filtruj pouze validní soubory s potřebnými vlastnostmi
+                const validFiles = parsed.filter(file => 
+                  file && 
+                  typeof file === 'object' && 
+                  file.id && 
+                  file.name && 
+                  file.name.trim() !== ''
+                );
+                setParsedFiles(validFiles);
+              } else {
+                setParsedFiles([]);
+              }
             } catch (parseError) {
               console.warn("Chyba při parsování souborů:", parseError, "Data:", zakazka.soubory);
               setParsedFiles([]);
             }
           }
         } else if (Array.isArray(zakazka.soubory)) {
-          setParsedFiles(zakazka.soubory);
+          // Filtruj i přímo pole
+          const validFiles = zakazka.soubory.filter(file => 
+            file && 
+            typeof file === 'object' && 
+            file.id && 
+            file.name && 
+            file.name.trim() !== ''
+          );
+          setParsedFiles(validFiles);
         } else {
           setParsedFiles([]);
         }
@@ -124,6 +145,11 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
 
   const filesCount = parsedFiles?.length || 0;
   const hasFiles = filesCount > 0;
+  
+  // DEBUG: Logování pro identifikaci problému
+  if (filesCount > 0) {
+    console.log('🔍 FileUploadCell - zakázka:', zakazka.id, 'počet souborů:', filesCount, 'soubory:', parsedFiles);
+  }
   const totalSize = parsedFiles?.reduce((sum, file) => sum + (file.size || 0), 0) || 0;
 
   return (
@@ -237,7 +263,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
 
               {parsedFiles && parsedFiles.length > 0 ? parsedFiles.map((file, index) => {
                 // Bezpečná kontrola souboru
-                if (!file || typeof file !== 'object') {
+                if (!file || typeof file !== 'object' || !file.id || !file.name || file.name.trim() === '') {
                   console.warn('Nevalidní soubor na indexu:', index, file);
                   return null;
                 }
