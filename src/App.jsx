@@ -381,7 +381,8 @@ const PaintPro = () => {
 
   
 
-  const combinedChartOptions = {
+  // Stabilní kombinovaný chart options - memoizováno
+  const combinedChartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -468,9 +469,10 @@ const PaintPro = () => {
         hoverBorderWidth: 3,
       },
     },
-  };
+  }), []); // Žádné závislosti - options jsou statické
 
-  const doughnutChartData = {
+  // Stabilní doughnut chart data - memoizováno
+  const doughnutChartData = useMemo(() => ({
     labels: dashboardData.rozlozeniData.labels,
     datasets: [
       {
@@ -512,9 +514,10 @@ const PaintPro = () => {
         borderSkipped: false,
       }
     ]
-  };
+  }), [dashboardData.rozlozeniData.labels, dashboardData.rozlozeniData.values, dashboardData.rozlozeniData.colors]);
 
-  const doughnutChartOptions = {
+  // Stabilní doughnut chart options - memoizováno  
+  const doughnutChartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     layout: {
@@ -565,7 +568,7 @@ const PaintPro = () => {
       duration: 1000,
       easing: 'easeOutCubic'
     }
-  };
+  }), []); // Žádné závislosti - options jsou statické
 
   
 
