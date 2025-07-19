@@ -83,12 +83,8 @@ const AddZakazkaModal = ({ showAddModal, setShowAddModal, addZakazka, workCatego
     };
 
     // Fee se přidá pouze pokud je zaškrtnuté
-    if (formData.hasFee && formData.castka && Number(formData.castka) > 0) {
-      processedData.fee = Math.round(Number(formData.castka) * 0.261);
-    } else {
-      processedData.fee = 0;
-    }
-    
+    processedData.fee = 0;
+
     // Inicializuj soubory jako prázdné pole, ne string
     processedData.soubory = [];
 
