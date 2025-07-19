@@ -245,7 +245,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('paintpro_current_user');
   };
 
-  // Načtení dat uživatele (Supabase first, localStorage cache)
+  // Načtení dat uživatele (Supabase first, localStorage cache) - OPTIMALIZOVANÉ
   const getUserData = async (userId) => {
     try {
       const cacheKey = `paintpro_orders_cache_${userId}`;
@@ -261,37 +261,86 @@ export const AuthProvider = ({ children }) => {
 
         if (!error && data) {
           console.log('✅ Supabase data načtena pro', userId, ':', data.length, 'zakázek');
-          console.log('👤 User_id kontrola:', data.map(d => d.user_id));
           
-          // Vyfiltruj pouze validní zakázky
+          // KRITICKY DŮLEŽITÉ: Přísná validace dat
           const validData = data.filter(order => {
-            const isValid = order.user_id === userId && order.klient && order.castka;
+            const hasValidKlient = order.klient && order.klient.trim() !== '' && order.klient !== 'null';
+            const hasValidCastka = order.castka && order.castka > 0;
+            const hasValidUserId = order.user_id === userId;
+            
+            const isValid = hasValidKlient && hasValidCastka && hasValidUserId;
+            
             if (!isValid) {
-              console.warn('⚠️ Nevalidní zakázka filtrována:', order);
+              console.warn('⚠️ Nevalidní zakázka ODSTRANĚNA:', {
+                id: order.id,
+                klient: order.klient,
+                castka: order.castka,
+                user_id: order.user_id,
+                reasons: {
+                  invalidKlient: !hasValidKlient,
+                  invalidCastka: !hasValidCastka, 
+                  invalidUserId: !hasValidUserId
+                }
+              });
             }
+            
             return isValid;
           });
 
-          console.log('✅ Validních zakázek:', validData.length);
-          localStorage.setItem(cacheKey, JSON.stringify(validData));
-          return validData;
+          console.log('✅ Validních zakázek po filtraci:', validData.length);
+          
+          // DEDUPLIKACE - odstraň duplicity podle ID
+          const uniqueData = [];
+          const seenIds = new Set();
+          
+          validData.forEach(order => {
+            if (!seenIds.has(order.id)) {
+              seenIds.add(order.id);
+              uniqueData.push(order);
+            } else {
+              console.warn('🔄 Duplicitní ID odstraněno:', order.id);
+            }
+          });
+          
+          console.log('✅ Unikátních zakázek po deduplikaci:', uniqueData.length);
+          
+          // Ulož pouze čistá, validní data
+          localStorage.setItem(cacheKey, JSON.stringify(uniqueData));
+          return uniqueData;
         } else if (error) {
           console.error('❌ Supabase chyba:', error);
           throw error;
         }
       }
 
-      // Fallback na cache
+      // Fallback na cache - ale i cache validuj
       console.log('📦 Offline/Fallback - načítám z cache...');
       const cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-      console.log('📦 Cache obsahuje:', cached.length, 'zakázek');
-      return cached;
+      
+      // Validuj i cache data
+      const validCached = cached.filter(order => 
+        order.klient && 
+        order.klient.trim() !== '' && 
+        order.castka > 0 &&
+        order.user_id === userId
+      );
+      
+      if (validCached.length !== cached.length) {
+        console.warn('📦 Nevalidní data odstraněna z cache:', cached.length - validCached.length, 'záznamů');
+        localStorage.setItem(cacheKey, JSON.stringify(validCached));
+      }
+      
+      console.log('📦 Validní cache data:', validCached.length, 'zakázek');
+      return validCached;
     } catch (error) {
       console.error('❌ Chyba při getUserData:', error);
-      // Poslední fallback
+      // Poslední fallback - ale i ten validuj
       const fallbackData = JSON.parse(localStorage.getItem(`paintpro_orders_cache_${userId}`) || '[]');
-      console.log('🆘 Fallback cache:', fallbackData.length, 'zakázek');
-      return fallbackData;
+      const validFallback = fallbackData.filter(order => 
+        order.klient && order.castka > 0 && order.user_id === userId
+      );
+      console.log('🆘 Validní fallback data:', validFallback.length, 'zakázek');
+      return validFallback;
     }
   };
 
