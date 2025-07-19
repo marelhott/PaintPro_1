@@ -819,9 +819,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initialize();
-```
-    
-    };
+  }, []);
 
     initialize();
   }, []);
