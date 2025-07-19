@@ -1,55 +1,17 @@
 
-import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
-// Debounce hook pro stabilizaci dat
-const useDebounce = (callback, delay) => {
-  const timeoutRef = useRef(null);
-  
-  return useCallback((...args) => {
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => callback(...args), delay);
-  }, [callback, delay]);
-};
-
 export const useChartData = (zakazkyData) => {
-  // Timer-based stabilization state
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [frozenChartData, setFrozenChartData] = useState(null);
-  const timerRef = useRef();
-
-  // Stabilní data pro výpočet s hash kontrolou
-  const stableZakazkyData = useMemo(() => {
-    const filtered = Array.isArray(zakazkyData) ? zakazkyData : [];
-    // Vytvoříme hash z dat pro detekci skutečných změn
-    const dataHash = filtered.map(z => `${z.id}-${z.datum}-${z.castka}-${z.zisk}`).join('|');
-    return { data: filtered, hash: dataHash };
-  }, [zakazkyData]);
-
-  // Debounce pro aktualizaci zmrazených dat
-  const debouncedUpdateFrozenData = useDebounce((newData) => {
-    setFrozenChartData(newData);
-    setIsUpdating(false);
-  }, 300);
-
-  // Stabilní fallback data
-  const emptyChartData = useMemo(() => ({
-    labels: ['Žádná data'],
-    datasets: [{
-      label: 'Žádná data',
-      data: [0],
-      backgroundColor: 'rgba(156, 163, 175, 0.3)',
-      borderColor: 'rgba(156, 163, 175, 0.5)',
-      borderWidth: 1,
-    }]
-  }), []);
-
-  // OPRAVENO: Kombinovaný graf data - plně memoizováno s hash kontrolou
-  const rawCombinedChartData = useMemo(() => {
-    const safeZakazkyDataForChart = filterMainOrdersOnly(stableZakazkyData.data);
+  // Kombinovaný graf data
+  const getCombinedChartData = useMemo(() => {
+    const safeZakazkyDataForChart = filterMainOrdersOnly(zakazkyData);
     
     if (safeZakazkyDataForChart.length === 0) {
-      return emptyChartData;
+      return {
+        labels: [],
+        datasets: []
+      };
     }
 
     const monthlyStats = {};
@@ -173,25 +135,7 @@ export const useChartData = (zakazkyData) => {
         }
       ],
     };
-  }, [stableZakazkyData.hash]); // Závislost pouze na hash, ne na celých datech
+  }, [zakazkyData]);
 
-  // Timer-based stabilization effect
-  useEffect(() => {
-    setIsUpdating(true);
-    
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      debouncedUpdateFrozenData(rawCombinedChartData);
-    }, 200); // Zmrazí data na 200ms
-    
-    return () => clearTimeout(timerRef.current);
-  }, [rawCombinedChartData, debouncedUpdateFrozenData]);
-
-  // Vrať zmrazená data nebo fallback
-  const getCombinedChartData = frozenChartData || rawCombinedChartData;
-
-  return { 
-    getCombinedChartData,
-    isChartUpdating: isUpdating
-  };
+  return { getCombinedChartData };
 };

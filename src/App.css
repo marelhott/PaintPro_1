@@ -1248,36 +1248,9 @@ This file contains the complete code with the table rebuilt and updated.
   letter-spacing: -0.02em;
 }
 
-/* Chart kontejnery s anti-flicker řešením */
 .chart-container-large {
-  height: 300px;
-  width: 100%;
+  height: 380px;
   position: relative;
-  opacity: 1;
-  transition: opacity 0.2s ease;
-}
-
-.chart-container-large.chart-updating {
-  opacity: 0.95;
-  pointer-events: none;
-}
-
-.chart-container-large::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.3);
-  z-index: 5;
-  opacity: 0;
-  transition: opacity 0.1s ease;
-  border-radius: inherit;
-}
-
-.chart-container-large.chart-updating::before {
-  opacity: 1;
 }
 
 /* 3D Donut Chart with External Labels */
@@ -1674,7 +1647,8 @@ This file contains the complete code with the table rebuilt and updated.
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 16px;
-```text
+}
+
 .progress-group {
   display: flex;
   flex-direction: row;
@@ -2902,13 +2876,4 @@ padding-bottom: 16px;
   font-size: 14px;
   color: var(--text-primary);
   font-weight: 600;
-}
-
-}
-
-.month-title, .year-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 16px;
 }

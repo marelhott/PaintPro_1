@@ -22,7 +22,6 @@ import {
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2';
 import OptimizedOrderTable from './OptimizedOrderTable';
 import { StatCard, Sidebar, FileUploadCell, ReportsSection, MapSection } from './components';
-import StableChart from './components/StableChart';
 import { useZakazkyStatistics, useChartData } from './hooks';
 import { exportCompletePDF } from './utils';
 
@@ -313,7 +312,7 @@ const PaintPro = () => {
 
   // Použití custom hooks pro statistiky a graf data
   const { dashboardData } = useZakazkyStatistics(zakazkyData, workCategories);
-  const { getCombinedChartData, isChartUpdating } = useChartData(zakazkyData);
+  const { getCombinedChartData } = useChartData(zakazkyData);
 
   // Funkce pro přidání zakázky - optimalizováno s useCallback
   const addZakazka = useCallback(async (newZakazka) => {
@@ -382,8 +381,7 @@ const PaintPro = () => {
 
   
 
-  // Stabilní kombinovaný chart options - memoizováno
-  const combinedChartOptions = useMemo(() => ({
+  const combinedChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
@@ -470,10 +468,9 @@ const PaintPro = () => {
         hoverBorderWidth: 3,
       },
     },
-  }), []); // Žádné závislosti - options jsou statické
+  };
 
-  // Stabilní doughnut chart data - memoizováno
-  const doughnutChartData = useMemo(() => ({
+  const doughnutChartData = {
     labels: dashboardData.rozlozeniData.labels,
     datasets: [
       {
@@ -515,10 +512,9 @@ const PaintPro = () => {
         borderSkipped: false,
       }
     ]
-  }), [dashboardData.rozlozeniData.labels, dashboardData.rozlozeniData.values, dashboardData.rozlozeniData.colors]);
+  };
 
-  // Stabilní doughnut chart options - memoizováno  
-  const doughnutChartOptions = useMemo(() => ({
+  const doughnutChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     layout: {
@@ -569,7 +565,7 @@ const PaintPro = () => {
       duration: 1000,
       easing: 'easeOutCubic'
     }
-  }), []); // Žádné závislosti - options jsou statické
+  };
 
   
 
@@ -653,14 +649,9 @@ const PaintPro = () => {
               </div>
             </div>
           </div>
-          <div className={`chart-container-large ${isChartUpdating ? 'chart-updating' : ''}`}>
+          <div className="chart-container-large">
             {zakazkyData.length > 0 ? (
-              <StableChart 
-                data={getCombinedChartData} 
-                options={combinedChartOptions} 
-                type="bar"
-                className="main-chart"
-              />
+              <Bar data={getCombinedChartData} options={combinedChartOptions} />
             ) : (
               <div style={{
                 display: 'flex',
