@@ -1,8 +1,23 @@
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import { filterMainOrdersOnly } from '../utils/dataFilters';
 
+// Debounce hook pro stabilizaci dat
+const useDebounce = (callback, delay) => {
+  const timeoutRef = useRef(null);
+  
+  return useCallback((...args) => {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => callback(...args), delay);
+  }, [callback, delay]);
+};
+
 export const useChartData = (zakazkyData) => {
+  // Timer-based stabilization state
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [frozenChartData, setFrozenChartData] = useState(null);
+  const timerRef = useRef();
+
   // Stabilní data pro výpočet s hash kontrolou
   const stableZakazkyData = useMemo(() => {
     const filtered = Array.isArray(zakazkyData) ? zakazkyData : [];
@@ -10,6 +25,12 @@ export const useChartData = (zakazkyData) => {
     const dataHash = filtered.map(z => `${z.id}-${z.datum}-${z.castka}-${z.zisk}`).join('|');
     return { data: filtered, hash: dataHash };
   }, [zakazkyData]);
+
+  // Debounce pro aktualizaci zmrazených dat
+  const debouncedUpdateFrozenData = useDebounce((newData) => {
+    setFrozenChartData(newData);
+    setIsUpdating(false);
+  }, 300);
 
   // Stabilní fallback data
   const emptyChartData = useMemo(() => ({
@@ -24,7 +45,7 @@ export const useChartData = (zakazkyData) => {
   }), []);
 
   // OPRAVENO: Kombinovaný graf data - plně memoizováno s hash kontrolou
-  const getCombinedChartData = useMemo(() => {
+  const rawCombinedChartData = useMemo(() => {
     const safeZakazkyDataForChart = filterMainOrdersOnly(stableZakazkyData.data);
     
     if (safeZakazkyDataForChart.length === 0) {
@@ -154,7 +175,23 @@ export const useChartData = (zakazkyData) => {
     };
   }, [stableZakazkyData.hash]); // Závislost pouze na hash, ne na celých datech
 
+  // Timer-based stabilization effect
+  useEffect(() => {
+    setIsUpdating(true);
+    
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      debouncedUpdateFrozenData(rawCombinedChartData);
+    }, 200); // Zmrazí data na 200ms
+    
+    return () => clearTimeout(timerRef.current);
+  }, [rawCombinedChartData, debouncedUpdateFrozenData]);
+
+  // Vrať zmrazená data nebo fallback
+  const getCombinedChartData = frozenChartData || rawCombinedChartData;
+
   return { 
     getCombinedChartData,
+    isChartUpdating: isUpdating
   };
 };

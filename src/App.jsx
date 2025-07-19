@@ -22,6 +22,7 @@ import {
 import { Bar, Doughnut, Line, Chart } from 'react-chartjs-2';
 import OptimizedOrderTable from './OptimizedOrderTable';
 import { StatCard, Sidebar, FileUploadCell, ReportsSection, MapSection } from './components';
+import StableChart from './components/StableChart';
 import { useZakazkyStatistics, useChartData } from './hooks';
 import { exportCompletePDF } from './utils';
 
@@ -312,7 +313,7 @@ const PaintPro = () => {
 
   // Použití custom hooks pro statistiky a graf data
   const { dashboardData } = useZakazkyStatistics(zakazkyData, workCategories);
-  const { getCombinedChartData } = useChartData(zakazkyData);
+  const { getCombinedChartData, isChartUpdating } = useChartData(zakazkyData);
 
   // Funkce pro přidání zakázky - optimalizováno s useCallback
   const addZakazka = useCallback(async (newZakazka) => {
@@ -652,9 +653,14 @@ const PaintPro = () => {
               </div>
             </div>
           </div>
-          <div className="chart-container-large">
+          <div className={`chart-container-large ${isChartUpdating ? 'chart-updating' : ''}`}>
             {zakazkyData.length > 0 ? (
-              <Bar data={getCombinedChartData} options={combinedChartOptions} />
+              <StableChart 
+                data={getCombinedChartData} 
+                options={combinedChartOptions} 
+                type="bar"
+                className="main-chart"
+              />
             ) : (
               <div style={{
                 display: 'flex',
