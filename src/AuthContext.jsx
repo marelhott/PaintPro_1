@@ -262,13 +262,15 @@ export const AuthProvider = ({ children }) => {
         if (!error && data) {
           console.log('✅ Supabase data načtena pro', userId, ':', data.length, 'zakázek');
 
-          // KRITICKY DŮLEŽITÉ: Přísná validace dat
+          // OPRAVENÁ VALIDACE: Méně přísná validace - zobraz i zakázky bez klienta
           const validData = data.filter(order => {
-            const hasValidKlient = order.klient && order.klient.trim() !== '' && order.klient !== 'null';
             const hasValidCastka = order.castka && order.castka > 0;
             const hasValidUserId = order.user_id === userId;
+            
+            // Klient může být prázdný (např. Adam zakázky) - to je v pořádku
+            const hasKlient = order.klient !== null && order.klient !== undefined;
 
-            const isValid = hasValidKlient && hasValidCastka && hasValidUserId;
+            const isValid = hasValidCastka && hasValidUserId && hasKlient;
 
             if (!isValid) {
               console.warn('⚠️ Nevalidní zakázka ODSTRANĚNA:', {
@@ -277,9 +279,9 @@ export const AuthProvider = ({ children }) => {
                 castka: order.castka,
                 user_id: order.user_id,
                 reasons: {
-                  invalidKlient: !hasValidKlient,
                   invalidCastka: !hasValidCastka, 
-                  invalidUserId: !hasValidUserId
+                  invalidUserId: !hasValidUserId,
+                  missingKlientField: !hasKlient
                 }
               });
             }
@@ -317,10 +319,10 @@ export const AuthProvider = ({ children }) => {
       console.log('📦 Offline/Fallback - načítám z cache...');
       const cached = JSON.parse(localStorage.getItem(cacheKey) || '[]');
 
-      // Validuj i cache data
+      // Validuj i cache data - umožni prázdné klienty
       const validCached = cached.filter(order => 
-        order.klient && 
-        order.klient.trim() !== '' && 
+        order.klient !== null && 
+        order.klient !== undefined && 
         order.castka > 0 &&
         order.user_id === userId
       );
@@ -337,7 +339,7 @@ export const AuthProvider = ({ children }) => {
       // Poslední fallback - ale i ten validuj
       const fallbackData = JSON.parse(localStorage.getItem(`paintpro_orders_cache_${userId}`) || '[]');
       const validFallback = fallbackData.filter(order => 
-        order.klient && order.castka > 0 && order.user_id === userId
+        order.klient !== null && order.klient !== undefined && order.castka > 0 && order.user_id === userId
       );
       console.log('🆘 Validní fallback data:', validFallback.length, 'zakázek');
       return validFallback;
