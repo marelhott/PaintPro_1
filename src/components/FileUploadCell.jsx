@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import fileManager from '../utils/FileManager';
 
 const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
@@ -6,6 +6,21 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
+  const [parsedFiles, setParsedFiles] = useState([]);
+
+  useEffect(() => {
+    try {
+      if (zakazka.soubory) {
+        setParsedFiles(typeof zakazka.soubory === 'string' ? JSON.parse(zakazka.soubory) : zakazka.soubory);
+      } else {
+        setParsedFiles([]);
+      }
+    } catch (error) {
+      console.error("Error parsing soubory:", error);
+      setParsedFiles([]);
+    }
+  }, [zakazka.soubory]);
+
 
   const handleFileSelect = async (event) => {
     const selectedFiles = Array.from(event.target.files);
@@ -35,7 +50,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
       });
 
       const uploadedFiles = await Promise.all(uploadPromises);
-      const currentFiles = zakazka.soubory || [];
+      const currentFiles = parsedFiles || [];
       const newFiles = [...currentFiles, ...uploadedFiles];
 
       // Aktualizuj soubory
@@ -70,7 +85,7 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
     if (window.confirm('Opravdu chcete smazat tento soubor?')) {
       const result = fileManager.deleteFile(fileId);
       if (result.success) {
-        const updatedFiles = zakazka.soubory.filter(f => f.id !== fileId);
+        const updatedFiles = parsedFiles.filter(f => f.id !== fileId);
         onFilesUpdate(zakazka.id, updatedFiles);
       } else {
         alert('Chyba při mazání souboru: ' + result.error);
@@ -89,9 +104,9 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
     return '📁';
   };
 
-  const filesCount = zakazka.soubory?.length || 0;
+  const filesCount = parsedFiles?.length || 0;
   const hasFiles = filesCount > 0;
-  const totalSize = zakazka.soubory?.reduce((sum, file) => sum + (file.size || 0), 0) || 0;
+  const totalSize = parsedFiles?.reduce((sum, file) => sum + (file.size || 0), 0) || 0;
 
   return (
     <div style={{ position: 'relative', minWidth: '120px' }}>
@@ -201,13 +216,13 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                 </div>
               </div>
 
-              {zakazka.soubory.map((file, index) => (
+              {parsedFiles.map((file, index) => (
                 <div key={file.id || index} style={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
                   alignItems: 'center',
                   padding: '12px 0',
-                  borderBottom: index < zakazka.soubory.length - 1 ? '1px solid #eee' : 'none'
+                  borderBottom: index < parsedFiles.length - 1 ? '1px solid #eee' : 'none'
                 }}>
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{ fontSize: '16px' }}>
