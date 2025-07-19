@@ -409,7 +409,7 @@ export const AuthProvider = ({ children }) => {
         doba_realizace: parseInt(orderData.delkaRealizace) || 1,
         poznamka: orderData.poznamky || '',
         soubory: JSON.stringify(orderData.soubory || []),
-        zisk: (parseInt(orderData.castka) || 0) - (parseInt(orderData.material) || 0) - (parseInt(orderData.pomocnik) || 0) - (parseInt(orderData.palivo) || 0),
+        zisk: (parseInt(orderData.castka) || 0) - (parseInt(orderData.fee) || 0) - (parseInt(orderData.material) || 0) - (parseInt(orderData.pomocnik) || 0) - (parseInt(orderData.palivo) || 0),
         fee_off: parseInt(orderData.castka) || 0,
         created_at: new Date().toISOString()
       };
@@ -505,7 +505,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const updatedOrderData = {
         ...updatedData,
-        zisk: (updatedData.castka || 0) - (updatedData.material || 0) - (updatedData.pomocnik || 0) - (updatedData.palivo || 0)
+        zisk: (updatedData.castka || 0) - (updatedData.fee || 0) - (updatedData.material || 0) - (updatedData.pomocnik || 0) - (updatedData.palivo || 0)
       };
 
       // Okamžitě aktualizuj cache

@@ -11,30 +11,12 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
   useEffect(() => {
     try {
       if (zakazka.soubory) {
-        // Bezpečné parsování s fallbackem
-        if (typeof zakazka.soubory === 'string') {
-          // Pokud je string prázdný nebo obsahuje jen "[]", vrať prázdné pole
-          if (zakazka.soubory.trim() === '' || zakazka.soubory.trim() === '[]') {
-            setParsedFiles([]);
-          } else {
-            try {
-              const parsed = JSON.parse(zakazka.soubory);
-              setParsedFiles(Array.isArray(parsed) ? parsed : []);
-            } catch (parseError) {
-              console.warn("Chyba při parsování souborů:", parseError, "Data:", zakazka.soubory);
-              setParsedFiles([]);
-            }
-          }
-        } else if (Array.isArray(zakazka.soubory)) {
-          setParsedFiles(zakazka.soubory);
-        } else {
-          setParsedFiles([]);
-        }
+        setParsedFiles(typeof zakazka.soubory === 'string' ? JSON.parse(zakazka.soubory) : zakazka.soubory);
       } else {
         setParsedFiles([]);
       }
     } catch (error) {
-      console.error("Kritická chyba při zpracování souborů:", error);
+      console.error("Error parsing soubory:", error);
       setParsedFiles([]);
     }
   }, [zakazka.soubory]);
@@ -224,7 +206,6 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
               }}
               onMouseEnter={() => setShowDropdown(true)}
               onMouseLeave={() => setShowDropdown(false)}
-              onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h4 style={{ margin: '0', color: '#333', fontSize: '16px' }}>
@@ -235,107 +216,76 @@ const FileUploadCell = ({ zakazka, onFilesUpdate }) => {
                 </div>
               </div>
 
-              {parsedFiles && parsedFiles.length > 0 ? parsedFiles.map((file, index) => {
-                // Bezpečná kontrola souboru
-                if (!file || typeof file !== 'object') {
-                  console.warn('Nevalidní soubor na indexu:', index, file);
-                  return null;
-                }
-
-                return (
-                  <div key={file.id || `file-${index}`} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    padding: '12px 0',
-                    borderBottom: index < parsedFiles.length - 1 ? '1px solid #eee' : 'none'
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ fontSize: '16px' }}>
-                        {getFileIcon(file.type || 'application/octet-stream')}
-                      </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ 
-                          fontSize: '14px', 
-                          color: '#333', 
-                          fontWeight: '500',
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {file.name || 'Neznámý soubor'}
-                        </div>
-                        <div style={{ 
-                          fontSize: '12px', 
-                          color: '#6b7280',
-                          marginTop: '2px'
-                        }}>
-                          {file.size ? fileManager.formatFileSize(file.size) : 'Neznámá velikost'}
-                          {file.compressed && ' (komprimováno)'}
-                          {file.originalSize && file.originalSize > file.size && 
-                            ` • úspora ${fileManager.formatFileSize(file.originalSize - file.size)}`
-                          }
-                        </div>
-                      </div>
+              {parsedFiles.map((file, index) => (
+                <div key={file.id || index} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  padding: '12px 0',
+                  borderBottom: index < parsedFiles.length - 1 ? '1px solid #eee' : 'none'
+                }}>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontSize: '16px' }}>
+                      {getFileIcon(file.type)}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
-                      <button
-                        style={{
-                          background: '#3B82F6',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          fontWeight: '500'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (file.url && file.name) {
-                            handleDownload(file);
-                          } else {
-                            console.warn('Nelze stáhnout soubor - chybí URL nebo název');
-                          }
-                        }}
-                      >
-                        📥 stáhnout
-                      </button>
-                      <button
-                        style={{
-                          background: '#EF4444',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          fontWeight: '500'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (file.id) {
-                            handleDelete(file.id);
-                          } else {
-                            console.warn('Nelze smazat soubor - chybí ID');
-                          }
-                        }}
-                      >
-                        🗑️ smazat
-                      </button>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: '#333', 
+                        fontWeight: '500',
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {file.name}
+                      </div>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#6b7280',
+                        marginTop: '2px'
+                      }}>
+                        {fileManager.formatFileSize(file.size)}
+                        {file.compressed && ' (komprimováno)'}
+                        {file.originalSize && file.originalSize > file.size && 
+                          ` • úspora ${fileManager.formatFileSize(file.originalSize - file.size)}`
+                        }
+                      </div>
                     </div>
                   </div>
-                );
-              }).filter(Boolean) : (
-                <div style={{ 
-                  textAlign: 'center', 
-                  color: '#6b7280', 
-                  padding: '20px',
-                  fontStyle: 'italic'
-                }}>
-                  Žádné soubory nejsou nahrané
+                  <div style={{ display: 'flex', gap: '8px', marginLeft: '12px' }}>
+                    <button
+                      style={{
+                        background: '#3B82F6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                      onClick={() => handleDownload(file)}
+                    >
+                      📥 stáhnout
+                    </button>
+                    <button
+                      style={{
+                        background: '#EF4444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: '500'
+                      }}
+                      onClick={() => handleDelete(file.id)}
+                    >
+                      🗑️ smazat
+                    </button>
+                  </div>
                 </div>
-              )}
+              ))}
 
               <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
                 <button
